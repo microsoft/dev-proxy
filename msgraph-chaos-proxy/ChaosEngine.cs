@@ -81,14 +81,14 @@ namespace Microsoft.Graph.ChaosProxy {
             _throttledRequests = new Dictionary<string, DateTime>();
         }
 
-        public async Task Run(CancellationToken cancellationToken) {
+        public async Task Run(CancellationToken? cancellationToken) {
             _proxyServer = new ProxyServer();
 
             _proxyServer.BeforeRequest += OnRequest;
             _proxyServer.BeforeResponse += OnResponse;
             _proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
             _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelection;
-            cancellationToken.Register(OnCancellation);
+            cancellationToken?.Register(OnCancellation);
 
             _explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Any, _config.Port, true) {
                 // Use self-issued generic certificate on all https requests
@@ -271,7 +271,7 @@ namespace Microsoft.Graph.ChaosProxy {
                 body = JsonSerializer.Serialize(new ErrorResponseBody {
                     Error = new ErrorResponseError {
                         Code = new Regex("([A-Z])").Replace(errorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
-                        Message = "Some error Happened",
+                        Message = "Some error happened",
                         InnerError = new ErrorResponseInnerError {
                             RequestId = requestId,
                             Date = requestDate
@@ -279,7 +279,7 @@ namespace Microsoft.Graph.ChaosProxy {
                     }
                 });
             }
-            Console.WriteLine($"\t Failed {e.HttpClient.Request.RequestUri.AbsolutePath} with {errorStatus}");
+            Console.WriteLine($"\t {(matchingResponse is not null ? "Mocked" : "Failed")} {e.HttpClient.Request.RequestUri.AbsolutePath} with {errorStatus}");
             e.GenericResponse(body ?? string.Empty, errorStatus, headers);
         }
 
@@ -291,7 +291,7 @@ namespace Microsoft.Graph.ChaosProxy {
             }
 
             var mockResponse = _config.Responses.FirstOrDefault(r => {
-                if (r.Url == request.Url) {
+                if (r.Url == request.RequestUri.AbsolutePath) {
                     return true;
                 }
 
@@ -303,7 +303,7 @@ namespace Microsoft.Graph.ChaosProxy {
 
                 // turn mock URL with wildcard into a regex and match against the request URL
                 var urlRegex = Regex.Escape(r.Url).Replace("\\*", ".*");
-                return Regex.IsMatch(request.Url, urlRegex);
+                return Regex.IsMatch(request.RequestUri.AbsolutePath, urlRegex);
             });
             return mockResponse;
         }

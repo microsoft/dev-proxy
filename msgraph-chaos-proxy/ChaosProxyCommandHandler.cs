@@ -8,12 +8,15 @@ namespace Microsoft.Graph.ChaosProxy {
         public Option<int> Port { get; set; }
         public Option<int> Rate { get; set; }
         public Option<bool> DisableMocks { get; set; }
+        public Option<string> Cloud { get; set; }
 
 
-        public ChaosProxyCommandHandler(Option<int> port, Option<int> rate, Option<bool> disableMocks) {
+        public ChaosProxyCommandHandler(Option<int> port, Option<int> rate, Option<bool> disableMocks, Option<string> cloud)
+        {
             Port = port ?? throw new ArgumentNullException(nameof(port));
             Rate = rate ?? throw new ArgumentNullException(nameof(rate));
             DisableMocks = disableMocks ?? throw new ArgumentNullException(nameof(disableMocks));
+            Cloud = cloud ?? throw new ArgumentNullException(nameof(cloud));
         }
 
 
@@ -25,10 +28,13 @@ namespace Microsoft.Graph.ChaosProxy {
             int port = context.ParseResult.GetValueForOption(Port);
             int failureRate = context.ParseResult.GetValueForOption(Rate);
             bool disableMocks = context.ParseResult.GetValueForOption(DisableMocks);
-            CancellationToken cancellationToken = (CancellationToken)context.BindingContext.GetService(typeof(CancellationToken));
+            string? cloud = context.ParseResult.GetValueForOption(Cloud);
+            CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
             Configuration.Port = port;
             Configuration.FailureRate = failureRate;
             Configuration.NoMocks = disableMocks;
+            if (cloud is not null)
+                Configuration.Cloud = cloud;
             
             try {
                 await new ChaosEngine(Configuration).Run(cancellationToken);

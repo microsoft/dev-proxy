@@ -8,6 +8,7 @@ namespace Microsoft.Graph.ChaosProxy {
             var portOption = new Option<int>("--port", "The port for the proxy server to listen on");
             portOption.AddAlias("-p");
             portOption.ArgumentHelpName = "port";
+            portOption.SetDefaultValue(8000);
             
             var rateOption = new Option<int>("--failure-rate", "The percentage of requests to graph to respond with failures");
             rateOption.AddAlias("-f");
@@ -18,18 +19,25 @@ namespace Microsoft.Graph.ChaosProxy {
                     input.ErrorMessage = $"{value} is not a valid failure rate. Specify a number between 0 and 100";
                 }
             });
+            rateOption.SetDefaultValue(50);
 
             var noMocksOptions = new Option<bool>("--no-mocks", "Disable loading mock requests");
             noMocksOptions.ArgumentHelpName = "no mocks";
+
+            var cloudOption = new Option<string>("--cloud", "Set the target cloud to proxy requests for");
+            cloudOption.AddAlias("-c");
+            cloudOption.ArgumentHelpName = "cloud";
+            cloudOption.SetDefaultValue("global");
             
             var command = new RootCommand
             {
                 portOption,
                 rateOption,
-                noMocksOptions
+                noMocksOptions,
+                cloudOption,
             };
             command.Description = "HTTP proxy to create random failures for calls to Microsoft Graph";
-            command.Handler = new ChaosProxyCommandHandler(portOption, rateOption, noMocksOptions);
+            command.Handler = new ChaosProxyCommandHandler(portOption, rateOption, noMocksOptions, cloudOption);
             
             return command;
         }
