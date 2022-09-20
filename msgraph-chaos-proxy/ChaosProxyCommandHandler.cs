@@ -1,16 +1,19 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Text.Json;
 
 namespace Microsoft.Graph.ChaosProxy {
     public class ChaosProxyCommandHandler : ICommandHandler {
         public Option<int> Port { get; set; }
         public Option<int> Rate { get; set; }
+        public Option<bool> DisableMocks { get; set; }
 
 
-        public ChaosProxyCommandHandler(Option<int> port, Option<int> rate) {
+        public ChaosProxyCommandHandler(Option<int> port, Option<int> rate, Option<bool> disableMocks) {
             Port = port ?? throw new ArgumentNullException(nameof(port));
             Rate = rate ?? throw new ArgumentNullException(nameof(rate));
+            DisableMocks = disableMocks ?? throw new ArgumentNullException(nameof(disableMocks));
         }
 
 
@@ -21,9 +24,11 @@ namespace Microsoft.Graph.ChaosProxy {
         public async Task<int> InvokeAsync(InvocationContext context) {
             int port = context.ParseResult.GetValueForOption(Port);
             int failureRate = context.ParseResult.GetValueForOption(Rate);
+            bool disableMocks = context.ParseResult.GetValueForOption(DisableMocks);
             CancellationToken cancellationToken = (CancellationToken)context.BindingContext.GetService(typeof(CancellationToken));
             Configuration.Port = port;
             Configuration.FailureRate = failureRate;
+            Configuration.NoMocks = disableMocks;
             
             try {
                 await new ChaosEngine(Configuration).Run(cancellationToken);
@@ -59,6 +64,11 @@ namespace Microsoft.Graph.ChaosProxy {
                     .Build();
             var configObject = new ChaosProxyConfiguration();
             configuration.Bind(configObject);
+
+            // Read responses separately because ConfigurationBuilder can't properly handle
+            // complex JSON objects
+            configObject.LoadResponses();
+
             return configObject;
         });
     }

@@ -18,14 +18,18 @@ namespace Microsoft.Graph.ChaosProxy {
                     input.ErrorMessage = $"{value} is not a valid failure rate. Specify a number between 0 and 100";
                 }
             });
+
+            var noMocksOptions = new Option<bool>("--no-mocks", "Disable loading mock requests");
+            noMocksOptions.ArgumentHelpName = "no mocks";
             
             var command = new RootCommand
             {
                 portOption,
-                rateOption
+                rateOption,
+                noMocksOptions
             };
             command.Description = "HTTP proxy to create random failures for calls to Microsoft Graph";
-            command.Handler = new ChaosProxyCommandHandler(portOption, rateOption);
+            command.Handler = new ChaosProxyCommandHandler(portOption, rateOption, noMocksOptions);
             
             return command;
         }

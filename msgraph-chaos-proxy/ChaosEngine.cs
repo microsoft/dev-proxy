@@ -66,6 +66,8 @@ namespace Microsoft.Graph.ChaosProxy {
 
         public ChaosEngine(ChaosProxyConfiguration config) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _config.InitResponsesWatcher();
+
             _random = new Random();
         }
 
@@ -170,10 +172,7 @@ namespace Microsoft.Graph.ChaosProxy {
             }
         }
 
-        // Hacky implementation to provide randomized failures
-        // Skews toward providing 429 
-        // Additional headers should be added to more accurately represent the failure
-        // Retry after times should be pseudo randomized?
+        // TODO: Retry after times should be pseudo randomized?
         private void FailResponse(SessionEventArgs e) {
             var requestId = Guid.NewGuid().ToString();
             var requestDate = DateTime.Now.ToString();
@@ -186,15 +185,59 @@ namespace Microsoft.Graph.ChaosProxy {
                 new HttpHeader("Strict-Transport-Security", "")
             };
 
-            var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
-            var errorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length - 1)];
+            var body = "";
+            var errorStatus = HttpStatusCode.OK;
+
+            var matchingResponse = GetMatchingMockResponse(e.HttpClient.Request);
+            if (matchingResponse != null) {
+                if (matchingResponse.ResponseCode != null) {
+                    errorStatus = (HttpStatusCode)matchingResponse.ResponseCode;
+                }
+
+                if (matchingResponse.ResponseHeaders != null) {
+                    foreach (var key in matchingResponse.ResponseHeaders.Keys) {
+                        headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
+                    }
+                }
+
+                if (!(matchingResponse.ResponseBody is null)) {
+                    var bodyString = JsonSerializer.Serialize(matchingResponse.ResponseBody) as string;
+                    // we get a JSON string so need to start with the opening quote
+                    if (bodyString.StartsWith("\"@")) {
+                        // we've got a mock body starting with @-token which means we're sending
+                        // a response from a file on disk
+                        // if we can read the file, we can immediately send the response and
+                        // skip the rest of the logic in this method
+                        // remove the surrounding quotes and the @-token
+                        var filePath = Path.Combine(Directory.GetCurrentDirectory(), bodyString.Trim('"').Substring(1));
+                        if (!File.Exists(filePath)) {
+                            Console.Error.WriteLine($"File {filePath} not found. Serving file path in the mock response");
+                            body = bodyString;
+                        }
+                        else {
+                            var bodyBytes = File.ReadAllBytes(filePath);
+                            e.GenericResponse(bodyBytes, errorStatus, headers);
+                            return;
+                        }
+                    }
+                    else {
+                        body = bodyString;
+                    }
+                }
+            }
+            else {
+                // there's no matching mock response so pick a random response
+                // for the current request method
+                var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
+                errorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length - 1)];
+
+            }
+
             if (errorStatus == HttpStatusCode.TooManyRequests) {
                 headers.Add(new HttpHeader("Retry-After", "3"));
             }
 
-            var body = "";
-
-            if ((int)errorStatus >= 400) {
+            if ((int)errorStatus >= 400 && String.IsNullOrEmpty(body)) {
                 body = JsonSerializer.Serialize(new ErrorResponseBody {
                     Error = new ErrorResponseError {
                         Code = new Regex("([A-Z])").Replace(errorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
@@ -210,12 +253,36 @@ namespace Microsoft.Graph.ChaosProxy {
             e.GenericResponse(body, errorStatus, headers);
         }
 
+        private ChaosProxyMockResponse GetMatchingMockResponse(Request request) {
+            if (_config.NoMocks ||
+                _config.Responses == null ||
+                !_config.Responses.Any()) {
+                return null;
+            }
+
+            var mockResponse = _config.Responses.FirstOrDefault(r => {
+                if (r.Url == request.Url) {
+                    return true;
+                }
+
+                // check if the URL contains a wildcard
+                // if it doesn't, it's not a match for the current request for sure
+                if (!r.Url.Contains('*')) {
+                    return false;
+                }
+
+                // turn mock URL with wildcard into a regex and match against the request URL
+                var urlRegex = Regex.Escape(r.Url).Replace("\\*", ".*");
+                return Regex.IsMatch(request.Url, urlRegex);
+            });
+            return mockResponse;
+        }
+
         // Modify response
         async Task OnResponse(object sender, SessionEventArgs e) {
             // read response headers
             var responseHeaders = e.HttpClient.Response.Headers;
 
-            //if (!e.ProxySession.Request.Host.Equals("medeczane.sgk.gov.tr")) return;
             if (e.HttpClient.Request.Method == "GET" || e.HttpClient.Request.Method == "POST") {
                 if (e.HttpClient.Response.StatusCode == 200) {
                     if (e.HttpClient.Response.ContentType != null && e.HttpClient.Response.ContentType.Trim().ToLower().Contains("text/html")) {

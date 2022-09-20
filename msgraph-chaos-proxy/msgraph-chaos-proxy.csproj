@@ -24,4 +24,13 @@
     <PackageReference Include="Titanium.Web.Proxy" Version="3.1.1450" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="picture.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="responses.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
