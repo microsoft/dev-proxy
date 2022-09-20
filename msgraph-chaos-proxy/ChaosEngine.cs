@@ -82,6 +82,7 @@ namespace Microsoft.Graph.ChaosProxy {
         }
 
         public async Task Run(CancellationToken? cancellationToken) {
+            Console.WriteLine($"Configuring proxy for cloud {_config.Cloud} - {_config.HostName}");
             _proxyServer = new ProxyServer();
 
             _proxyServer.BeforeRequest += OnRequest;
@@ -143,8 +144,7 @@ namespace Microsoft.Graph.ChaosProxy {
 
         // uses config to determine if a request should be failed
         private FailMode ShouldFail(Request r) {
-            DateTime retryAfterDate = DateTime.MaxValue;
-            if (_throttledRequests.TryGetValue(r.Url, out retryAfterDate)) {
+            if (_throttledRequests.TryGetValue(r.Url, out DateTime retryAfterDate)) {
                 if (retryAfterDate > DateTime.Now) {
                     Console.Error.WriteLine($"Calling {r.Url} again before waiting for the Retry-After period. Request will be throttled");
                     return FailMode.Throttled;
@@ -161,19 +161,15 @@ namespace Microsoft.Graph.ChaosProxy {
         async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e) {
             string hostname = e.HttpClient.Request.RequestUri.Host;
 
-            // TODO: Provide host name to be watched via config based on host name for the desired cloud
+            // Ensures that only the targeted Https domains are proxyied
             if (!hostname.Contains(_config.HostName)) {
-                // Exclude Https addresses you don't want to proxy
                 e.DecryptSsl = false;
             }
         }
 
         async Task OnRequest(object sender, SessionEventArgs e) {
-            // read request headers
-            var requestHeaders = e.HttpClient.Request.Headers;
-
             var method = e.HttpClient.Request.Method.ToUpper();
-            if ((method == "POST" || method == "PUT" || method == "PATCH")) {
+            if (method is "POST" or "PUT" or "PATCH") {
                 // Get/Set request body bytes
                 byte[] bodyBytes = await e.GetRequestBody();
                 e.SetRequestBody(bodyBytes);
@@ -190,97 +186,77 @@ namespace Microsoft.Graph.ChaosProxy {
             // Chaos happens only for graph requestss
             if (e.HttpClient.Request.RequestUri.Host.Contains(_config.HostName)) {
                 Console.WriteLine($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUri.AbsolutePath}");
-                var failMode = ShouldFail(e.HttpClient.Request);
-                if (failMode != FailMode.PassThru) {
-                    FailResponse(e, failMode);
-                }
+                HandleGraphRequest(e);
             }
         }
 
-        private void FailResponse(SessionEventArgs e, FailMode failMode) {
-            var requestId = Guid.NewGuid().ToString();
-            var requestDate = DateTime.Now.ToString();
-            var headers = new List<HttpHeader> {
-                new HttpHeader("Cache-Control", "no-store"),
-                new HttpHeader("request-id", requestId),
-                new HttpHeader("client-request-id", requestId),
-                new HttpHeader("x-ms-ags-diagnostic", ""),
-                new HttpHeader("Date", requestDate),
-                new HttpHeader("Strict-Transport-Security", "")
-            };
-
-            var body = "";
-            var errorStatus = HttpStatusCode.OK;
-
+        private void HandleGraphRequest(SessionEventArgs e) {
+            var responseComponents = ResponseComponents.Build();
             var matchingResponse = GetMatchingMockResponse(e.HttpClient.Request);
             if (matchingResponse is not null) {
-                if (matchingResponse.ResponseCode is not null) {
-                    errorStatus = (HttpStatusCode)matchingResponse.ResponseCode;
-                }
-
-                if (matchingResponse.ResponseHeaders is not null) {
-                    foreach (var key in matchingResponse.ResponseHeaders.Keys) {
-                        headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
-                    }
-                }
-
-                if (!(matchingResponse.ResponseBody is null)) {
-                    var bodyString = JsonSerializer.Serialize(matchingResponse.ResponseBody) as string;
-                    // we get a JSON string so need to start with the opening quote
-                    if (bodyString?.StartsWith("\"@") ?? false) {
-                        // we've got a mock body starting with @-token which means we're sending
-                        // a response from a file on disk
-                        // if we can read the file, we can immediately send the response and
-                        // skip the rest of the logic in this method
-                        // remove the surrounding quotes and the @-token
-                        var filePath = Path.Combine(Directory.GetCurrentDirectory(), bodyString.Trim('"').Substring(1));
-                        if (!File.Exists(filePath)) {
-                            Console.Error.WriteLine($"File {filePath} not found. Serving file path in the mock response");
-                            body = bodyString;
-                        }
-                        else {
-                            var bodyBytes = File.ReadAllBytes(filePath);
-                            e.GenericResponse(bodyBytes, errorStatus, headers);
-                            return;
-                        }
-                    }
-                    else {
-                        body = bodyString;
-                    }
-                }
+                ProcessMockResponse(e, responseComponents, matchingResponse);
             }
             else {
-                if (failMode == FailMode.Throttled) {
-                    errorStatus = HttpStatusCode.TooManyRequests;
+                var failMode = ShouldFail(e.HttpClient.Request);
+                if (failMode == FailMode.PassThru) {
+                    Console.WriteLine($"\tPassed through {e.HttpClient.Request.RequestUri.AbsolutePath}");
+                    return;
+                }
+
+                FailResponse(e, responseComponents, failMode);
+
+            }
+            if (!responseComponents.ResponseIsComplete)
+                UpdateProxyResponse(e, responseComponents, matchingResponse);
+        }
+
+        private void FailResponse(SessionEventArgs e, ResponseComponents r, FailMode failMode) {
+            if (failMode == FailMode.Throttled) {
+                r.ErrorStatus = HttpStatusCode.TooManyRequests;
+            }
+            else {
+                // there's no matching mock response so pick a random response
+                // for the current request method
+                var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
+                r.ErrorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length - 1)];
+            }
+        }
+
+        private static void ProcessMockResponse(SessionEventArgs e, ResponseComponents responseComponents, ChaosProxyMockResponse matchingResponse) {
+            if (matchingResponse.ResponseCode is not null) {
+                responseComponents.ErrorStatus = (HttpStatusCode)matchingResponse.ResponseCode;
+            }
+
+            if (matchingResponse.ResponseHeaders is not null) {
+                foreach (var key in matchingResponse.ResponseHeaders.Keys) {
+                    responseComponents.Headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
+                }
+            }
+
+            if (matchingResponse.ResponseBody is not null) {
+                var bodyString = JsonSerializer.Serialize(matchingResponse.ResponseBody) as string;
+                // we get a JSON string so need to start with the opening quote
+                if (bodyString?.StartsWith("\"@") ?? false) {
+                    // we've got a mock body starting with @-token which means we're sending
+                    // a response from a file on disk
+                    // if we can read the file, we can immediately send the response and
+                    // skip the rest of the logic in this method
+                    // remove the surrounding quotes and the @-token
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), bodyString.Trim('"').Substring(1));
+                    if (!File.Exists(filePath)) {
+                        Console.Error.WriteLine($"File {filePath} not found. Serving file path in the mock response");
+                        responseComponents.Body = bodyString;
+                    }
+                    else {
+                        var bodyBytes = File.ReadAllBytes(filePath);
+                        e.GenericResponse(bodyBytes, responseComponents.ErrorStatus, responseComponents.Headers);
+                        responseComponents.ResponseIsComplete = true;
+                    }
                 }
                 else {
-                    // there's no matching mock response so pick a random response
-                    // for the current request method
-                    var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
-                    errorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length - 1)];
+                    responseComponents.Body = bodyString;
                 }
             }
-
-            if (errorStatus == HttpStatusCode.TooManyRequests) {
-                var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
-                _throttledRequests[e.HttpClient.Request.Url] = retryAfterDate;
-                headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
-            }
-
-            if ((int)errorStatus >= 400 && string.IsNullOrEmpty(body)) {
-                body = JsonSerializer.Serialize(new ErrorResponseBody {
-                    Error = new ErrorResponseError {
-                        Code = new Regex("([A-Z])").Replace(errorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
-                        Message = "Some error happened",
-                        InnerError = new ErrorResponseInnerError {
-                            RequestId = requestId,
-                            Date = requestDate
-                        }
-                    }
-                });
-            }
-            Console.WriteLine($"\t {(matchingResponse is not null ? "Mocked" : "Failed")} {e.HttpClient.Request.RequestUri.AbsolutePath} with {errorStatus}");
-            e.GenericResponse(body ?? string.Empty, errorStatus, headers);
         }
 
         private ChaosProxyMockResponse? GetMatchingMockResponse(Request request) {
@@ -308,12 +284,35 @@ namespace Microsoft.Graph.ChaosProxy {
             return mockResponse;
         }
 
+        private void UpdateProxyResponse(SessionEventArgs e, ResponseComponents responseComponents, ChaosProxyMockResponse? matchingResponse) {
+            if (responseComponents.ErrorStatus == HttpStatusCode.TooManyRequests) {
+                var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
+                _throttledRequests[e.HttpClient.Request.Url] = retryAfterDate;
+                responseComponents.Headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
+            }
+
+            if ((int)responseComponents.ErrorStatus >= 400 && string.IsNullOrEmpty(responseComponents.Body)) {
+                responseComponents.Body = JsonSerializer.Serialize(new ErrorResponseBody {
+                    Error = new ErrorResponseError {
+                        Code = new Regex("([A-Z])").Replace(responseComponents.ErrorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
+                        Message = "Some error happened",
+                        InnerError = new ErrorResponseInnerError {
+                            RequestId = responseComponents.RequestId,
+                            Date = responseComponents.RequestDate
+                        }
+                    }
+                });
+            }
+            Console.WriteLine($"\t{(matchingResponse is not null ? "Mocked" : "Failed")} {e.HttpClient.Request.RequestUri.AbsolutePath} with {responseComponents.ErrorStatus}");
+            e.GenericResponse(responseComponents.Body ?? string.Empty, responseComponents.ErrorStatus, responseComponents.Headers);
+        }
+
         // Modify response
         async Task OnResponse(object sender, SessionEventArgs e) {
             // read response headers
             var responseHeaders = e.HttpClient.Response.Headers;
 
-            if (e.HttpClient.Request.Method == "GET" || e.HttpClient.Request.Method == "POST") {
+            if (e.HttpClient.Request.Method is "GET" or "POST") {
                 if (e.HttpClient.Response.StatusCode == 200) {
                     if (e.HttpClient.Response.ContentType is not null && e.HttpClient.Response.ContentType.Trim().ToLower().Contains("text/html")) {
                         byte[] bodyBytes = await e.GetResponseBody();
@@ -345,6 +344,29 @@ namespace Microsoft.Graph.ChaosProxy {
         Task OnCertificateSelection(object sender, CertificateSelectionEventArgs e) {
             // set e.clientCertificate to override
             return Task.CompletedTask;
+        }
+    }
+
+    public class ResponseComponents {
+        public string RequestId { get; } = Guid.NewGuid().ToString();
+        public string RequestDate { get; } = DateTime.Now.ToString();
+        public List<HttpHeader> Headers { get; } = new List<HttpHeader>
+        {
+            new HttpHeader("Cache-Control", "no-store"),
+            new HttpHeader("x-ms-ags-diagnostic", ""),
+            new HttpHeader("Strict-Transport-Security", "")
+        };
+
+        public string? Body { get; set; } = string.Empty;
+        public HttpStatusCode ErrorStatus { get; set; } = HttpStatusCode.OK;
+        public bool ResponseIsComplete { get; set; } = false;
+
+        public static ResponseComponents Build() {
+            var result = new ResponseComponents();
+            result.Headers.Add(new HttpHeader("request-id", result.RequestId));
+            result.Headers.Add(new HttpHeader("client-request-id", result.RequestId));
+            result.Headers.Add(new HttpHeader("Date", result.RequestDate));
+            return result;
         }
     }
 }

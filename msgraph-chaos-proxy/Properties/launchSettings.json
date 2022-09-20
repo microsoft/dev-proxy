@@ -1,8 +1,18 @@
 {
   "profiles": {
-    "msgraph-chaos-proxy": {
+    "No chaos with mock responses": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 8080 --failure-rate 0",
+      "hotReloadEnabled": true
+    },
+    "All chaos without mock responses": {
       "commandName": "Project",
       "commandLineArgs": "--port 8080 --failure-rate 100 --no-mocks",
+      "hotReloadEnabled": true
+    },
+    "All chaos with mock responses - China Cloud": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 8080 --failure-rate 100 --no-mocks --cloud china",
       "hotReloadEnabled": true
     }
   }
