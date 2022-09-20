@@ -15,7 +15,8 @@ namespace Microsoft.Graph.ChaosProxy {
 
     public class ChaosEngine {
         private int retryAfterInSeconds = 5;
-        private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new Dictionary<string, HttpStatusCode[]> {
+        private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new()
+        {
             {
                 "GET", new[] {
                     HttpStatusCode.TooManyRequests,
@@ -70,7 +71,7 @@ namespace Microsoft.Graph.ChaosProxy {
         private readonly Random _random;
         private ProxyServer? _proxyServer;
         private ExplicitProxyEndPoint? _explicitEndPoint;
-        private Dictionary<string, DateTime> _throttledRequests;
+        private readonly Dictionary<string, DateTime> _throttledRequests;
 
         public ChaosEngine(ChaosProxyConfiguration config) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -212,12 +213,12 @@ namespace Microsoft.Graph.ChaosProxy {
             var errorStatus = HttpStatusCode.OK;
 
             var matchingResponse = GetMatchingMockResponse(e.HttpClient.Request);
-            if (matchingResponse != null) {
-                if (matchingResponse.ResponseCode != null) {
+            if (matchingResponse is not null) {
+                if (matchingResponse.ResponseCode is not null) {
                     errorStatus = (HttpStatusCode)matchingResponse.ResponseCode;
                 }
 
-                if (matchingResponse.ResponseHeaders != null) {
+                if (matchingResponse.ResponseHeaders is not null) {
                     foreach (var key in matchingResponse.ResponseHeaders.Keys) {
                         headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
                     }
@@ -226,7 +227,7 @@ namespace Microsoft.Graph.ChaosProxy {
                 if (!(matchingResponse.ResponseBody is null)) {
                     var bodyString = JsonSerializer.Serialize(matchingResponse.ResponseBody) as string;
                     // we get a JSON string so need to start with the opening quote
-                    if (bodyString.StartsWith("\"@")) {
+                    if (bodyString?.StartsWith("\"@") ?? false) {
                         // we've got a mock body starting with @-token which means we're sending
                         // a response from a file on disk
                         // if we can read the file, we can immediately send the response and
@@ -266,7 +267,7 @@ namespace Microsoft.Graph.ChaosProxy {
                 headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
             }
 
-            if ((int)errorStatus >= 400 && String.IsNullOrEmpty(body)) {
+            if ((int)errorStatus >= 400 && string.IsNullOrEmpty(body)) {
                 body = JsonSerializer.Serialize(new ErrorResponseBody {
                     Error = new ErrorResponseError {
                         Code = new Regex("([A-Z])").Replace(errorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
@@ -279,12 +280,12 @@ namespace Microsoft.Graph.ChaosProxy {
                 });
             }
 
-            e.GenericResponse(body, errorStatus, headers);
+            e.GenericResponse(body ?? string.Empty, errorStatus, headers);
         }
 
-        private ChaosProxyMockResponse GetMatchingMockResponse(Request request) {
+        private ChaosProxyMockResponse? GetMatchingMockResponse(Request request) {
             if (_config.NoMocks ||
-                _config.Responses == null ||
+                _config.Responses is null ||
                 !_config.Responses.Any()) {
                 return null;
             }
@@ -314,7 +315,7 @@ namespace Microsoft.Graph.ChaosProxy {
 
             if (e.HttpClient.Request.Method == "GET" || e.HttpClient.Request.Method == "POST") {
                 if (e.HttpClient.Response.StatusCode == 200) {
-                    if (e.HttpClient.Response.ContentType != null && e.HttpClient.Response.ContentType.Trim().ToLower().Contains("text/html")) {
+                    if (e.HttpClient.Response.ContentType is not null && e.HttpClient.Response.ContentType.Trim().ToLower().Contains("text/html")) {
                         byte[] bodyBytes = await e.GetResponseBody();
                         e.SetResponseBody(bodyBytes);
 
@@ -324,7 +325,7 @@ namespace Microsoft.Graph.ChaosProxy {
                 }
             }
 
-            if (e.UserData != null) {
+            if (e.UserData is not null) {
                 // access request from UserData property where we stored it in RequestHandler
                 var request = (Request)e.UserData;
             }

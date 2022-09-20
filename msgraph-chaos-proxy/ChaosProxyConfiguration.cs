@@ -12,8 +12,8 @@ namespace Microsoft.Graph.ChaosProxy {
         [JsonPropertyName("responses")]
         public IEnumerable<ChaosProxyMockResponse> Responses { get; set; } = new ChaosProxyMockResponse[] { };
 
-        private string _responsesFilePath;
-        private FileSystemWatcher _watcher;
+        private readonly string _responsesFilePath;
+        private FileSystemWatcher? _watcher;
 
         public ChaosProxyConfiguration() {
             _responsesFilePath = Path.Combine(Directory.GetCurrentDirectory(), "responses.json");
@@ -21,14 +21,16 @@ namespace Microsoft.Graph.ChaosProxy {
 
         public void LoadResponses() {
             if (!File.Exists(_responsesFilePath)) {
-                Responses = new ChaosProxyMockResponse[] { };
+                Responses = Array.Empty<ChaosProxyMockResponse>();
                 return;
             }
 
             try {
                 var responsesString = File.ReadAllText(_responsesFilePath);
                 var responsesConfig = JsonSerializer.Deserialize<ChaosProxyConfiguration>(responsesString);
-                Responses = responsesConfig.Responses;
+                IEnumerable<ChaosProxyMockResponse>? configResponses = responsesConfig?.Responses;
+                if (configResponses is not null)
+                    Responses = configResponses;
             }
             catch (Exception ex) {
                 Console.Error.WriteLine($"An error has occurred while reading responses.json:");
@@ -37,11 +39,16 @@ namespace Microsoft.Graph.ChaosProxy {
         }
 
         public void InitResponsesWatcher() {
-            if (_watcher != null) {
+            if (_watcher is not null) {
                 return;
             }
 
-            _watcher = new FileSystemWatcher(Path.GetDirectoryName(_responsesFilePath));
+            string? path = Path.GetDirectoryName(_responsesFilePath);
+            if (path is null )
+            {
+                throw new InvalidOperationException($"{_responsesFilePath} is an invalid path");
+            }
+            _watcher = new FileSystemWatcher(path);
             _watcher.NotifyFilter = NotifyFilters.CreationTime
                                  | NotifyFilters.FileName
                                  | NotifyFilters.LastWrite
