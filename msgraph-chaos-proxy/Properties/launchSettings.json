@@ -2,7 +2,7 @@
   "profiles": {
     "msgraph-chaos-proxy": {
       "commandName": "Project",
-      "commandLineArgs": "--port 8080 --failure-rate 50",
+      "commandLineArgs": "--port 8080 --failure-rate 100 --no-mocks",
       "hotReloadEnabled": true
     }
   }

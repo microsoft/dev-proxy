@@ -7,7 +7,14 @@ using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.Graph.ChaosProxy {
+    internal enum FailMode {
+        Throttled,
+        Random,
+        PassThru
+    }
+
     public class ChaosEngine {
+        private int retryAfterInSeconds = 5;
         private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new Dictionary<string, HttpStatusCode[]> {
             {
                 "GET", new[] {
@@ -63,12 +70,14 @@ namespace Microsoft.Graph.ChaosProxy {
         private readonly Random _random;
         private ProxyServer? _proxyServer;
         private ExplicitProxyEndPoint? _explicitEndPoint;
+        private Dictionary<string, DateTime> _throttledRequests;
 
         public ChaosEngine(ChaosProxyConfiguration config) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _config.InitResponsesWatcher();
 
             _random = new Random();
+            _throttledRequests = new Dictionary<string, DateTime>();
         }
 
         public async Task Run(CancellationToken cancellationToken) {
@@ -132,7 +141,21 @@ namespace Microsoft.Graph.ChaosProxy {
         }
 
         // uses config to determine if a request should be failed
-        private bool ShouldFail() => _random.Next(1, 100) <= _config.FailureRate;
+        private FailMode ShouldFail(Request r) {
+            DateTime retryAfterDate = DateTime.MaxValue;
+            if (_throttledRequests.TryGetValue(r.Url, out retryAfterDate)) {
+                if (retryAfterDate > DateTime.Now) {
+                    Console.Error.WriteLine($"Calling {r.Url} again before waiting for the Retry-After period. Request will be throttled");
+                    return FailMode.Throttled;
+                }
+                else {
+                    // clean up expired throttled request
+                    _throttledRequests.Remove(r.Url);
+                }
+            }
+
+            return _random.Next(1, 100) <= _config.FailureRate ? FailMode.Random : FailMode.PassThru;
+        }
 
         async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e) {
             string hostname = e.HttpClient.Request.RequestUri.Host;
@@ -166,14 +189,14 @@ namespace Microsoft.Graph.ChaosProxy {
             // Chaos happens only for graph requestss
             if (e.HttpClient.Request.RequestUri.AbsoluteUri.Contains("graph.microsoft.com")) {
                 Console.WriteLine($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUri.AbsolutePath}");
-                if (ShouldFail()) {
-                    FailResponse(e);
+                var failMode = ShouldFail(e.HttpClient.Request);
+                if (failMode != FailMode.PassThru) {
+                    FailResponse(e, failMode);
                 }
             }
         }
 
-        // TODO: Retry after times should be pseudo randomized?
-        private void FailResponse(SessionEventArgs e) {
+        private void FailResponse(SessionEventArgs e, FailMode failMode) {
             var requestId = Guid.NewGuid().ToString();
             var requestDate = DateTime.Now.ToString();
             var headers = new List<HttpHeader> {
@@ -226,15 +249,21 @@ namespace Microsoft.Graph.ChaosProxy {
                 }
             }
             else {
-                // there's no matching mock response so pick a random response
-                // for the current request method
-                var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
-                errorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length - 1)];
-
+                if (failMode == FailMode.Throttled) {
+                    errorStatus = HttpStatusCode.TooManyRequests;
+                }
+                else {
+                    // there's no matching mock response so pick a random response
+                    // for the current request method
+                    var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
+                    errorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length - 1)];
+                }
             }
 
             if (errorStatus == HttpStatusCode.TooManyRequests) {
-                headers.Add(new HttpHeader("Retry-After", "3"));
+                var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
+                _throttledRequests[e.HttpClient.Request.Url] = retryAfterDate;
+                headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
             }
 
             if ((int)errorStatus >= 400 && String.IsNullOrEmpty(body)) {
