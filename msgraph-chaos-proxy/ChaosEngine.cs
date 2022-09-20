@@ -1,4 +1,6 @@
 ﻿using System.Net;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
@@ -6,6 +8,57 @@ using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.Graph.ChaosProxy {
     public class ChaosEngine {
+        private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new Dictionary<string, HttpStatusCode[]> {
+            {
+                "GET", new[] {
+                    HttpStatusCode.TooManyRequests,
+                    HttpStatusCode.InternalServerError,
+                    HttpStatusCode.BadGateway,
+                    HttpStatusCode.ServiceUnavailable,
+                    HttpStatusCode.GatewayTimeout
+                }
+            },
+            {
+                "POST", new[] {
+                    HttpStatusCode.TooManyRequests,
+                    HttpStatusCode.InternalServerError,
+                    HttpStatusCode.BadGateway,
+                    HttpStatusCode.ServiceUnavailable,
+                    HttpStatusCode.GatewayTimeout,
+                    HttpStatusCode.InsufficientStorage
+                }
+            },
+            {
+                "PUT", new[] {
+                    HttpStatusCode.TooManyRequests,
+                    HttpStatusCode.InternalServerError,
+                    HttpStatusCode.BadGateway,
+                    HttpStatusCode.ServiceUnavailable,
+                    HttpStatusCode.GatewayTimeout,
+                    HttpStatusCode.InsufficientStorage
+                }
+            },
+            {
+                "PATCH", new[] {
+                    HttpStatusCode.TooManyRequests,
+                    HttpStatusCode.InternalServerError,
+                    HttpStatusCode.BadGateway,
+                    HttpStatusCode.ServiceUnavailable,
+                    HttpStatusCode.GatewayTimeout
+                }
+            },
+            {
+                "DELETE", new[] {
+                    HttpStatusCode.TooManyRequests,
+                    HttpStatusCode.InternalServerError,
+                    HttpStatusCode.BadGateway,
+                    HttpStatusCode.ServiceUnavailable,
+                    HttpStatusCode.GatewayTimeout,
+                    HttpStatusCode.InsufficientStorage
+                }
+            }
+        };
+
         private readonly ChaosProxyConfiguration _config;
         private readonly Random _random;
         private ProxyServer? _proxyServer;
@@ -122,24 +175,39 @@ namespace Microsoft.Graph.ChaosProxy {
         // Additional headers should be added to more accurately represent the failure
         // Retry after times should be pseudo randomized?
         private void FailResponse(SessionEventArgs e) {
-            int wheel = _random.Next(1, 10);
-            switch (wheel) {
-                case 1:
-                    e.GenericResponse("", HttpStatusCode.InternalServerError, new List<HttpHeader>() { });
-                    return;
-                case 2:
-                    e.GenericResponse("", HttpStatusCode.BadGateway, new List<HttpHeader>() { });
-                    return;
-                case 3:
-                    e.GenericResponse("", HttpStatusCode.ServiceUnavailable, new List<HttpHeader>() { });
-                    return;
-                case 4:
-                    e.GenericResponse("", HttpStatusCode.GatewayTimeout, new List<HttpHeader>() { });
-                    return;
-                default:
-                    e.GenericResponse("", HttpStatusCode.TooManyRequests, new List<HttpHeader>() { new HttpHeader("Retry-After", "12") });
-                    return;
+            var requestId = Guid.NewGuid().ToString();
+            var requestDate = DateTime.Now.ToString();
+            var headers = new List<HttpHeader> {
+                new HttpHeader("Cache-Control", "no-store"),
+                new HttpHeader("request-id", requestId),
+                new HttpHeader("client-request-id", requestId),
+                new HttpHeader("x-ms-ags-diagnostic", ""),
+                new HttpHeader("Date", requestDate),
+                new HttpHeader("Strict-Transport-Security", "")
+            };
+
+            var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
+            var errorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length - 1)];
+            if (errorStatus == HttpStatusCode.TooManyRequests) {
+                headers.Add(new HttpHeader("Retry-After", "3"));
             }
+
+            var body = "";
+
+            if ((int)errorStatus >= 400) {
+                body = JsonSerializer.Serialize(new ErrorResponseBody {
+                    Error = new ErrorResponseError {
+                        Code = new Regex("([A-Z])").Replace(errorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
+                        Message = "Some error Happened",
+                        InnerError = new ErrorResponseInnerError {
+                            RequestId = requestId,
+                            Date = requestDate
+                        }
+                    }
+                });
+            }
+
+            e.GenericResponse(body, errorStatus, headers);
         }
 
         // Modify response
