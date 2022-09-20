@@ -162,7 +162,7 @@ namespace Microsoft.Graph.ChaosProxy {
             string hostname = e.HttpClient.Request.RequestUri.Host;
 
             // TODO: Provide host name to be watched via config based on host name for the desired cloud
-            if (!hostname.Contains("graph.microsoft.com")) {
+            if (!hostname.Contains(_config.HostName)) {
                 // Exclude Https addresses you don't want to proxy
                 e.DecryptSsl = false;
             }
@@ -188,7 +188,7 @@ namespace Microsoft.Graph.ChaosProxy {
             }
 
             // Chaos happens only for graph requestss
-            if (e.HttpClient.Request.RequestUri.AbsoluteUri.Contains("graph.microsoft.com")) {
+            if (e.HttpClient.Request.RequestUri.Host.Contains(_config.HostName)) {
                 Console.WriteLine($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUri.AbsolutePath}");
                 var failMode = ShouldFail(e.HttpClient.Request);
                 if (failMode != FailMode.PassThru) {
@@ -279,7 +279,7 @@ namespace Microsoft.Graph.ChaosProxy {
                     }
                 });
             }
-
+            Console.WriteLine($"\t Failed {e.HttpClient.Request.RequestUri.AbsolutePath} with {errorStatus}");
             e.GenericResponse(body ?? string.Empty, errorStatus, headers);
         }
 

@@ -2,49 +2,66 @@
 using System.Text.Json.Serialization;
 
 namespace Microsoft.Graph.ChaosProxy {
-    public class ChaosProxyConfiguration: IDisposable {
+    public class ChaosProxyConfiguration : IDisposable
+    {
         [JsonPropertyName("port")]
         public int Port { get; set; } = 8000;
         [JsonPropertyName("failureRate")]
         public int FailureRate { get; set; } = 50;
         [JsonPropertyName("noMocks")]
         public bool NoMocks { get; set; } = false;
+        [JsonPropertyName("cloud")]
+        public string Cloud { get; set; } = "global";
+        [JsonPropertyName("cloudHosts")]
+        public Dictionary<string, string> CloudHosts { get; set; } = new();
+
+        public string HostName => CloudHosts.ContainsKey(Cloud) ? CloudHosts[Cloud] : throw new ArgumentOutOfRangeException(nameof(Cloud), InvalidCloudMessage);
+
+        private string InvalidCloudMessage => $"The value provided for the cloud: {Cloud} is not valid, current valid values are: {string.Join(", ", CloudHosts.Keys.ToArray())}.";
+
         [JsonPropertyName("responses")]
-        public IEnumerable<ChaosProxyMockResponse> Responses { get; set; } = new ChaosProxyMockResponse[] { };
+        public IEnumerable<ChaosProxyMockResponse> Responses { get; set; } = Array.Empty<ChaosProxyMockResponse>();
 
         private readonly string _responsesFilePath;
         private FileSystemWatcher? _watcher;
 
-        public ChaosProxyConfiguration() {
+        public ChaosProxyConfiguration()
+        {
             _responsesFilePath = Path.Combine(Directory.GetCurrentDirectory(), "responses.json");
         }
 
-        public void LoadResponses() {
-            if (!File.Exists(_responsesFilePath)) {
+        public void LoadResponses()
+        {
+            if (!File.Exists(_responsesFilePath))
+            {
                 Responses = Array.Empty<ChaosProxyMockResponse>();
                 return;
             }
 
-            try {
+            try
+            {
                 var responsesString = File.ReadAllText(_responsesFilePath);
                 var responsesConfig = JsonSerializer.Deserialize<ChaosProxyConfiguration>(responsesString);
                 IEnumerable<ChaosProxyMockResponse>? configResponses = responsesConfig?.Responses;
                 if (configResponses is not null)
                     Responses = configResponses;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 Console.Error.WriteLine($"An error has occurred while reading responses.json:");
                 Console.Error.WriteLine(ex.Message);
             }
         }
 
-        public void InitResponsesWatcher() {
-            if (_watcher is not null) {
+        public void InitResponsesWatcher()
+        {
+            if (_watcher is not null)
+            {
                 return;
             }
 
             string? path = Path.GetDirectoryName(_responsesFilePath);
-            if (path is null )
+            if (path is null)
             {
                 throw new InvalidOperationException($"{_responsesFilePath} is an invalid path");
             }
@@ -63,11 +80,13 @@ namespace Microsoft.Graph.ChaosProxy {
             LoadResponses();
         }
 
-        private void ResponsesFile_Changed(object sender, FileSystemEventArgs e) {
+        private void ResponsesFile_Changed(object sender, FileSystemEventArgs e)
+        {
             LoadResponses();
         }
 
-        public void Dispose() {
+        public void Dispose()
+        {
             _watcher?.Dispose();
         }
     }
