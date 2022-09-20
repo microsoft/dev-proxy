@@ -11,7 +11,7 @@ namespace Microsoft.Graph.ChaosProxy
             portOption.AddAlias("-p");
             portOption.ArgumentHelpName = "port";
             var rateOption = new Option<int>("--failure-rate", "The percentage of requests to graph to respond with failures");
-            rateOption.AddAlias("-fr");
+            rateOption.AddAlias("-f");
             rateOption.ArgumentHelpName = "failure rate";
             rateOption.AddValidator((input) => { 
                 int value = input.GetValueForOption(rateOption);
