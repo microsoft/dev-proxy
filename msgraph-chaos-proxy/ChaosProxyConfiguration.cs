@@ -93,7 +93,7 @@ namespace Microsoft.Graph.ChaosProxy {
 
     public class ChaosProxyMockResponse {
         [JsonPropertyName("url")]
-        public string Url { get; set; }
+        public string Url { get; set; } = string.Empty;
         [JsonPropertyName("responseCode")]
         public int? ResponseCode { get; set; } = 200;
         [JsonPropertyName("responseBody")]

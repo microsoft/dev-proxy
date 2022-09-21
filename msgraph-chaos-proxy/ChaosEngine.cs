@@ -295,16 +295,16 @@ namespace Microsoft.Graph.ChaosProxy {
             }
 
             if ((int)responseComponents.ErrorStatus >= 400 && string.IsNullOrEmpty(responseComponents.Body)) {
-                responseComponents.Body = JsonSerializer.Serialize(new ErrorResponseBody {
-                    Error = new ErrorResponseError {
+                responseComponents.Body = JsonSerializer.Serialize(new ErrorResponseBody(
+                    new ErrorResponseError {
                         Code = new Regex("([A-Z])").Replace(responseComponents.ErrorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
                         Message = "Some error happened",
                         InnerError = new ErrorResponseInnerError {
                             RequestId = responseComponents.RequestId,
                             Date = responseComponents.RequestDate
                         }
-                    }
-                });
+                    })
+                );
             }
             Console.WriteLine($"\t{(matchingResponse is not null ? "Mocked" : "Failed")} {e.HttpClient.Request.RequestUri.AbsolutePath} with {responseComponents.ErrorStatus}");
             e.GenericResponse(responseComponents.Body ?? string.Empty, responseComponents.ErrorStatus, responseComponents.Headers);
