@@ -9,14 +9,14 @@ namespace Microsoft.Graph.ChaosProxy {
         public Option<int> Rate { get; set; }
         public Option<bool> DisableMocks { get; set; }
         public Option<string> Cloud { get; set; }
+        public Option<IEnumerable<int>> AllowedErrors { get; }
 
-
-        public ChaosProxyCommandHandler(Option<int> port, Option<int> rate, Option<bool> disableMocks, Option<string> cloud)
-        {
+        public ChaosProxyCommandHandler(Option<int> port, Option<int> rate, Option<bool> disableMocks, Option<string> cloud, Option<IEnumerable<int>> allowedErrors) {
             Port = port ?? throw new ArgumentNullException(nameof(port));
             Rate = rate ?? throw new ArgumentNullException(nameof(rate));
             DisableMocks = disableMocks ?? throw new ArgumentNullException(nameof(disableMocks));
             Cloud = cloud ?? throw new ArgumentNullException(nameof(cloud));
+            AllowedErrors = allowedErrors ?? throw new ArgumentNullException(nameof(allowedErrors));
         }
 
 
@@ -29,10 +29,12 @@ namespace Microsoft.Graph.ChaosProxy {
             int failureRate = context.ParseResult.GetValueForOption(Rate);
             bool disableMocks = context.ParseResult.GetValueForOption(DisableMocks);
             string? cloud = context.ParseResult.GetValueForOption(Cloud);
+            IEnumerable<int> allowedErrors = context.ParseResult.GetValueForOption(AllowedErrors) ?? Enumerable.Empty<int>();
             CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
             Configuration.Port = port;
             Configuration.FailureRate = failureRate;
             Configuration.NoMocks = disableMocks;
+            Configuration.AllowedErrors = allowedErrors;
             if (cloud is not null)
                 Configuration.Cloud = cloud;
             

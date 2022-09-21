@@ -57,7 +57,7 @@ If you've defined a mock response to the specific request, the proxy will serve 
 Depending on the configured fail ratio, the proxy will either pass the request through to Microsoft Graph or return one of the relevant network codes with a matching error response.
 
 > **Important**
-> 
+>
 > When closing the proxy, press the Enter key in the proxy's window, so that the proxy unregisters itself from your machine. If you terminate the proxy's process, you will lose network connection. To restore your connection in such case, start the proxy again, and close it by pressing Enter.
 
 ## Configuration
@@ -311,8 +311,17 @@ Setting|Description|Command-line option|Allowed values|Default value
 `port`|Port on which the proxy should listen to traffic|`-p, --port`|integer|`8000`
 `failureRate`|Rate of requests to Microsoft Graph between `0` and `100` that the proxy should fail. Set to `0` to pass all requests to Microsoft Graph, and to `100` to fail all requests.|`-f, --failure-rate`|`0..100`|`50`
 `noMocks`|Don't use mock responses|`--no-mocks`|`true`, `false`|`false`
+`allowedErrors`|List of http status code errors the proxy may produce when failing a request|`--allowed-errors -a`|`429 500 502 503 504 507`|`429 500 502 503 504 507`
 `cloud`|Which Microsoft Cloud to use for listening to requests|`-c, --cloud`|As defined in the `cloudHosts` setting|`global`
 `cloudHosts`|List of Microsoft Clouds allowed for testing||Key-value pairs of name and host name, eg. `"global": "graph.microsoft.com"`|See the `appsettings.json` file
+
+#### Example usage:
+
+```
+msgraph-chaos-proxy.exe --port 8080 --failure-rate 50 --no-mocks --allowed-errors 429 503
+```
+
+Will configure the proxy listening on port 8080 to fail 50% of requests with an http status code of either 429 or 503 and ignore any mock responses that may have been provided in the `responses.json` file
 
 ## Frequently Asked Questions
 
@@ -323,3 +332,11 @@ No, it doesn't. While the proxy intercepts all network traffic on your machine, 
 ### I've got no internet connection after using Graph Chaos Proxy
 
 If you terminate the Graph Chaos Proxy process, the proxy won't be able to unregister itself and you won't have network connection on your machine. To restore network connection, start the proxy and close it by pressing Enter, which will gracefully close the proxy unregistering it on your machine and restoring the regular network connection.
+
+### I keep getting 429 responses
+
+If you have the failure rate at 100% then no request can ever succeed. If you configure a lower failure rate then a previously throttled request will be passed to Microsoft Graph provided the `Retry-After` time period has elapsed.
+
+### I have a 429 response with no `Retry-After` header
+
+As documented in the [Best practices to handle throttling](https://learn.microsoft.com/en-us/graph/throttling#best-practices-to-handle-throttling) an exponential backoff retry policy is recommended.

@@ -14,6 +14,16 @@
       "commandName": "Project",
       "commandLineArgs": "--port 8080 --failure-rate 100 --no-mocks --cloud china",
       "hotReloadEnabled": true
+    },
+    "High chaos only 429 503 and no mocks": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 8080 --failure-rate 95 -a 429 503 --no-mocks",
+      "hotReloadEnabled": true
+    },
+    "High chaos only 429 and no mocks": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 8080 --failure-rate 95 -a 429 --no-mocks",
+      "hotReloadEnabled": true
     }
   }
 }

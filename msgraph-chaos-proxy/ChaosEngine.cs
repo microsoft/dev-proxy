@@ -79,6 +79,11 @@ namespace Microsoft.Graph.ChaosProxy {
 
             _random = new Random();
             _throttledRequests = new Dictionary<string, DateTime>();
+            if (_config.AllowedErrors.Any()) {
+                foreach(string k in _methodStatusCode.Keys) {
+                    _methodStatusCode[k] = _methodStatusCode[k].Where(e => _config.AllowedErrors.Any(a => (int)e == a)).ToArray();
+                }
+            }
         }
 
         public async Task Run(CancellationToken? cancellationToken) {
@@ -222,7 +227,7 @@ namespace Microsoft.Graph.ChaosProxy {
                 // there's no matching mock response so pick a random response
                 // for the current request method
                 var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
-                r.ErrorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length - 1)];
+                r.ErrorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length)];
             }
         }
 

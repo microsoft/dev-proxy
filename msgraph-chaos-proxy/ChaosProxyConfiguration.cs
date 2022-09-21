@@ -14,6 +14,8 @@ namespace Microsoft.Graph.ChaosProxy {
         public string Cloud { get; set; } = "global";
         [JsonPropertyName("cloudHosts")]
         public Dictionary<string, string> CloudHosts { get; set; } = new();
+        [JsonPropertyName("allowedErrors")]
+        public IEnumerable<int> AllowedErrors { get; set; } = Array.Empty<int>();
 
         public string HostName => CloudHosts.ContainsKey(Cloud) ? CloudHosts[Cloud] : throw new ArgumentOutOfRangeException(nameof(Cloud), InvalidCloudMessage);
 

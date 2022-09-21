@@ -22,12 +22,20 @@ namespace Microsoft.Graph.ChaosProxy {
             rateOption.SetDefaultValue(50);
 
             var noMocksOptions = new Option<bool>("--no-mocks", "Disable loading mock requests");
+            noMocksOptions.AddAlias("-n");
             noMocksOptions.ArgumentHelpName = "no mocks";
+            noMocksOptions.SetDefaultValue(false);
 
             var cloudOption = new Option<string>("--cloud", "Set the target cloud to proxy requests for");
             cloudOption.AddAlias("-c");
             cloudOption.ArgumentHelpName = "cloud";
             cloudOption.SetDefaultValue("global");
+
+            var allowedErrorsOption = new Option<IEnumerable<int>>("--allowed-errors", "List of errors that the chaos proxy may produce");
+            allowedErrorsOption.AddAlias("-a");
+            allowedErrorsOption.ArgumentHelpName = "allowed errors";
+            allowedErrorsOption.AllowMultipleArgumentsPerToken = true;
+            allowedErrorsOption.SetDefaultValue(new List<int> { 429, 500, 502, 503, 504, 507 });
             
             var command = new RootCommand
             {
@@ -35,9 +43,10 @@ namespace Microsoft.Graph.ChaosProxy {
                 rateOption,
                 noMocksOptions,
                 cloudOption,
+                allowedErrorsOption
             };
             command.Description = "HTTP proxy to create random failures for calls to Microsoft Graph";
-            command.Handler = new ChaosProxyCommandHandler(portOption, rateOption, noMocksOptions, cloudOption);
+            command.Handler = new ChaosProxyCommandHandler(portOption, rateOption, noMocksOptions, cloudOption, allowedErrorsOption);
             
             return command;
         }
