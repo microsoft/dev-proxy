@@ -144,14 +144,18 @@ namespace Microsoft.Graph.ChaosProxy {
 
         // uses config to determine if a request should be failed
         private FailMode ShouldFail(Request r) {
-            if (_throttledRequests.TryGetValue(r.Url, out DateTime retryAfterDate)) {
+            string key = BuildThrottleKey(r);
+            if (_throttledRequests.TryGetValue(key, out DateTime retryAfterDate)) {
                 if (retryAfterDate > DateTime.Now) {
                     Console.Error.WriteLine($"Calling {r.Url} again before waiting for the Retry-After period. Request will be throttled");
+                    // update the retryAfterDate to extend the throttling window to ensure that brute forcing won't succeed.
+                    _throttledRequests[key] = retryAfterDate.AddSeconds(retryAfterInSeconds);
                     return FailMode.Throttled;
                 }
                 else {
-                    // clean up expired throttled request
+                    // clean up expired throttled request and ensure that this request is passed through.
                     _throttledRequests.Remove(r.Url);
+                    return FailMode.PassThru;
                 }
             }
 
@@ -291,7 +295,7 @@ namespace Microsoft.Graph.ChaosProxy {
         private void UpdateProxyResponse(SessionEventArgs e, ResponseComponents responseComponents, ChaosProxyMockResponse? matchingResponse) {
             if (responseComponents.ErrorStatus == HttpStatusCode.TooManyRequests) {
                 var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
-                _throttledRequests[e.HttpClient.Request.Url] = retryAfterDate;
+                _throttledRequests[BuildThrottleKey(e.HttpClient.Request)] = retryAfterDate;
                 responseComponents.Headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
             }
 
@@ -310,6 +314,8 @@ namespace Microsoft.Graph.ChaosProxy {
             Console.WriteLine($"\t{(matchingResponse is not null ? "Mocked" : "Failed")} {e.HttpClient.Request.RequestUri.AbsolutePath} with {responseComponents.ErrorStatus}");
             e.GenericResponse(responseComponents.Body ?? string.Empty, responseComponents.ErrorStatus, responseComponents.Headers);
         }
+
+        private string BuildThrottleKey(Request r) => $"{r.Method}-{r.Url}";
 
         // Modify response
         async Task OnResponse(object sender, SessionEventArgs e) {
