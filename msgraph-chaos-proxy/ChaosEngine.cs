@@ -183,8 +183,8 @@ namespace Microsoft.Graph.ChaosProxy {
                 e.UserData = e.HttpClient.Request;
             }
 
-            // Chaos happens only for graph requestss
-            if (e.HttpClient.Request.RequestUri.Host.Contains(_config.HostName)) {
+            // Chaos happens only for graph requests which are not OPTIONS
+            if (method is not "OPTIONS" && e.HttpClient.Request.RequestUri.Host.Contains(_config.HostName)) {
                 Console.WriteLine($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUri.AbsolutePath}");
                 HandleGraphRequest(e);
             }
@@ -231,6 +231,9 @@ namespace Microsoft.Graph.ChaosProxy {
                 foreach (var key in matchingResponse.ResponseHeaders.Keys) {
                     responseComponents.Headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
                 }
+            }
+            if (e.HttpClient.Request.Headers.FirstOrDefault((HttpHeader h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
+                responseComponents.Headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
             }
 
             if (matchingResponse.ResponseBody is not null) {

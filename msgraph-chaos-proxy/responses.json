@@ -20,6 +20,25 @@
       }
     },
     {
+      "url": "/v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038",
+      "responseBody": {
+        "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+        "businessPhones": [
+          "+1 412 555 0109"
+        ],
+        "displayName": "Megan Bowen",
+        "givenName": "Megan",
+        "jobTitle": "Auditor",
+        "mail": "MeganB@M365x214355.onmicrosoft.com",
+        "mobilePhone": null,
+        "officeLocation": "12/1110",
+        "preferredLanguage": "en-US",
+        "surname": "Bowen",
+        "userPrincipalName": "MeganB@M365x214355.onmicrosoft.com",
+        "id": "48d31887-5fad-4d73-a9f5-3c356e68a038"
+      }
+    },
+    {
       "url": "/v1.0/me/photo",
       "responseCode": 404
     },
@@ -27,7 +46,7 @@
       "url": "/v1.0/users/*/photo/$value",
       "responseBody": "@picture.jpg",
       "responseHeaders": {
-        "content-type":  "image/jpeg"
+        "content-type": "image/jpeg"
       }
     },
     {
