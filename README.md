@@ -77,6 +77,7 @@ Following is a sample `responses.json` file:
   "responses": [
     {
       "url": "/v1.0/me",
+      "method":  "GET",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
@@ -99,6 +100,7 @@ Following is a sample `responses.json` file:
     },
     {
       "url": "/v1.0/me/photo",
+      "method":  "GET",
       "responseCode": 404
     }
   ]
@@ -110,13 +112,14 @@ The file defines an `responses` property with an array of responses. Each respon
 Property|Description|Required|Default value|Sample value
 --|--|:--:|--|--
 `url`|Server-relative URL to a Microsoft Graph API to respond to|yes||`/v1.0/me`
+`method`|Http verb used to match request in conjuction with `url`|yes||`GET`
 `responseBody`|Body to send as the response to the request|no|_empty_|See above
 `responseCode`|Response status code|no|`200`|`404`
 `responseHeaders`|Collection of headers to include in the response|no|_empty_|See above
 
 #### Mock responses order
 
-Mocks are matched in the order in which they are defined in the `responses.json` file, first matching response taking precedence over others. If you'd define multiple responses with the same URL, the first response would be used.
+Mocks are matched in the order in which they are defined in the `responses.json` file, first matching response taking precedence over others. If you'd define multiple responses with the same URL and method, the first matching response would be used.
 
 For a configuration file like:
 
@@ -125,17 +128,19 @@ For a configuration file like:
   "responses": [
     {
       "url": "/v1.0/me/photo",
+      "method":  "GET",
       "responseCode": 500
     },
     {
       "url": "/v1.0/me/photo",
+      "method":  "GET",
       "responseCode": 404
     }
   ]
 }
 ```
 
-all requests to `/v1.0/me/photo` would respond with `500 Internal Server Error`.
+all `GET` requests to `/v1.0/me/photo` would respond with `500 Internal Server Error`.
 
 > **Important**
 >
@@ -150,6 +155,7 @@ When defining mock responses, you can define a specific URL to mock, but also a 
   "responses": [
     {
       "url": "/v1.0/users/*",
+      "method":  "GET",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
@@ -171,7 +177,7 @@ When defining mock responses, you can define a specific URL to mock, but also a 
 }
 ```
 
-would respond to `/v1.0/users/bob@contoso.com` and `/v1.0/users/steve@contoso.com` with the same mock response.
+would respond to`GET` requests for `/v1.0/users/bob@contoso.com` and `/v1.0/users/steve@contoso.com` with the same mock response.
 
 If a URL of a mock response contains an `*`, it's used as a regular expression, where each `*` is converted into a `.*`, basically matching any sequence of characters. This is important to keep in mind, because if a pattern is too broad and defined before more specific mocks, it could unintetionally return unexpected responses, for example:
 
@@ -180,6 +186,7 @@ If a URL of a mock response contains an `*`, it's used as a regular expression, 
   "responses": [
     {
       "url": "/v1.0/users/*",
+      "method":  "GET",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
@@ -199,6 +206,7 @@ If a URL of a mock response contains an `*`, it's used as a regular expression, 
     },
     {
       "url": "/v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038",
+      "method":  "GET",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
@@ -220,13 +228,14 @@ If a URL of a mock response contains an `*`, it's used as a regular expression, 
 }
 ```
 
-for request `/v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038`, the proxy would return `Adele Vance` instead of `Megan Bowen`, because the asterisk at the end matches any series of characters. The correct way to define these responses, would be to change their order in the array:
+for request `GET /v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038`, the proxy would return `Adele Vance` instead of `Megan Bowen`, because the asterisk at the end matches any series of characters. The correct way to define these responses, would be to change their order in the array:
 
 ```json
 {
   "responses": [
     {
       "url": "/v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038",
+      "method":  "GET",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
@@ -246,6 +255,7 @@ for request `/v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038`, the proxy would 
     },
         {
       "url": "/v1.0/users/*",
+      "method":  "GET",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
@@ -280,6 +290,7 @@ For some requests you might want to respond with binary data like documents or i
   "responses": [
     {
       "url": "/v1.0/users/*/photo/$value",
+      "method":  "GET",
       "responseBody": "@picture.jpg",
       "responseHeaders": {
         "content-type": "image/jpeg"
@@ -289,7 +300,7 @@ For some requests you might want to respond with binary data like documents or i
 }
 ```
 
-When you call `/v1.0/users/ben@contoso.com/photo/$value`, you'll get the image stored in the `picture.jpg` file in the current directory.
+When you call `GET /v1.0/users/ben@contoso.com/photo/$value`, you'll get the image stored in the `picture.jpg` file in the current directory.
 
 ### Settings
 

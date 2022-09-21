@@ -270,6 +270,7 @@ namespace Microsoft.Graph.ChaosProxy {
             }
 
             var mockResponse = _config.Responses.FirstOrDefault(r => {
+                if (r.Method != request.Method) return false;
                 if (r.Url == request.RequestUri.AbsolutePath) {
                     return true;
                 }
