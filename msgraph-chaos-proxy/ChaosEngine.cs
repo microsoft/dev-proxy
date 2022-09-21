@@ -202,7 +202,7 @@ namespace Microsoft.Graph.ChaosProxy {
             }
             else {
                 var failMode = ShouldFail(e.HttpClient.Request);
-                if (failMode == FailMode.PassThru) {
+                if (failMode == FailMode.PassThru && _config.FailureRate != 100) {
                     Console.WriteLine($"\tPassed through {e.HttpClient.Request.RequestUri.AbsolutePath}");
                     return;
                 }
