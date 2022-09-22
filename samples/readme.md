@@ -18,10 +18,16 @@ We highly recommend that you use a Microsoft 365 Developer Tenant with content p
 
 ## <a id="appreg">Configure Azure AD App Registration</a>
 
-There are two ways which you can configur the App Registration required for the samples to work correctly, through automatation using a bash script or manually through Azure Portal.
+There are two ways which you can configure the App Registration required for the samples to work correctly, through automatation using a bash script or manually through Azure Portal.
 
 ### <a id="script">Script</a>
 
+If using PowerShell:
+```powershell
+.\scripts\setup.ps1
+```
+
+If using a Linux/Mac terminal:
 ```shell
 $ > chmod +x /scripts/setup.sh
 $ > ./scripts/setup.sh

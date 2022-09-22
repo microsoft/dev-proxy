@@ -1,3 +1,4 @@
 dist
 .parcel-cache
 env.js
+env_esm.js
