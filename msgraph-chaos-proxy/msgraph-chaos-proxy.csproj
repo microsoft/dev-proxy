@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Title>Microsoft Graph Chaos Proxy</Title>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Company>Microsoft</Company>
     <Product>Microsoft Graph Chaos Proxy</Product>
     <PackageReadmeFile>README.md</PackageReadmeFile>
