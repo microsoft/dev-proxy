@@ -34,6 +34,14 @@ You can test your existing applications without any changes, even if you don't h
 
 ## Usage
 
+### Install Graph Chaos Proxy
+
+Extract the archive. Graph Chaos Proxy doesn't need an installation and you can run it from any location on your machine.
+
+> **Tip**
+>
+> To fully benefit of all features of Graph Chaos Proxy, add its location to the environment path. That way, you'll be able to start it from any directory and will be able to use project-specific mocks.
+
 ### First-time use
 
 #### Windows
@@ -59,6 +67,10 @@ Depending on the configured fail ratio, the proxy will either pass the request t
 > **Important**
 >
 > When closing the proxy, press the Enter key in the proxy's window, so that the proxy unregisters itself from your machine. If you terminate the proxy's process, you will lose network connection. To restore your connection in such case, start the proxy again, and close it by pressing Enter.
+
+### Uninstall Graph Chaos Proxy
+
+Remove the folder with proxy from your disk. Graph Chaos Proxy doesn't create any additional files or registry entries (Windows) on your machine. Remove the certificate installed by Graph Chaos Proxy.
 
 ## Configuration
 
