@@ -1,6 +1,12 @@
 ﻿# Move to the Graph JavaScript SDK
 
-The Microsoft Graph JavaScript SDK comes with features that will simplify your code and let you focus on building your app. The SDK not only helps you handle API errors but also makes it easier for you to perform complex API operations like batch requests.
+The Microsoft Graph JavaScript SDK comes with features that will simplify your code and let you focus on building your app. 
+
+Using the SDK makes it easier for you to
+
+- Handle API errors for when things don't work as expected, such as when services throttle under heavy load
+- Perform complex API operations like batch requests
+- Handle binary responses, such as obtaining the photo of a user
 
 ## Migrate from fetch to the Graph JavaScript SDK
 
