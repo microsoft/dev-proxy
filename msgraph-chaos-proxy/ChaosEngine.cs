@@ -213,7 +213,12 @@ namespace Microsoft.Graph.ChaosProxy {
                 }
 
                 FailResponse(e, responseComponents, failMode);
-
+                if (!IsSdkRequest(e.HttpClient.Request)) {
+                    var color = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.Error.WriteLine($"\tTIP: To handle API errors more easily, use the Graph SDK. More info at {GetMoveToSdkUrl(e.HttpClient.Request)}");
+                    Console.ForegroundColor = color;
+                }
             }
             if (!responseComponents.ResponseIsComplete)
                 UpdateProxyResponse(e, responseComponents, matchingResponse);
@@ -229,6 +234,15 @@ namespace Microsoft.Graph.ChaosProxy {
                 var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
                 r.ErrorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length)];
             }
+        }
+
+        private static bool IsSdkRequest(Request request) {
+            return request.Headers.HeaderExists("SdkVersion");
+        }
+
+        private static string GetMoveToSdkUrl(Request request) {
+            // TODO: return language-specific guidance links based on the language detected from the User-Agent
+            return "https://aka.ms/move-to-graph-js-sdk";
         }
 
         private static void ProcessMockResponse(SessionEventArgs e, ResponseComponents responseComponents, ChaosProxyMockResponse matchingResponse) {
