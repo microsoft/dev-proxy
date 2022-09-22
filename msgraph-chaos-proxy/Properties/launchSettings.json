@@ -27,6 +27,7 @@
     },
     "Default": {
       "commandName": "Project",
+      "commandLineArgs": "--no-mocks",
       "hotReloadEnabled": true
     }
   }

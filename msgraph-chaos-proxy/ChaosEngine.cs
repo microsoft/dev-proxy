@@ -80,7 +80,7 @@ namespace Microsoft.Graph.ChaosProxy {
             _random = new Random();
             _throttledRequests = new Dictionary<string, DateTime>();
             if (_config.AllowedErrors.Any()) {
-                foreach(string k in _methodStatusCode.Keys) {
+                foreach (string k in _methodStatusCode.Keys) {
                     _methodStatusCode[k] = _methodStatusCode[k].Where(e => _config.AllowedErrors.Any(a => (int)e == a)).ToArray();
                 }
             }
@@ -159,7 +159,7 @@ namespace Microsoft.Graph.ChaosProxy {
                 }
                 else {
                     // clean up expired throttled request and ensure that this request is passed through.
-                    _throttledRequests.Remove(r.Url);
+                    _throttledRequests.Remove(key);
                     return FailMode.PassThru;
                 }
             }
@@ -255,9 +255,6 @@ namespace Microsoft.Graph.ChaosProxy {
                     responseComponents.Headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
                 }
             }
-            if (e.HttpClient.Request.Headers.FirstOrDefault((HttpHeader h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
-                responseComponents.Headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
-            }
 
             if (matchingResponse.ResponseBody is not null) {
                 var bodyString = JsonSerializer.Serialize(matchingResponse.ResponseBody) as string;
@@ -274,6 +271,10 @@ namespace Microsoft.Graph.ChaosProxy {
                         responseComponents.Body = bodyString;
                     }
                     else {
+                        if (e.HttpClient.Request.Headers.FirstOrDefault((HttpHeader h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
+                            responseComponents.Headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
+                        }
+
                         var bodyBytes = File.ReadAllBytes(filePath);
                         e.GenericResponse(bodyBytes, responseComponents.ErrorStatus, responseComponents.Headers);
                         responseComponents.ResponseIsComplete = true;
@@ -316,6 +317,10 @@ namespace Microsoft.Graph.ChaosProxy {
                 var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
                 _throttledRequests[BuildThrottleKey(e.HttpClient.Request)] = retryAfterDate;
                 responseComponents.Headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
+            }
+
+            if (e.HttpClient.Request.Headers.FirstOrDefault((HttpHeader h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
+                responseComponents.Headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
             }
 
             if ((int)responseComponents.ErrorStatus >= 400 && string.IsNullOrEmpty(responseComponents.Body)) {
