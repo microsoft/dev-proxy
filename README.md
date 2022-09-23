@@ -54,6 +54,25 @@ After installing the certificate, you'll be also prompted to allow Graph Chaos P
 
 #### macOS
 
+- make the Graph Chaos Proxy binary executable:
+  - open terminal and change the working directory to the location of Graph Chaos Proxy
+  - run `chmod +x ./msgraph-chaos-proxy`
+  - open the location of Graph Chaos Proxy in Finder
+  - on the keyboard press **Option** and open the context menu of the **msgraph-chaos-proxy** executable. From the context menu, choose **Open**, in the dialog choose **Open**
+- trust the certificate to decrypt SSL traffic:
+  - Open **KeyChain Access**
+  - in the search box, search for **Titanium Root Certificate Authority**
+  - open the certificate and in the **Trust** section, set **Always Trust**
+  - close the certificate window and confirm changes
+- set Graph Chaos Proxy as your system proxy:
+  - in **Network preferences**, select your adapter and click the **Advanced...** button
+  - open **Proxies**
+  - select **Secure Web Proxy (HTTPS)**
+  - in the **Secure Web Proxy Server** enter `0.0.0.0` and the port you're running the proxy on (`8000` by default)
+  - click **OK** and then **Apply** to save the changes
+
+When you're finished using the proxy, in the **Network preferences**, disable the **Secure Web Proxy (HTTPS)**. Next time you want to use the proxy, you'll only need to enable this setting again.
+
 #### Linux
 
 ### Use the proxy
@@ -71,6 +90,8 @@ Depending on the configured fail ratio, the proxy will either pass the request t
 ### Uninstall Graph Chaos Proxy
 
 Remove the folder with proxy from your disk. Graph Chaos Proxy doesn't create any additional files or registry entries (Windows) on your machine. Remove the certificate installed by Graph Chaos Proxy.
+
+On macOS remove the **~/.config/rootCert.pfx** file.
 
 ## Configuration
 

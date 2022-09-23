@@ -1,10 +1,13 @@
 ﻿using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
+using Titanium.Web.Proxy.Helpers;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
+using Titanium.Web.Proxy.Network;
 
 namespace Microsoft.Graph.ChaosProxy {
     internal enum FailMode {
@@ -99,12 +102,15 @@ namespace Microsoft.Graph.ChaosProxy {
             _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelection;
             cancellationToken?.Register(OnCancellation);
 
-            _explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Any, _config.Port, true) {
-                // Use self-issued generic certificate on all https requests
-                // Optimizes performance by not creating a certificate for each https-enabled domain
-                // Useful when certificate trust is not required by proxy clients
-                //GenericCertificate = new X509Certificate2(Path.Combine(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "genericcert.pfx"), "password")
-            };
+            _explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Any, _config.Port, true);
+            if (!RunTime.IsWindows) {
+                // we need to change this to a value lower than 397
+                // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
+                _proxyServer.CertificateManager.CertificateValidDays = 365;
+                // we need to call it explicitly for non-Windows OSes because it's
+                // a part of the SetAsSystemHttpProxy that works only on Windows
+                _proxyServer.CertificateManager.EnsureRootCertificate();
+            }
 
             // Fired when a CONNECT request is received
             _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
@@ -117,9 +123,17 @@ namespace Microsoft.Graph.ChaosProxy {
                     endPoint.GetType().Name, endPoint.IpAddress, endPoint.Port);
             }
 
-            // Only explicit proxies can be set as system proxy!
-            _proxyServer.SetAsSystemHttpProxy(_explicitEndPoint);
-            _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
+            if (RunTime.IsWindows) {
+                // Only explicit proxies can be set as system proxy!
+                _proxyServer.SetAsSystemHttpProxy(_explicitEndPoint);
+                _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
+            }
+            else {
+                var color = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Configure your operating system to use this proxy's port and address");
+                Console.ForegroundColor = color;
+            }
 
             // wait here (You can use something else as a wait function, I am using this as a demo)
             Console.WriteLine("Press Enter to stop the Microsoft Graph Chaos Proxy");

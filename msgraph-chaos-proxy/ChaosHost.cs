@@ -36,7 +36,7 @@ namespace Microsoft.Graph.ChaosProxy {
             allowedErrorsOption.ArgumentHelpName = "allowed errors";
             allowedErrorsOption.AllowMultipleArgumentsPerToken = true;
             allowedErrorsOption.SetDefaultValue(new List<int> { 429, 500, 502, 503, 504, 507 });
-            
+
             var command = new RootCommand
             {
                 portOption,
