@@ -4,7 +4,8 @@
 
 - [Pre-requisites](#prereqs)
 - [Configure Azure AD App Registration](#appreg)
-    - [Script](#script)
+    - [PowerShell 7](#pwsh)
+    - [Bash](#bash)
     - [Manual](#manual)
 - [Launch Sample](#launch)
 
@@ -18,26 +19,32 @@ We highly recommend that you use a Microsoft 365 Developer Tenant with content p
 
 ## <a id="appreg">Configure Azure AD App Registration</a>
 
-There are two ways which you can configure the App Registration required for the samples to work correctly, through automatation using a bash script or manually through Azure Portal.
+There are two ways which you can configure the App Registration required for the samples to work correctly, through automatation using either a `bash` or `pwsh` script we provide for you in the `scripts` directory, or manually through Azure Portal.
 
-### <a id="script">Script</a>
+### <a id="pwsh">PowerShell 7</a>
 
-If using PowerShell:
-```powershell
-.\scripts\setup.ps1
+> The script uses CLI for Microsoft 365 to authenticate with and create the app registration in your tenant, therefore requires nodejs, v8 or greater to be installed
+
+```sh
+PS > cd ./samples/
+PS > ./scripts/setup.ps1
 ```
 
-If using a Linux/Mac terminal:
-```shell
+Follow the prompts in the terminal.
+
+### <a id="bash">bash</a>
+
+> The script uses CLI for Microsoft 365 to authenticate with and create the app registration in your tenant, therefore requires nodejs, v8 or greater to be installed
+
+```sh
+$ > cd ./samples/
 $ > chmod +x /scripts/setup.sh
 $ > ./scripts/setup.sh
 ```
 
 Follow the prompts in the terminal.
 
-> The script uses CLI for Microsoft 365 to authenticate with and create the app registration in your tenant, therefore requires nodejs, v8 or greater to be installed
-
-## <a id="manual">Manual</a>
+### <a id="manual">Manual</a>
 
 The following table provides details of how to configure your app registration.
 
@@ -45,8 +52,8 @@ The following table provides details of how to configure your app registration.
 | ---- | ---- |
 | Name | Microsoft Graph Chaos Proxy Samples |
 | Platform type | Single-page application |
-| Redirect URIs | http://localhost:5500/withsdk.html <br> http://localhost:5500/nosdk.html |
-| API Permissions | Microsoft Graph <br> User.Read.All (Delegate) <br> Presence.Read.All |
+| Redirect URIs | http://localhost:3000/withsdk.html <br> http://localhost:3000/nosdk.html |
+| API Permissions | Microsoft Graph <br> User.Read.All (Delegate) w/ Admin Consent <br> Presence.Read.All |
 
 After creating the app registation, create a file called `env.js` in the root of the `samples` directory with the following contents, replacing `<clientid>` with the value which can be copied from the portal.
 
@@ -56,18 +63,9 @@ const appId = '<clientid>';
 
 ## <a id="launch">Launch Sample</a>
 
-Follow these instructions to launch the samples using the Visual Studio Code [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) extension.
-
-> !!! IMPORTANT !!!
-> The default host name used by Live Server is `127.0.0.1`, therefore you will need to change the `liveServer.settings.host` setting to `localhost` for the samples to work correctly, as `127.0.0.1` is not a valid Redirect URI.
-
-Open the `samples` directory in Visual Studio Code
-
-```shell
-$ > cd samples
-$ > code .
+```sh
+$ > cd ./samples/
+$ > npx lite-server
 ```
-
-Start `Live Server`
 
 ![Samples](img/samples.png)
