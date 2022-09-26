@@ -36,7 +36,12 @@ You can test your existing applications without any changes, even if you don't h
 
 ### Install Graph Chaos Proxy
 
-Extract the archive. Graph Chaos Proxy doesn't need an installation and you can run it from any location on your machine.
+To install the proxy is easy
+
+- Download the latest version of the ZIP file for your operating system from the [Releases](https://github.com/microsoftgraph/msgraph-chaos-proxy/releases) page 
+- Extract the archive to a folder of your choice
+
+Graph Chaos Proxy doesn't need an installation and you can run it from any location on your machine.
 
 > **Tip**
 >
