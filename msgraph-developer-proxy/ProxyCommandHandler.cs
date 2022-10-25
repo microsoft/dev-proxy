@@ -37,6 +37,16 @@ namespace Microsoft.Graph.DeveloperProxy {
             Configuration.AllowedErrors = allowedErrors;
             if (cloud is not null)
                 Configuration.Cloud = cloud;
+
+            var newReleaseInfo = await UpdateNotification.CheckForNewVersion();
+            if (newReleaseInfo != null) {
+                var originalColor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Error.WriteLine($"New version {newReleaseInfo.Version} of the Graph Developer Proxy is available.");
+                Console.Error.WriteLine($"See {newReleaseInfo.Url} for more information.");
+                Console.Error.WriteLine();
+                Console.ForegroundColor = originalColor;
+            }
             
             try {
                 await new ChaosEngine(Configuration).Run(cancellationToken);
