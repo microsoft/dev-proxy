@@ -3,15 +3,15 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text.Json;
 
-namespace Microsoft.Graph.ChaosProxy {
-    public class ChaosProxyCommandHandler : ICommandHandler {
+namespace Microsoft.Graph.DeveloperProxy {
+    public class ProxyCommandHandler : ICommandHandler {
         public Option<int> Port { get; set; }
         public Option<int> Rate { get; set; }
         public Option<bool> DisableMocks { get; set; }
         public Option<string> Cloud { get; set; }
         public Option<IEnumerable<int>> AllowedErrors { get; }
 
-        public ChaosProxyCommandHandler(Option<int> port, Option<int> rate, Option<bool> disableMocks, Option<string> cloud, Option<IEnumerable<int>> allowedErrors) {
+        public ProxyCommandHandler(Option<int> port, Option<int> rate, Option<bool> disableMocks, Option<string> cloud, Option<IEnumerable<int>> allowedErrors) {
             Port = port ?? throw new ArgumentNullException(nameof(port));
             Rate = rate ?? throw new ArgumentNullException(nameof(rate));
             DisableMocks = disableMocks ?? throw new ArgumentNullException(nameof(disableMocks));
@@ -43,7 +43,7 @@ namespace Microsoft.Graph.ChaosProxy {
                 return 0;
             }
             catch (Exception ex) {
-                Console.Error.WriteLine("An error occured while running the Chaos Proxy");
+                Console.Error.WriteLine("An error occured while running the Developer Proxy");
                 Console.Error.WriteLine(ex.Message.ToString());
                 Console.Error.WriteLine(ex.StackTrace?.ToString());
                 var inner = ex.InnerException;
@@ -63,14 +63,14 @@ namespace Microsoft.Graph.ChaosProxy {
 
         }
 
-        private ChaosProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
+        private ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
 
-        private readonly Lazy<ChaosProxyConfiguration> ConfigurationFactory = new(() => {
+        private readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() => {
             var builder = new ConfigurationBuilder();
             var configuration = builder
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                     .Build();
-            var configObject = new ChaosProxyConfiguration();
+            var configObject = new ProxyConfiguration();
             configuration.Bind(configObject);
 
             // Read responses separately because ConfigurationBuilder can't properly handle

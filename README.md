@@ -1,8 +1,8 @@
-# Microsoft Graph Chaos Proxy
+# Microsoft Graph Developer Proxy
 
 **Build with Microsoft Graph. Reliably**
 
-Microsoft Graph Chaos Proxy allows you to verify that your application, that uses Microsoft Graph, correctly handles errors that can happen when the application is used at scale. With Graph Chaos Proxy you can:
+Microsoft Graph Developer Proxy allows you to verify that your application, that uses Microsoft Graph, correctly handles errors that can happen when the application is used at scale. With Graph Developer Proxy you can:
 
 - **simulate Microsoft Graph API errors**, to verify that your application handles them gracefully when deployed at scale,
 - **mock Microsoft Graph API responses**, to use your application with test data
@@ -11,9 +11,9 @@ Microsoft Graph Chaos Proxy allows you to verify that your application, that use
 
 API errors are hard to replicate because they occur only in specific circumstances, often when the application is under heavy load. Because developers typically work on their own tenants, they can only verify if their application properly handles errors after the application has been deployed to production and put under heavy load. This makes for a poor developer experience.
 
-With Graph Chaos Proxy you can see how your application responds to different errors that could be returned by the API.
+With Graph Developer Proxy you can see how your application responds to different errors that could be returned by the API.
 
-You can test your existing applications without any changes, even if you don't have access to their code and they're not using Microsoft Graph SDKs. Graph Chaos Proxy registers itself as a proxy on your machine and intercepts all network traffic. It passes through all requests and only responds to requests to the Microsoft Graph API.
+You can test your existing applications without any changes, even if you don't have access to their code and they're not using Microsoft Graph SDKs. Graph Developer Proxy registers itself as a proxy on your machine and intercepts all network traffic. It passes through all requests and only responds to requests to the Microsoft Graph API.
 
 ## Features
 
@@ -34,42 +34,42 @@ You can test your existing applications without any changes, even if you don't h
 
 ## Usage
 
-### Install Graph Chaos Proxy
+### Install Graph Developer Proxy
 
 To install the proxy is easy
 
-- Download the latest version of the ZIP file for your operating system from the [Releases](https://github.com/microsoftgraph/msgraph-chaos-proxy/releases) page 
+- Download the latest version of the ZIP file for your operating system from the [Releases](https://github.com/microsoftgraph/msgraph-developer-proxy/releases) page 
 - Extract the archive to a folder of your choice
 
-Graph Chaos Proxy doesn't need an installation and you can run it from any location on your machine.
+Graph Developer Proxy doesn't need an installation and you can run it from any location on your machine.
 
 > **Tip**
 >
-> To fully benefit of all features of Graph Chaos Proxy, add its location to the environment path. That way, you'll be able to start it from any directory and will be able to use project-specific mocks.
+> To fully benefit of all features of Graph Developer Proxy, add its location to the environment path. That way, you'll be able to start it from any directory and will be able to use project-specific mocks.
 
 ### First-time use
 
 #### Windows
 
-When started, Graph Chaos Proxy automatically registers itself as a system-wide proxy on your machine.
+When started, Graph Developer Proxy automatically registers itself as a system-wide proxy on your machine.
 
-When you start Graph Chaos Proxy for the first time, you'll be prompted to install a local certificate. This certificate is necessary to decrypt requests to the Microsoft Graph API.
+When you start Graph Developer Proxy for the first time, you'll be prompted to install a local certificate. This certificate is necessary to decrypt requests to the Microsoft Graph API.
 
-After installing the certificate, you'll be also prompted to allow Graph Chaos Proxy to communicate on your private and public network.
+After installing the certificate, you'll be also prompted to allow Graph Developer Proxy to communicate on your private and public network.
 
 #### macOS
 
-- make the Graph Chaos Proxy binary executable:
-  - open terminal and change the working directory to the location of Graph Chaos Proxy
-  - run `chmod +x ./msgraph-chaos-proxy`
-  - open the location of Graph Chaos Proxy in Finder
-  - on the keyboard press **Option** and open the context menu of the **msgraph-chaos-proxy** executable. From the context menu, choose **Open**, in the dialog choose **Open**
+- make the Graph Developer Proxy binary executable:
+  - open terminal and change the working directory to the location of Graph Developer Proxy
+  - run `chmod +x ./msgraph-developer-proxy`
+  - open the location of Graph Developer Proxy in Finder
+  - on the keyboard press **Option** and open the context menu of the **msgraph-developer-proxy** executable. From the context menu, choose **Open**, in the dialog choose **Open**
 - trust the certificate to decrypt SSL traffic:
   - Open **KeyChain Access**
   - in the search box, search for **Titanium Root Certificate Authority**
   - open the certificate and in the **Trust** section, set **Always Trust**
   - close the certificate window and confirm changes
-- set Graph Chaos Proxy as your system proxy:
+- set Graph Developer Proxy as your system proxy:
   - in **Network preferences**, select your adapter and click the **Advanced...** button
   - open **Proxies**
   - select **Secure Web Proxy (HTTPS)**
@@ -92,9 +92,9 @@ Depending on the configured fail ratio, the proxy will either pass the request t
 >
 > When closing the proxy, press the Enter key in the proxy's window, so that the proxy unregisters itself from your machine. If you terminate the proxy's process, you will lose network connection. To restore your connection in such case, start the proxy again, and close it by pressing Enter.
 
-### Uninstall Graph Chaos Proxy
+### Uninstall Graph Developer Proxy
 
-Remove the folder with proxy from your disk. Graph Chaos Proxy doesn't create any additional files or registry entries (Windows) on your machine. Remove the certificate installed by Graph Chaos Proxy.
+Remove the folder with proxy from your disk. Graph Developer Proxy doesn't create any additional files or registry entries (Windows) on your machine. Remove the certificate installed by Graph Developer Proxy.
 
 On macOS remove the **~/.config/rootCert.pfx** file.
 
@@ -102,7 +102,7 @@ On macOS remove the **~/.config/rootCert.pfx** file.
 
 ### Mock responses
 
-Graph Chaos Proxy offers you the ability to define mock responses to specific Graph API calls. This capability is invaluable if you want to test your application with specific test cases or want to demonstrate your application with a set of data that is often time-sensitive and inconvenient to manage on an actual Microsoft 365 tenant.
+Graph Developer Proxy offers you the ability to define mock responses to specific Graph API calls. This capability is invaluable if you want to test your application with specific test cases or want to demonstrate your application with a set of data that is often time-sensitive and inconvenient to manage on an actual Microsoft 365 tenant.
 
 #### Mock responses structure
 
@@ -321,7 +321,7 @@ for request `GET /v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038`, the proxy wo
 
 #### Respond to requests with binary data
 
-For some requests you might want to respond with binary data like documents or images. In Graph Chaos Proxy, you can define a binary response by setting the `responseBody` to a string value that starts with `@` followed by file path relative to the current working directory, for example:
+For some requests you might want to respond with binary data like documents or images. In Graph Developer Proxy, you can define a binary response by setting the `responseBody` to a string value that starts with `@` followed by file path relative to the current working directory, for example:
 
 ```json
 {
@@ -342,7 +342,7 @@ When you call `GET /v1.0/users/ben@contoso.com/photo/$value`, you'll get the ima
 
 ### Settings
 
-Graph Chaos Proxy comes with several settings that you can use to control how the proxy should run. You can configure these settings by defining them in the `appsettings.json` file in the proxy's installation folder or using options in the command line.
+Graph Developer Proxy comes with several settings that you can use to control how the proxy should run. You can configure these settings by defining them in the `appsettings.json` file in the proxy's installation folder or using options in the command line.
 
 Setting|Description|Command-line option|Allowed values|Default value
 --|--|--|--|--
@@ -356,20 +356,20 @@ Setting|Description|Command-line option|Allowed values|Default value
 #### Example usage:
 
 ```
-msgraph-chaos-proxy.exe --port 8080 --failure-rate 50 --no-mocks --allowed-errors 429 503
+msgraph-developer-proxy.exe --port 8080 --failure-rate 50 --no-mocks --allowed-errors 429 503
 ```
 
 Will configure the proxy listening on port 8080 to fail 50% of requests with an http status code of either 429 or 503 and ignore any mock responses that may have been provided in the `responses.json` file
 
 ## Frequently Asked Questions
 
-### Does Graph Chaos Proxy upload any data to Microsoft?
+### Does Graph Developer Proxy upload any data to Microsoft?
 
 No, it doesn't. While the proxy intercepts all network traffic on your machine, it doesn't upload any data to Microsoft.
 
-### I've got no internet connection after using Graph Chaos Proxy
+### I've got no internet connection after using Graph Developer Proxy
 
-If you terminate the Graph Chaos Proxy process, the proxy won't be able to unregister itself and you won't have network connection on your machine. To restore network connection, start the proxy and close it by pressing Enter, which will gracefully close the proxy unregistering it on your machine and restoring the regular network connection.
+If you terminate the Graph Developer Proxy process, the proxy won't be able to unregister itself and you won't have network connection on your machine. To restore network connection, start the proxy and close it by pressing Enter, which will gracefully close the proxy unregistering it on your machine and restoring the regular network connection.
 
 ### I keep getting 429 responses
 

@@ -1,9 +1,9 @@
 ﻿using System.CommandLine;
 
-namespace Microsoft.Graph.ChaosProxy {
-    internal class ChaosHost {
+namespace Microsoft.Graph.DeveloperProxy {
+    internal class ProxyHost {
         public RootCommand GetRootCommand() {
-            var defaultConfig = new ChaosProxyConfiguration();
+            var defaultConfig = new ProxyConfiguration();
 
             var portOption = new Option<int>("--port", "The port for the proxy server to listen on");
             portOption.AddAlias("-p");
@@ -31,7 +31,7 @@ namespace Microsoft.Graph.ChaosProxy {
             cloudOption.ArgumentHelpName = "cloud";
             cloudOption.SetDefaultValue("global");
 
-            var allowedErrorsOption = new Option<IEnumerable<int>>("--allowed-errors", "List of errors that the chaos proxy may produce");
+            var allowedErrorsOption = new Option<IEnumerable<int>>("--allowed-errors", "List of errors that the developer proxy may produce");
             allowedErrorsOption.AddAlias("-a");
             allowedErrorsOption.ArgumentHelpName = "allowed errors";
             allowedErrorsOption.AllowMultipleArgumentsPerToken = true;
@@ -46,7 +46,7 @@ namespace Microsoft.Graph.ChaosProxy {
                 allowedErrorsOption
             };
             command.Description = "HTTP proxy to create random failures for calls to Microsoft Graph";
-            command.Handler = new ChaosProxyCommandHandler(portOption, rateOption, noMocksOptions, cloudOption, allowedErrorsOption);
+            command.Handler = new ProxyCommandHandler(portOption, rateOption, noMocksOptions, cloudOption, allowedErrorsOption);
             
             return command;
         }

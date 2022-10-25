@@ -9,7 +9,7 @@ using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Titanium.Web.Proxy.Network;
 
-namespace Microsoft.Graph.ChaosProxy {
+namespace Microsoft.Graph.DeveloperProxy {
     internal enum FailMode {
         Throttled,
         Random,
@@ -70,14 +70,14 @@ namespace Microsoft.Graph.ChaosProxy {
             }
         };
 
-        private readonly ChaosProxyConfiguration _config;
+        private readonly ProxyConfiguration _config;
         private readonly Random _random;
         private ProxyServer? _proxyServer;
         private ExplicitProxyEndPoint? _explicitEndPoint;
         private readonly Dictionary<string, DateTime> _throttledRequests;
         private readonly ConsoleColor _color;
 
-        public ChaosEngine(ChaosProxyConfiguration config) {
+        public ChaosEngine(ProxyConfiguration config) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _config.InitResponsesWatcher();
 
@@ -136,7 +136,7 @@ namespace Microsoft.Graph.ChaosProxy {
             }
 
             // wait here (You can use something else as a wait function, I am using this as a demo)
-            Console.WriteLine("Press Enter to stop the Microsoft Graph Chaos Proxy");
+            Console.WriteLine("Press Enter to stop the Microsoft Graph Developer Proxy");
             Console.ReadLine();
 
             // Unsubscribe & Quit
@@ -263,7 +263,7 @@ namespace Microsoft.Graph.ChaosProxy {
             return "https://aka.ms/move-to-graph-js-sdk";
         }
 
-        private static void ProcessMockResponse(SessionEventArgs e, ResponseComponents responseComponents, ChaosProxyMockResponse matchingResponse) {
+        private static void ProcessMockResponse(SessionEventArgs e, ResponseComponents responseComponents, ProxyMockResponse matchingResponse) {
             if (matchingResponse.ResponseCode is not null) {
                 responseComponents.ErrorStatus = (HttpStatusCode)matchingResponse.ResponseCode;
             }
@@ -304,7 +304,7 @@ namespace Microsoft.Graph.ChaosProxy {
             }
         }
 
-        private ChaosProxyMockResponse? GetMatchingMockResponse(Request request) {
+        private ProxyMockResponse? GetMatchingMockResponse(Request request) {
             if (_config.NoMocks ||
                 _config.Responses is null ||
                 !_config.Responses.Any()) {
@@ -330,7 +330,7 @@ namespace Microsoft.Graph.ChaosProxy {
             return mockResponse;
         }
 
-        private void UpdateProxyResponse(SessionEventArgs e, ResponseComponents responseComponents, ChaosProxyMockResponse? matchingResponse) {
+        private void UpdateProxyResponse(SessionEventArgs e, ResponseComponents responseComponents, ProxyMockResponse? matchingResponse) {
             if (responseComponents.ErrorStatus == HttpStatusCode.TooManyRequests) {
                 var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
                 _throttledRequests[BuildThrottleKey(e.HttpClient.Request)] = retryAfterDate;

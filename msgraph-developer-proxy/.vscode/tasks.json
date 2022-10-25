@@ -7,7 +7,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/msgraph-chaos-proxy.csproj",
+        "${workspaceFolder}/msgraph-developer-proxy.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -19,7 +19,7 @@
       "type": "process",
       "args": [
         "publish",
-        "${workspaceFolder}/msgraph-chaos-proxy.csproj",
+        "${workspaceFolder}/msgraph-developer-proxy.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -33,7 +33,7 @@
         "watch",
         "run",
         "--project",
-        "${workspaceFolder}/msgraph-chaos-proxy.csproj"
+        "${workspaceFolder}/msgraph-developer-proxy.csproj"
       ],
       "problemMatcher": "$msCompile"
     }

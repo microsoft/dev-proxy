@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Microsoft.Graph.ChaosProxy {
-    public class ChaosProxyConfiguration : IDisposable
+namespace Microsoft.Graph.DeveloperProxy {
+    public class ProxyConfiguration : IDisposable
     {
         [JsonPropertyName("port")]
         public int Port { get; set; } = 8000;
@@ -22,12 +22,12 @@ namespace Microsoft.Graph.ChaosProxy {
         private string InvalidCloudMessage => $"The value provided for the cloud: {Cloud} is not valid, current valid values are: {string.Join(", ", CloudHosts.Keys.ToArray())}.";
 
         [JsonPropertyName("responses")]
-        public IEnumerable<ChaosProxyMockResponse> Responses { get; set; } = Array.Empty<ChaosProxyMockResponse>();
+        public IEnumerable<ProxyMockResponse> Responses { get; set; } = Array.Empty<ProxyMockResponse>();
 
         private readonly string _responsesFilePath;
         private FileSystemWatcher? _watcher;
 
-        public ChaosProxyConfiguration()
+        public ProxyConfiguration()
         {
             _responsesFilePath = Path.Combine(Directory.GetCurrentDirectory(), "responses.json");
         }
@@ -36,15 +36,15 @@ namespace Microsoft.Graph.ChaosProxy {
         {
             if (!File.Exists(_responsesFilePath))
             {
-                Responses = Array.Empty<ChaosProxyMockResponse>();
+                Responses = Array.Empty<ProxyMockResponse>();
                 return;
             }
 
             try
             {
                 var responsesString = File.ReadAllText(_responsesFilePath);
-                var responsesConfig = JsonSerializer.Deserialize<ChaosProxyConfiguration>(responsesString);
-                IEnumerable<ChaosProxyMockResponse>? configResponses = responsesConfig?.Responses;
+                var responsesConfig = JsonSerializer.Deserialize<ProxyConfiguration>(responsesString);
+                IEnumerable<ProxyMockResponse>? configResponses = responsesConfig?.Responses;
                 if (configResponses is not null) {
                     Responses = configResponses;
                 }
@@ -94,7 +94,7 @@ namespace Microsoft.Graph.ChaosProxy {
         }
     }
 
-    public class ChaosProxyMockResponse {
+    public class ProxyMockResponse {
         [JsonPropertyName("url")]
         public string Url { get; set; } = string.Empty;
         [JsonPropertyName("method")]

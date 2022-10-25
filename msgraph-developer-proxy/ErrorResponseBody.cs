@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Microsoft.Graph.ChaosProxy {
+namespace Microsoft.Graph.DeveloperProxy {
     internal class ErrorResponseBody {
         [JsonPropertyName("error")]
         public ErrorResponseError Error { get; set; }
