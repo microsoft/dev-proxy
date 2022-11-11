@@ -1,0 +1,55 @@
+name: Create GitHub release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish_binaries:
+    name: Publish binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+          - win-x64
+          - win-x86
+          - linux-x64
+          - osx-x64
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 6.0.x
+      - name: Publish ${{ matrix.architecture }}
+        run: dotnet publish ./msgraph-developer-proxy/msgraph-developer-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} -o ./${{ matrix.architecture }}
+      - name: Archive Release ${{ matrix.architecture }}
+        uses: thedoctor0/zip-release@master
+        with:
+          filename: './${{ matrix.architecture }}.zip'
+          path: './${{ matrix.architecture }}'
+      - uses: actions/upload-artifact@v3
+        with:
+          name: binaries-${{ matrix.architecture }}
+          path: ./${{ matrix.architecture }}.zip
+  create_release:
+    name: Create Release
+    needs: [publish_binaries]
+    environment:
+      name: gh_releases
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          path: output
+      - name: Release
+        uses: anton-yurchenko/git-release@v5.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRAFT_RELEASE: "false"
+          PRE_RELEASE: "false"
+          CHANGELOG_FILE: "CHANGELOG.md"
+          ALLOW_EMPTY_CHANGELOG: "true"
+        with:
+          args: |
+              output/binaries-*/*.zip
