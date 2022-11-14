@@ -1,0 +1,39 @@
+name: .NET
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths-ignore: ['samples/**', '**.md', '.vscode/**', '**.svg']
+  pull_request:
+    # The branches below must be a subset of the branches above
+    paths-ignore: ['samples/**', '**.md', '.vscode/**', '**.svg']
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore workloads
+      run: dotnet workload restore
+    - name: Restore dependencies
+      run: dotnet restore msgraph-developer-proxy.sln
+    - name: Build
+      run: dotnet build msgraph-developer-proxy.sln --no-restore
+    # We really should have tests, putting these steps here for when we have a build process
+    # - name: Test
+    #   run: dotnet test msgraph-developer-proxy.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
+    # - name: Install report generator
+    #   run: dotnet tool install --global dotnet-reportgenerator-globaltool
+    # - name: Generate coverage report
+    #   run: reportgenerator -reports:**/coverage.cobertura.xml -targetdir:./reports/coverage
+    # - uses: actions/upload-artifact@v3
+    #   with:
+    #     name: coverage
+    #     path: reports/coverage

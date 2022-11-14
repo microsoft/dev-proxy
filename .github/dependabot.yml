@@ -1,0 +1,9 @@
+version: 2
+updates:
+- package-ecosystem: nuget
+  directory: "/msgraph-developer-proxy"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 5
+  labels:
+    - proxy
