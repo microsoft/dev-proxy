@@ -1,4 +1,7 @@
-﻿using System.CommandLine;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using System.CommandLine;
 
 namespace Microsoft.Graph.DeveloperProxy {
     internal class ProxyHost {
@@ -9,7 +12,7 @@ namespace Microsoft.Graph.DeveloperProxy {
             portOption.AddAlias("-p");
             portOption.ArgumentHelpName = "port";
             portOption.SetDefaultValue(8000);
-            
+
             var rateOption = new Option<int>("--failure-rate", "The percentage of requests to graph to respond with failures");
             rateOption.AddAlias("-f");
             rateOption.ArgumentHelpName = "failure rate";
@@ -47,7 +50,7 @@ namespace Microsoft.Graph.DeveloperProxy {
             };
             command.Description = "HTTP proxy to create random failures for calls to Microsoft Graph";
             command.Handler = new ProxyCommandHandler(portOption, rateOption, noMocksOptions, cloudOption, allowedErrorsOption);
-            
+
             return command;
         }
     }
