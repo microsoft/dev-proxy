@@ -38,7 +38,7 @@ You can test your existing applications without any changes, even if you don't h
 
 To install the proxy is easy
 
-- Download the latest version of the ZIP file for your operating system from the [Releases](https://github.com/microsoftgraph/msgraph-developer-proxy/releases) page 
+- Download the latest version of the ZIP file for your operating system from the [Releases](https://github.com/microsoftgraph/msgraph-developer-proxy/releases) page
 - Extract the archive to a folder of your choice
 
 Graph Developer Proxy doesn't need an installation and you can run it from any location on your machine.
@@ -382,3 +382,11 @@ As documented in the [Best practices to handle throttling](https://learn.microso
 ### All requests fail with gateway timeout
 
 If you're running the proxy for the first time, it can happen that the network access configuration didn't propagate timely and the proxy started without access to your network. Close the proxy by pressing Enter in proxy's window and restart the proxy and it should be working as intended.
+
+## A Microsoft Hackathon 2022 Project
+
+The initial build of this project was completed in the week of 5-9 September 2022 by Waldek Mastykarz, Gavin Barron and Garry Trinder
+
+## Trademarks
+
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow [Microsoft’s Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general). Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos are subject to those third-party’s policies.

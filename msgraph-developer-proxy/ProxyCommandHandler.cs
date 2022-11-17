@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using Microsoft.Extensions.Configuration;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text.Json;
@@ -47,7 +50,7 @@ namespace Microsoft.Graph.DeveloperProxy {
                 Console.Error.WriteLine();
                 Console.ForegroundColor = originalColor;
             }
-            
+
             try {
                 await new ChaosEngine(Configuration).Run(cancellationToken);
                 return 0;
