@@ -12,7 +12,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, 1ES.Pool=1es-graphdevx-ubuntu-github-latest] 
 
     steps:
     - uses: actions/checkout@v3
