@@ -25,7 +25,7 @@ Microsoft Graph Developer Proxy aims to provide a better way to test application
 
 ## Get started
 
-If you are new to Microsoft Graph Developer Proxy, we highly recommend that you begin with our [tutorial](./wiki/Get-started) which will guide you through the installation process and running the proxy for the first time.
+If you are new to Microsoft Graph Developer Proxy, we highly recommend that you begin with our [tutorial](/wiki/Get-started) which will guide you through the installation process and running the proxy for the first time.
 
 ## Example usage
 
