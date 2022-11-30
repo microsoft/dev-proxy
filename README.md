@@ -11,7 +11,8 @@
   <a href="#get-started">Get started</a> |
   <a href="#example-usage">Example usage</a> |
   <a href="#features">Features</a> |
-  <a href="#trademarks">Trademarks</a>
+  <a href="#trademarks">Trademarks</a> |
+  <a href="#community-preview">Community Preview</a>
 </p>
 
 <p align="center">
@@ -56,6 +57,11 @@ msgraph-developer-proxy --port 8080 --failure-rate 50 --no-mocks --allowed-error
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow [Microsoft’s Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general). Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos are subject to those third-party’s policies.
 
+## Community Preview
+
+We are working on getting the General Availability (GA) version published within the calendar year 2023. The current state of the Microsoft Graph Developer Proxy enables our team to be transparent and provide more insights on the upcoming features and to provide our worldwide ecosystem an option to directly influence the future of our capabilities. [Your feedback is more than welcome](/issues)! You can expect many more new features within the upcoming months before a version that is officially ready for production use and fully supported.
+
 ## A Microsoft Hackathon 2022 Project
 
 The initial build of this project was completed in the week of 5-9 September 2022 by Waldek Mastykarz, Gavin Barron and Garry Trinder
+
