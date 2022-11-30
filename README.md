@@ -26,7 +26,7 @@ Microsoft Graph Developer Proxy aims to provide a better way to test application
 
 ## Get started
 
-If you are new to Microsoft Graph Developer Proxy, we highly recommend that you begin with our [tutorial](/wiki/Get-started) which will guide you through the installation process and running the proxy for the first time.
+If you are new to Microsoft Graph Developer Proxy, we highly recommend that you begin with our [tutorial](https://github.com/microsoftgraph/msgraph-developer-proxy/wiki/Get-started) which will guide you through the installation process and running the proxy for the first time.
 
 ## Example usage
 
@@ -59,7 +59,7 @@ This project may contain trademarks or logos for projects, products, or services
 
 ## Community Preview
 
-We are working on getting the General Availability (GA) version published within the calendar year 2023. The current state of the Microsoft Graph Developer Proxy enables our team to be transparent and provide more insights on the upcoming features and to provide our worldwide ecosystem an option to directly influence the future of our capabilities. [Your feedback is more than welcome](/issues)! You can expect many more new features within the upcoming months before a version that is officially ready for production use and fully supported.
+We are working on getting the General Availability (GA) version published within the calendar year 2023. The current state of the Microsoft Graph Developer Proxy enables our team to be transparent and provide more insights on the upcoming features and to provide our worldwide ecosystem an option to directly influence the future of our capabilities. [Your feedback is more than welcome](https://github.com/microsoftgraph/msgraph-developer-proxy/issues)! You can expect many more new features within the upcoming months before a version that is officially ready for production use and fully supported.
 
 ## A Microsoft Hackathon 2022 Project
 
