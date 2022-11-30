@@ -59,7 +59,7 @@ This project may contain trademarks or logos for projects, products, or services
 
 ## Community Preview
 
-We are working on getting the General Availability (GA) version published within the calendar year 2023. The current state of the Microsoft Graph Developer Proxy enables our team to be transparent and provide more insights on the upcoming features and to provide our worldwide ecosystem an option to directly influence the future of our capabilities. [Your feedback is more than welcome](./issues)! You can expect many more new features within the upcoming months before a version that is officially ready for production use and fully supported.
+We are working on getting the General Availability (GA) version published within the calendar year 2023. The current state of the Microsoft Graph Developer Proxy enables our team to be transparent and provide more insights on the upcoming features and to provide our worldwide ecosystem an option to directly influence the future of our capabilities. [Your feedback is more than welcome](/issues)! You can expect many more new features within the upcoming months before a version that is officially ready for production use and fully supported.
 
 ## A Microsoft Hackathon 2022 Project
 
