@@ -29,7 +29,7 @@ If you are new to Microsoft Graph Developer Proxy, we highly recommend that you 
 
 ## Example usage
 
-To start the proxy on port 8080, failing 50% of requests with an HTTP status code of either 429 or 503 and ignore any mock responses that may have been provided, execute:
+Start the proxy on port 8080, set the chance for a request to Microsoft Graph to fail with an HTTP status code of either 429 or 503 at 50%, and ignore any mock responses that may have been provided, execute:
 
 ```
 msgraph-developer-proxy --port 8080 --failure-rate 50 --no-mocks --allowed-errors 429 503
