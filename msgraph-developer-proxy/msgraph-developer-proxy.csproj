@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Title>Microsoft Graph Developer Proxy</Title>
-    <Version>0.2.2</Version>
+    <Version>0.2.3</Version>
     <Company>Microsoft</Company>
     <Product>Microsoft Graph Developer Proxy</Product>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -39,10 +39,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="picture.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <None Update="responses.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
