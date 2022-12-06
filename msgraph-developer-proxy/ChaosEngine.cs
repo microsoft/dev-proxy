@@ -99,6 +99,7 @@ namespace Microsoft.Graph.DeveloperProxy {
             Console.WriteLine($"Configuring proxy for cloud {_config.Cloud} - {_config.HostName}");
             _proxyServer = new ProxyServer();
 
+            _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
             _proxyServer.BeforeRequest += OnRequest;
             _proxyServer.BeforeResponse += OnResponse;
             _proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
