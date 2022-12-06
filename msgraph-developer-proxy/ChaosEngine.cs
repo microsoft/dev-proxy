@@ -152,13 +152,18 @@ namespace Microsoft.Graph.DeveloperProxy {
         private void StopProxy() {
             // Unsubscribe & Quit
             try {
-                _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
-                _proxyServer.BeforeRequest -= OnRequest;
-                _proxyServer.BeforeResponse -= OnResponse;
-                _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
-                _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
+                if (_explicitEndPoint != null) {
+                    _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
+                }
 
-                _proxyServer.Stop();
+                if (_proxyServer != null) {
+                    _proxyServer.BeforeRequest -= OnRequest;
+                    _proxyServer.BeforeResponse -= OnResponse;
+                    _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
+                    _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
+
+                    _proxyServer.Stop();
+                }
             }
             catch (Exception ex) {
                 Console.WriteLine($"Exception: {ex.Message}");
