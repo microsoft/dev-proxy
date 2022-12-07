@@ -139,17 +139,35 @@ namespace Microsoft.Graph.DeveloperProxy {
             }
 
             // wait here (You can use something else as a wait function, I am using this as a demo)
-            Console.WriteLine("Press Enter to stop the Microsoft Graph Developer Proxy");
-            Console.ReadLine();
+            Console.WriteLine("Press CTRL+C to stop the Microsoft Graph Developer Proxy");
+            Console.CancelKeyPress += Console_CancelKeyPress;
+            // wait for the proxy to stop
+            while (_proxyServer.ProxyRunning) { Thread.Sleep(10); }
+        }
 
+        private void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
+            StopProxy();
+        }
+
+        private void StopProxy() {
             // Unsubscribe & Quit
-            _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
-            _proxyServer.BeforeRequest -= OnRequest;
-            _proxyServer.BeforeResponse -= OnResponse;
-            _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
-            _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
+            try {
+                if (_explicitEndPoint != null) {
+                    _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
+                }
 
-            _proxyServer.Stop();
+                if (_proxyServer != null) {
+                    _proxyServer.BeforeRequest -= OnRequest;
+                    _proxyServer.BeforeResponse -= OnResponse;
+                    _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
+                    _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
+
+                    _proxyServer.Stop();
+                }
+            }
+            catch (Exception ex) {
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
         }
 
         private void OnCancellation() {
