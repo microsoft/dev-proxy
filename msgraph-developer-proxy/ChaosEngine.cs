@@ -232,7 +232,7 @@ namespace Microsoft.Graph.DeveloperProxy {
 
             // Chaos happens only for graph requests which are not OPTIONS
             if (method is not "OPTIONS" && e.HttpClient.Request.RequestUri.Host.Contains(_config.HostName)) {
-                Console.WriteLine($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUri.AbsolutePath}");
+                Console.WriteLine($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUriString}");
                 HandleGraphRequest(e);
             }
         }
@@ -245,6 +245,13 @@ namespace Microsoft.Graph.DeveloperProxy {
             }
             else {
                 var failMode = ShouldFail(e.HttpClient.Request);
+
+                if (WarnNoSelect(e.HttpClient.Request)) {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.Error.WriteLine($"\tWARNING: {BuildUseSelectMessage(e.HttpClient.Request)}");
+                    Console.ForegroundColor = _color;
+                }
+
                 if (failMode == FailMode.PassThru && _config.FailureRate != 100) {
                     Console.WriteLine($"\tPassed through {e.HttpClient.Request.RequestUri.AbsolutePath}");
                     return;
@@ -263,6 +270,8 @@ namespace Microsoft.Graph.DeveloperProxy {
 
         private static string BuildUseSdkMessage(Request r) => $"To handle API errors more easily, use the Graph SDK. More info at {GetMoveToSdkUrl(r)}";
 
+        private static string BuildUseSelectMessage(Request r) => $"To improve performance of your application, use the $select parameter. More info at {GetSelectParameterGuidanceUrl(r)}";
+
         private void FailResponse(SessionEventArgs e, ResponseComponents r, FailMode failMode) {
             if (failMode == FailMode.Throttled) {
                 r.ErrorStatus = HttpStatusCode.TooManyRequests;
@@ -279,9 +288,17 @@ namespace Microsoft.Graph.DeveloperProxy {
             return request.Headers.HeaderExists("SdkVersion");
         }
 
+        private static bool WarnNoSelect(Request request) {
+            return request.Method == "GET" && !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static string GetMoveToSdkUrl(Request request) {
             // TODO: return language-specific guidance links based on the language detected from the User-Agent
             return "https://aka.ms/move-to-graph-js-sdk";
+        }
+
+        private static string GetSelectParameterGuidanceUrl(Request request) {
+            return "https://learn.microsoft.com/graph/query-parameters#select-parameter";
         }
 
         private static void ProcessMockResponse(SessionEventArgs e, ResponseComponents responseComponents, ProxyMockResponse matchingResponse) {
