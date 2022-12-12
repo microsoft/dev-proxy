@@ -10,6 +10,8 @@ public sealed class CertificateDiskCache : ICertificateCache {
     private const string DefaultCertificateDirectoryName = "crts";
     private const string DefaultCertificateFileExtension = ".pfx";
     private const string DefaultRootCertificateFileName = "rootCert" + DefaultCertificateFileExtension;
+    private const string ProxyConfigurationFolderName = "msgraph-developer-proxy";
+
     private string? rootCertificatePath;
 
     public X509Certificate2? LoadRootCertificate(string pathOrName, string password, X509KeyStorageFlags storageFlags) {
@@ -80,22 +82,20 @@ public sealed class CertificateDiskCache : ICertificateCache {
 
     private string GetRootCertificateDirectory(bool create) {
         if (rootCertificatePath == null) {
-            var proxyConfigurationFolderName = "msgraph-developer-proxy";
-
             if (RunTime.IsUwpOnWindows) {
-                rootCertificatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), proxyConfigurationFolderName);
+                rootCertificatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ProxyConfigurationFolderName);
             }
             else if (RunTime.IsLinux) {
-                rootCertificatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), proxyConfigurationFolderName);
+                rootCertificatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ProxyConfigurationFolderName);
             }
             else if (RunTime.IsMac) {
-                rootCertificatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), proxyConfigurationFolderName);
+                rootCertificatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ProxyConfigurationFolderName);
             }
             else {
                 var assemblyLocation = GetType().Assembly.Location;
 
                 // dynamically loaded assemblies returns string.Empty location
-                if (assemblyLocation == string.Empty) assemblyLocation = Assembly.GetEntryAssembly().Location;
+                if (assemblyLocation == string.Empty) assemblyLocation = Assembly.GetEntryAssembly()?.Location;
 
 #if NETSTANDARD2_1
                     // single-file app returns string.Empty location
