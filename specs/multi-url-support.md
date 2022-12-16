@@ -20,7 +20,8 @@ This configuration can also be extended by "any" URLs to support 1P endpoints, v
   "urlsToWatch": [
     "https://graph.microsoft.com/v1.0/*",
     "https://graph.microsoft.com/beta/*",
-    "https://graph.microsoft.us/*",
+    "https://graph.microsoft.us/v1.0/*",
+    "https://graph.microsoft.us/beta/*",
     "https://dod-graph.microsoft.us/*",
     "https://microsoftgraph.chinacloudapi.cn/*",
     "https://*.sharepoint.*/*_api/*",
