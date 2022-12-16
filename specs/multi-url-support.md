@@ -24,10 +24,8 @@ This configuration can also be extended by "any" URLs to support 1P endpoints, v
     "https://graph.microsoft.us/beta/*",
     "https://dod-graph.microsoft.us/v1.0/*",
     "https://dod-graph.microsoft.us/beta/*",
-
     "https://microsoftgraph.chinacloudapi.cn/v1.0/*",
     "https://microsoftgraph.chinacloudapi.cn/beta/*",
-
     "https://*.sharepoint.*/*_api/*",
     "https://*.sharepoint.*/*_vti_bin/*",
     "https://*.sharepoint-df.*/*_api/*",
