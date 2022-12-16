@@ -1,7 +1,7 @@
 {
   "responses": [
     {
-      "url": "/v1.0/me",
+      "url": "https://graph.microsoft.com/v1.0/me",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
@@ -20,13 +20,13 @@
       }
     },
     {
-      "url": "/v1.0/me",
+      "url": "https://graph.microsoft.com/v1.0/me",
       "method": "PATCH",
       "responseBody": {},
       "responseCode":  204
     },
     {
-      "url": "/v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038",
+      "url": "https://graph.microsoft.com/v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
@@ -45,18 +45,18 @@
       }
     },
     {
-      "url": "/v1.0/me/photo",
+      "url": "https://graph.microsoft.com/v1.0/me/photo",
       "responseCode": 404
     },
     {
-      "url": "/v1.0/users/*/photo/$value",
+      "url": "https://graph.microsoft.com/v1.0/users/*/photo/$value",
       "responseBody": "@picture.jpg",
       "responseHeaders": {
         "content-type": "image/jpeg"
       }
     },
     {
-      "url": "/v1.0/users/*",
+      "url": "https://graph.microsoft.com/v1.0/users/*",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
         "businessPhones": [
