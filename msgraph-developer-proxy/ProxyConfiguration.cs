@@ -13,16 +13,10 @@ namespace Microsoft.Graph.DeveloperProxy {
         public int FailureRate { get; set; } = 50;
         [JsonPropertyName("noMocks")]
         public bool NoMocks { get; set; } = false;
-        [JsonPropertyName("cloud")]
-        public string Cloud { get; set; } = "global";
-        [JsonPropertyName("cloudHosts")]
-        public Dictionary<string, string> CloudHosts { get; set; } = new();
+        [JsonPropertyName("urlsToWatch")]
+        public string[] UrlsToWatch { get; set; } = Array.Empty<string>();
         [JsonPropertyName("allowedErrors")]
         public IEnumerable<int> AllowedErrors { get; set; } = Array.Empty<int>();
-
-        public string HostName => CloudHosts.ContainsKey(Cloud) ? CloudHosts[Cloud] : throw new ArgumentOutOfRangeException(nameof(Cloud), InvalidCloudMessage);
-
-        private string InvalidCloudMessage => $"The value provided for the cloud: {Cloud} is not valid, current valid values are: {string.Join(", ", CloudHosts.Keys.ToArray())}.";
 
         [JsonPropertyName("responses")]
         public IEnumerable<ProxyMockResponse> Responses { get; set; } = Array.Empty<ProxyMockResponse>();

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Net;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
@@ -10,7 +9,6 @@ using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Helpers;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
-using Titanium.Web.Proxy.Network;
 
 namespace Microsoft.Graph.DeveloperProxy {
     internal enum FailMode {
@@ -79,6 +77,11 @@ namespace Microsoft.Graph.DeveloperProxy {
         private ExplicitProxyEndPoint? _explicitEndPoint;
         private readonly Dictionary<string, DateTime> _throttledRequests;
         private readonly ConsoleColor _color;
+        // lists of URLs to watch, used for intercepting requests
+        private List<Regex> urlsToWatch = new List<Regex>();
+        // lists of hosts to watch extracted from urlsToWatch,
+        // used for deciding which URLs to decrypt for further inspection
+        private List<Regex> hostsToWatch = new List<Regex>();
 
         public ChaosEngine(ProxyConfiguration config) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -96,7 +99,13 @@ namespace Microsoft.Graph.DeveloperProxy {
         }
 
         public async Task Run(CancellationToken? cancellationToken) {
-            Console.WriteLine($"Configuring proxy for cloud {_config.Cloud} - {_config.HostName}");
+            if (!_config.UrlsToWatch.Any()) {
+                Console.WriteLine("No URLs to watch configured. Please add URLs to watch in the appsettings.json config file.");
+                return;
+            }
+
+            LoadUrlsToWatch();
+
             _proxyServer = new ProxyServer();
 
             _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
@@ -144,6 +153,36 @@ namespace Microsoft.Graph.DeveloperProxy {
             Console.CancelKeyPress += Console_CancelKeyPress;
             // wait for the proxy to stop
             while (_proxyServer.ProxyRunning) { Thread.Sleep(10); }
+        }
+
+        // Convert strings from config to regexes.
+        // From the list of URLs, extract host names and convert them to regexes.
+        // We need this because before we decrypt a request, we only have access
+        // to the host name, not the full URL.
+        private void LoadUrlsToWatch() {
+            foreach (var urlToWatch in _config.UrlsToWatch) {
+                // add the full URL
+                var urlToWatchRegexString = Regex.Escape(urlToWatch).Replace("\\*", ".*");
+                urlsToWatch.Add(new Regex(urlToWatchRegexString, RegexOptions.Compiled | RegexOptions.IgnoreCase));
+
+                // extract host from the URL
+                var hostToWatch = "";
+                if (urlToWatch.Contains("://")) {
+                    // if the URL contains a protocol, extract the host from the URL
+                    hostToWatch = urlToWatch.Split("://")[1].Substring(0, urlToWatch.Split("://")[1].IndexOf("/"));
+                }
+                else {
+                    // if the URL doesn't contain a protocol,
+                    // we assume the whole URL is a host name
+                    hostToWatch = urlToWatch;
+                }
+
+                var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
+                // don't add the same host twice
+                if (!hostsToWatch.Any(h => h.ToString() == hostToWatchRegexString)) {
+                    hostsToWatch.Add(new Regex(hostToWatchRegexString, RegexOptions.Compiled | RegexOptions.IgnoreCase));
+                }
+            }
         }
 
         private void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
@@ -207,10 +246,8 @@ namespace Microsoft.Graph.DeveloperProxy {
         }
 
         async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e) {
-            string hostname = e.HttpClient.Request.RequestUri.Host;
-
             // Ensures that only the targeted Https domains are proxyied
-            if (!hostname.Contains(_config.HostName)) {
+            if (!ShouldDecryptRequest(e.HttpClient.Request.RequestUri.Host)) {
                 e.DecryptSsl = false;
             }
         }
@@ -231,14 +268,14 @@ namespace Microsoft.Graph.DeveloperProxy {
                 e.UserData = e.HttpClient.Request;
             }
 
-            // Chaos happens only for graph requests which are not OPTIONS
-            if (method is not "OPTIONS" && e.HttpClient.Request.RequestUri.Host.Contains(_config.HostName)) {
-                Console.WriteLine($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUriString}");
-                HandleGraphRequest(e);
+            // Chaos happens only for requests which are not OPTIONS
+            if (method is not "OPTIONS" && ShouldWatchRequest(e.HttpClient.Request.Url)) {
+                Console.WriteLine($"saw a request: {e.HttpClient.Request.Method} {e.HttpClient.Request.Url}");
+                HandleRequest(e);
             }
         }
 
-        private void HandleGraphRequest(SessionEventArgs e) {
+        private void HandleRequest(SessionEventArgs e) {
             var responseComponents = ResponseComponents.Build();
             var matchingResponse = GetMatchingMockResponse(e.HttpClient.Request);
             if (matchingResponse is not null) {
@@ -254,12 +291,13 @@ namespace Microsoft.Graph.DeveloperProxy {
                 }
 
                 if (failMode == FailMode.PassThru && _config.FailureRate != 100) {
-                    Console.WriteLine($"\tPassed through {e.HttpClient.Request.RequestUri.AbsolutePath}");
+                    Console.WriteLine($"\tPassed through {e.HttpClient.Request.Url}");
                     return;
                 }
 
                 FailResponse(e, responseComponents, failMode);
-                if (!IsSdkRequest(e.HttpClient.Request)) {
+                if (IsGraphRequest(e.HttpClient.Request) &&
+                    !IsSdkRequest(e.HttpClient.Request)) {
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.Error.WriteLine($"\tTIP: {BuildUseSdkMessage(e.HttpClient.Request)}");
                     Console.ForegroundColor = _color;
@@ -289,8 +327,14 @@ namespace Microsoft.Graph.DeveloperProxy {
             return request.Headers.HeaderExists("SdkVersion");
         }
 
+        private static bool IsGraphRequest(Request request) {
+            return request.RequestUri.Host.Contains("graph", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool WarnNoSelect(Request request) {
-            return request.Method == "GET" && !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
+            return IsGraphRequest(request) &&
+                request.Method == "GET" &&
+                !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetMoveToSdkUrl(Request request) {
@@ -343,6 +387,14 @@ namespace Microsoft.Graph.DeveloperProxy {
             }
         }
 
+        private bool ShouldDecryptRequest(string hostName) {
+            return hostsToWatch.Any(h => h.IsMatch(hostName));
+        }
+
+        private bool ShouldWatchRequest(string requestUrl) {
+            return urlsToWatch.Any(u => u.IsMatch(requestUrl));
+        }
+
         private ProxyMockResponse? GetMatchingMockResponse(Request request) {
             if (_config.NoMocks ||
                 _config.Responses is null ||
@@ -350,21 +402,21 @@ namespace Microsoft.Graph.DeveloperProxy {
                 return null;
             }
 
-            var mockResponse = _config.Responses.FirstOrDefault(r => {
-                if (r.Method != request.Method) return false;
-                if (r.Url == request.RequestUri.AbsolutePath) {
+            var mockResponse = _config.Responses.FirstOrDefault(mockResponse => {
+                if (mockResponse.Method != request.Method) return false;
+                if (mockResponse.Url == request.Url) {
                     return true;
                 }
 
                 // check if the URL contains a wildcard
                 // if it doesn't, it's not a match for the current request for sure
-                if (!r.Url.Contains('*')) {
+                if (!mockResponse.Url.Contains('*')) {
                     return false;
                 }
 
                 // turn mock URL with wildcard into a regex and match against the request URL
-                var urlRegex = Regex.Escape(r.Url).Replace("\\*", ".*");
-                return Regex.IsMatch(request.RequestUri.AbsolutePath, urlRegex);
+                var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
+                return Regex.IsMatch(request.Url, mockResponseUrlRegex);
             });
             return mockResponse;
         }
@@ -393,11 +445,11 @@ namespace Microsoft.Graph.DeveloperProxy {
                     })
                 );
             }
-            Console.WriteLine($"\t{(matchingResponse is not null ? "Mocked" : "Failed")} {e.HttpClient.Request.RequestUri.AbsolutePath} with {responseComponents.ErrorStatus}");
+            Console.WriteLine($"\t{(matchingResponse is not null ? "Mocked" : "Failed")} {e.HttpClient.Request.Url} with {responseComponents.ErrorStatus}");
             e.GenericResponse(responseComponents.Body ?? string.Empty, responseComponents.ErrorStatus, responseComponents.Headers);
         }
 
-        private string BuildApiErrorMessage(Request r) => $"Some error was generated by the proxy. {(IsSdkRequest(r) ? "" : BuildUseSdkMessage(r))}";
+        private string BuildApiErrorMessage(Request r) => $"Some error was generated by the proxy. {(IsGraphRequest(r) ? (IsSdkRequest(r) ? "" : BuildUseSdkMessage(r)) : "")}";
 
         private string BuildThrottleKey(Request r) => $"{r.Method}-{r.Url}";
 
