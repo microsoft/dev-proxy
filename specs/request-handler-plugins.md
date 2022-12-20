@@ -34,7 +34,7 @@ The existing `appsettings.json` file will be used to provide configuration. Both
   }
 ```
 
-Handlers will executed in the order that they are listed in the handlers configuration array.
+Handlers will executed in the order that they are listed in the handlers configuration array. At least one handlers must be present in the configuration, otherwise the proxy will exit with an error informing the user that their configuration is invalid and contains no handlers.
 
 ## Handlers
 
@@ -112,3 +112,5 @@ public abstract class ProxyHandler
 
 The Hander plug-in system will leverage reflection to load the custom logic at runtime via the supplied configuration.
 The plug-in system will leverage `AssemblyLoadContext` from `System.Runtime.Loader` to allow for isolated loading of plug-ins and their dependencies. The approach will be based upon https://learn.microsoft.com/en-us/dotnet/core/tutorials/creating-app-with-plugin-support
+
+Should a the proxy be unable to load a handler based upon the supplied configuration the proxy will exit with an error informing the user that the handler plug-in was not able to be found.
