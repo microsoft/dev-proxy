@@ -50,7 +50,8 @@ The following table provides details of how to configure your app registration.
 
 | Property | Value |
 | ---- | ---- |
-| Name | Microsoft Graph Developer Proxy Samples |
+| Name | graph-developer-proxy-samples |
+| Account types | Accounts in any organizational directory (Any Azure AD directory - Multitenant) |
 | Platform type | Single-page application |
 | Redirect URIs | http://localhost:3000/withsdk.html <br> http://localhost:3000/nosdk.html |
 | API Permissions | Microsoft Graph <br> User.Read.All (Delegate) w/ Admin Consent <br> Presence.Read.All |
