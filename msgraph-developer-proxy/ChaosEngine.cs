@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Diagnostics;
 using System.Net;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
@@ -82,6 +84,22 @@ namespace Microsoft.Graph.DeveloperProxy {
         // lists of hosts to watch extracted from urlsToWatch,
         // used for deciding which URLs to decrypt for further inspection
         private List<Regex> hostsToWatch = new List<Regex>();
+
+
+        private static string __productVersion = string.Empty;
+        private static string _productVersion {
+            get {
+                if (__productVersion == string.Empty) {
+                    var assembly = Assembly.GetExecutingAssembly();
+                    if (assembly != null) {
+                        var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+                        __productVersion = fileVersionInfo?.ProductVersion!;
+                    }
+                }
+
+                return __productVersion;
+            }
+        }
 
         public ChaosEngine(ProxyConfiguration config) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -291,6 +309,7 @@ namespace Microsoft.Graph.DeveloperProxy {
                 }
 
                 if (failMode == FailMode.PassThru && _config.FailureRate != 100) {
+                    AddProxyHeader(e.HttpClient.Request);
                     Console.WriteLine($"\tPassed through {e.HttpClient.Request.Url}");
                     return;
                 }
@@ -305,6 +324,12 @@ namespace Microsoft.Graph.DeveloperProxy {
             }
             if (!responseComponents.ResponseIsComplete)
                 UpdateProxyResponse(e, responseComponents, matchingResponse);
+        }
+
+        private static void AddProxyHeader(Request r) {
+            if (r.Headers is not null) {
+                r.Headers.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{_productVersion}");
+            }
         }
 
         private static string BuildUseSdkMessage(Request r) => $"To handle API errors more easily, use the Graph SDK. More info at {GetMoveToSdkUrl(r)}";
