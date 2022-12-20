@@ -4,19 +4,23 @@
 using Microsoft.Extensions.Configuration;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Graph.DeveloperProxy {
     public class ProxyCommandHandler : ICommandHandler {
         public Option<int> Port { get; set; }
-        public Option<int> Rate { get; set; }
-        public Option<bool> DisableMocks { get; set; }
-        public Option<IEnumerable<int>> AllowedErrors { get; }
 
-        public ProxyCommandHandler(Option<int> port, Option<int> rate, Option<bool> disableMocks, Option<IEnumerable<int>> allowedErrors) {
+        private readonly PluginEvents _pluginEvents;
+        private readonly ISet<Regex> _urlsToWatch;
+        private readonly ILogger _logger;
+        public ProxyCommandHandler(Option<int> port,
+                                   PluginEvents pluginEvents,
+                                   ISet<Regex> urlsToWatch,
+                                   ILogger logger) {
             Port = port ?? throw new ArgumentNullException(nameof(port));
-            Rate = rate ?? throw new ArgumentNullException(nameof(rate));
-            DisableMocks = disableMocks ?? throw new ArgumentNullException(nameof(disableMocks));
-            AllowedErrors = allowedErrors ?? throw new ArgumentNullException(nameof(allowedErrors));
+            _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
+            _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public int Invoke(InvocationContext context) {
@@ -25,14 +29,10 @@ namespace Microsoft.Graph.DeveloperProxy {
 
         public async Task<int> InvokeAsync(InvocationContext context) {
             int port = context.ParseResult.GetValueForOption(Port);
-            int failureRate = context.ParseResult.GetValueForOption(Rate);
-            bool disableMocks = context.ParseResult.GetValueForOption(DisableMocks);
-            IEnumerable<int> allowedErrors = context.ParseResult.GetValueForOption(AllowedErrors) ?? Enumerable.Empty<int>();
             CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
             Configuration.Port = port;
-            Configuration.FailureRate = failureRate;
-            Configuration.NoMocks = disableMocks;
-            Configuration.AllowedErrors = allowedErrors;
+
+            _pluginEvents.FireOptionsLoaded(new OptionsLoadedArgs(context));
 
             var newReleaseInfo = await UpdateNotification.CheckForNewVersion();
             if (newReleaseInfo != null) {
@@ -45,7 +45,7 @@ namespace Microsoft.Graph.DeveloperProxy {
             }
 
             try {
-                await new ChaosEngine(Configuration).Run(cancellationToken);
+                await new ChaosEngine(Configuration, _urlsToWatch, _pluginEvents, _logger).Run(cancellationToken);
                 return 0;
             }
             catch (Exception ex) {

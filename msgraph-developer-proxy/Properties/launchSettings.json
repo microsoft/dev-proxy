@@ -1,5 +1,10 @@
 {
   "profiles": {
+    "No args": {
+      "commandName": "Project",
+      "commandLineArgs": "",
+      "hotReloadEnabled": true
+    },
     "No chaos with mock responses": {
       "commandName": "Project",
       "commandLineArgs": "--port 8080 --failure-rate 0",

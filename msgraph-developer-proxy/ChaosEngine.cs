@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
@@ -13,77 +12,20 @@ using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.Graph.DeveloperProxy {
-    internal enum FailMode {
-        Throttled,
-        Random,
-        PassThru
-    }
 
     public class ChaosEngine {
-        private int retryAfterInSeconds = 5;
-        private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new()
-        {
-            {
-                "GET", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout
-                }
-            },
-            {
-                "POST", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout,
-                    HttpStatusCode.InsufficientStorage
-                }
-            },
-            {
-                "PUT", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout,
-                    HttpStatusCode.InsufficientStorage
-                }
-            },
-            {
-                "PATCH", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout
-                }
-            },
-            {
-                "DELETE", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout,
-                    HttpStatusCode.InsufficientStorage
-                }
-            }
-        };
 
+        private readonly PluginEvents _pluginEvents;
+        private readonly ILogger _logger;
         private readonly ProxyConfiguration _config;
-        private readonly Random _random;
         private ProxyServer? _proxyServer;
         private ExplicitProxyEndPoint? _explicitEndPoint;
-        private readonly Dictionary<string, DateTime> _throttledRequests;
         private readonly ConsoleColor _color;
         // lists of URLs to watch, used for intercepting requests
-        private List<Regex> urlsToWatch = new List<Regex>();
+        private ISet<Regex> _urlsToWatch = new HashSet<Regex>();
         // lists of hosts to watch extracted from urlsToWatch,
         // used for deciding which URLs to decrypt for further inspection
-        private List<Regex> hostsToWatch = new List<Regex>();
+        private ISet<Regex> _hostsToWatch = new HashSet<Regex>();
 
 
         private static string __productVersion = string.Empty;
@@ -101,28 +43,23 @@ namespace Microsoft.Graph.DeveloperProxy {
             }
         }
 
-        public ChaosEngine(ProxyConfiguration config) {
+        public ChaosEngine(ProxyConfiguration config, ISet<Regex> urlsToWatch, PluginEvents pluginEvents, ILogger logger) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _config.InitResponsesWatcher();
 
-            _random = new Random();
-            _throttledRequests = new Dictionary<string, DateTime>();
-            if (_config.AllowedErrors.Any()) {
-                foreach (string k in _methodStatusCode.Keys) {
-                    _methodStatusCode[k] = _methodStatusCode[k].Where(e => _config.AllowedErrors.Any(a => (int)e == a)).ToArray();
-                }
-            }
-
             _color = Console.ForegroundColor;
+            _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
+            _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task Run(CancellationToken? cancellationToken) {
-            if (!_config.UrlsToWatch.Any()) {
+            if (!_urlsToWatch.Any()) {
                 Console.WriteLine("No URLs to watch configured. Please add URLs to watch in the appsettings.json config file.");
                 return;
             }
 
-            LoadUrlsToWatch();
+            LoadHostNamesFromUrls();
 
             _proxyServer = new ProxyServer();
 
@@ -170,6 +107,7 @@ namespace Microsoft.Graph.DeveloperProxy {
             Console.WriteLine("Press CTRL+C to stop the Microsoft Graph Developer Proxy");
             Console.CancelKeyPress += Console_CancelKeyPress;
             // wait for the proxy to stop
+            Console.ReadLine();
             while (_proxyServer.ProxyRunning) { Thread.Sleep(10); }
         }
 
@@ -177,15 +115,12 @@ namespace Microsoft.Graph.DeveloperProxy {
         // From the list of URLs, extract host names and convert them to regexes.
         // We need this because before we decrypt a request, we only have access
         // to the host name, not the full URL.
-        private void LoadUrlsToWatch() {
-            foreach (var urlToWatch in _config.UrlsToWatch) {
-                // add the full URL
-                var urlToWatchRegexString = Regex.Escape(urlToWatch).Replace("\\*", ".*");
-                urlsToWatch.Add(new Regex(urlToWatchRegexString, RegexOptions.Compiled | RegexOptions.IgnoreCase));
-
+        private void LoadHostNamesFromUrls() {
+            foreach (var url in _urlsToWatch) {
                 // extract host from the URL
-                var hostToWatch = "";
-                if (urlToWatch.Contains("://")) {
+                string urlToWatch = Regex.Unescape(url.ToString());
+                string hostToWatch;
+                if (urlToWatch.ToString().Contains("://")) {
                     // if the URL contains a protocol, extract the host from the URL
                     hostToWatch = urlToWatch.Split("://")[1].Substring(0, urlToWatch.Split("://")[1].IndexOf("/"));
                 }
@@ -196,9 +131,10 @@ namespace Microsoft.Graph.DeveloperProxy {
                 }
 
                 var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
+                Regex hostRegex = new Regex(hostToWatchRegexString, RegexOptions.Compiled | RegexOptions.IgnoreCase);
                 // don't add the same host twice
-                if (!hostsToWatch.Any(h => h.ToString() == hostToWatchRegexString)) {
-                    hostsToWatch.Add(new Regex(hostToWatchRegexString, RegexOptions.Compiled | RegexOptions.IgnoreCase));
+                if (!_hostsToWatch.Contains(hostRegex)) {
+                    _hostsToWatch.Add(hostRegex);
                 }
             }
         }
@@ -243,31 +179,11 @@ namespace Microsoft.Graph.DeveloperProxy {
             }
         }
 
-        // uses config to determine if a request should be failed
-        private FailMode ShouldFail(Request r) {
-            string key = BuildThrottleKey(r);
-            if (_throttledRequests.TryGetValue(key, out DateTime retryAfterDate)) {
-                if (retryAfterDate > DateTime.Now) {
-                    Console.Error.WriteLine($"Calling {r.Url} again before waiting for the Retry-After period. Request will be throttled");
-                    // update the retryAfterDate to extend the throttling window to ensure that brute forcing won't succeed.
-                    _throttledRequests[key] = retryAfterDate.AddSeconds(retryAfterInSeconds);
-                    return FailMode.Throttled;
-                }
-                else {
-                    // clean up expired throttled request and ensure that this request is passed through.
-                    _throttledRequests.Remove(key);
-                    return FailMode.PassThru;
-                }
-            }
-
-            return _random.Next(1, 100) <= _config.FailureRate ? FailMode.Random : FailMode.PassThru;
-        }
-
         async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e) {
             // Ensures that only the targeted Https domains are proxyied
-            if (!ShouldDecryptRequest(e.HttpClient.Request.RequestUri.Host)) {
-                e.DecryptSsl = false;
-            }
+            //if (!hostname.Contains(_config.HostName)) {
+            //    e.DecryptSsl = false;
+            //}
         }
 
         async Task OnRequest(object sender, SessionEventArgs e) {
@@ -286,44 +202,38 @@ namespace Microsoft.Graph.DeveloperProxy {
                 e.UserData = e.HttpClient.Request;
             }
 
-            // Chaos happens only for requests which are not OPTIONS
-            if (method is not "OPTIONS" && ShouldWatchRequest(e.HttpClient.Request.Url)) {
-                Console.WriteLine($"saw a request: {e.HttpClient.Request.Method} {e.HttpClient.Request.Url}");
-                HandleRequest(e);
+            // Chaos happens only for graph requests which are not OPTIONS
+            if (method is not "OPTIONS") {
+                Console.WriteLine($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUriString}");
+                HandleGraphRequest(e);
             }
         }
 
-        private void HandleRequest(SessionEventArgs e) {
-            var responseComponents = ResponseComponents.Build();
-            var matchingResponse = GetMatchingMockResponse(e.HttpClient.Request);
-            if (matchingResponse is not null) {
-                ProcessMockResponse(e, responseComponents, matchingResponse);
+        private void HandleGraphRequest(SessionEventArgs e) {
+            ResponseState responseState = new ResponseState();
+            _pluginEvents.FireProxyRequest(new ProxyRequestArgs(e, responseState));
+
+            //var responseComponents = ResponseComponents.Build();
+            // internal array of request handlers
+            //foreach(var h in this._handlers)
+            //    h.HandleRequest(e, responseComponents);
+
+            //var matchingResponse = GetMatchingMockResponse(e.HttpClient.Request);
+            //if (matchingResponse is not null) {
+            //    ProcessMockResponse(e, responseComponents, matchingResponse);
+            //}
+            //else {
+
+            if (ProxyUtils.IsGraphRequest(e.HttpClient.Request) &&
+                !ProxyUtils.IsSdkRequest(e.HttpClient.Request)) {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Error.WriteLine($"\tTIP: {BuildUseSdkMessage(e.HttpClient.Request)}");
+                Console.ForegroundColor = _color;
             }
-            else {
-                var failMode = ShouldFail(e.HttpClient.Request);
-
-                if (WarnNoSelect(e.HttpClient.Request)) {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.Error.WriteLine($"\tWARNING: {BuildUseSelectMessage(e.HttpClient.Request)}");
-                    Console.ForegroundColor = _color;
-                }
-
-                if (failMode == FailMode.PassThru && _config.FailureRate != 100) {
-                    AddProxyHeader(e.HttpClient.Request);
-                    Console.WriteLine($"\tPassed through {e.HttpClient.Request.Url}");
-                    return;
-                }
-
-                FailResponse(e, responseComponents, failMode);
-                if (IsGraphRequest(e.HttpClient.Request) &&
-                    !IsSdkRequest(e.HttpClient.Request)) {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.Error.WriteLine($"\tTIP: {BuildUseSdkMessage(e.HttpClient.Request)}");
-                    Console.ForegroundColor = _color;
-                }
+            // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
+            if (!responseState.HasBeenSet) {
+                AddProxyHeader(e.HttpClient.Request);
             }
-            if (!responseComponents.ResponseIsComplete)
-                UpdateProxyResponse(e, responseComponents, matchingResponse);
         }
 
         private static void AddProxyHeader(Request r) {
@@ -334,149 +244,85 @@ namespace Microsoft.Graph.DeveloperProxy {
 
         private static string BuildUseSdkMessage(Request r) => $"To handle API errors more easily, use the Graph SDK. More info at {GetMoveToSdkUrl(r)}";
 
-        private static string BuildUseSelectMessage(Request r) => $"To improve performance of your application, use the $select parameter. More info at {GetSelectParameterGuidanceUrl(r)}";
-
-        private void FailResponse(SessionEventArgs e, ResponseComponents r, FailMode failMode) {
-            if (failMode == FailMode.Throttled) {
-                r.ErrorStatus = HttpStatusCode.TooManyRequests;
-            }
-            else {
-                // there's no matching mock response so pick a random response
-                // for the current request method
-                var methodStatusCodes = _methodStatusCode[e.HttpClient.Request.Method];
-                r.ErrorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length)];
-            }
-        }
-
-        private static bool IsSdkRequest(Request request) {
-            return request.Headers.HeaderExists("SdkVersion");
-        }
-
-        private static bool IsGraphRequest(Request request) {
-            return request.RequestUri.Host.Contains("graph", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool WarnNoSelect(Request request) {
-            return IsGraphRequest(request) &&
-                request.Method == "GET" &&
-                !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
-        }
-
         private static string GetMoveToSdkUrl(Request request) {
             // TODO: return language-specific guidance links based on the language detected from the User-Agent
             return "https://aka.ms/move-to-graph-js-sdk";
         }
 
-        private static string GetSelectParameterGuidanceUrl(Request request) {
-            return "https://learn.microsoft.com/graph/query-parameters#select-parameter";
-        }
+        //private static void ProcessMockResponse(SessionEventArgs e, ResponseComponents responseComponents, ProxyMockResponse matchingResponse) {
+        //    if (matchingResponse.ResponseCode is not null) {
+        //        responseComponents.ErrorStatus = (HttpStatusCode)matchingResponse.ResponseCode;
+        //    }
 
-        private static void ProcessMockResponse(SessionEventArgs e, ResponseComponents responseComponents, ProxyMockResponse matchingResponse) {
-            if (matchingResponse.ResponseCode is not null) {
-                responseComponents.ErrorStatus = (HttpStatusCode)matchingResponse.ResponseCode;
-            }
+        //    if (matchingResponse.ResponseHeaders is not null) {
+        //        foreach (var key in matchingResponse.ResponseHeaders.Keys) {
+        //            responseComponents.Headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
+        //        }
+        //    }
 
-            if (matchingResponse.ResponseHeaders is not null) {
-                foreach (var key in matchingResponse.ResponseHeaders.Keys) {
-                    responseComponents.Headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
-                }
-            }
+        //    if (matchingResponse.ResponseBody is not null) {
+        //        var bodyString = JsonSerializer.Serialize(matchingResponse.ResponseBody) as string;
+        //        // we get a JSON string so need to start with the opening quote
+        //        if (bodyString?.StartsWith("\"@") ?? false) {
+        //            // we've got a mock body starting with @-token which means we're sending
+        //            // a response from a file on disk
+        //            // if we can read the file, we can immediately send the response and
+        //            // skip the rest of the logic in this method
+        //            // remove the surrounding quotes and the @-token
+        //            var filePath = Path.Combine(Directory.GetCurrentDirectory(), bodyString.Trim('"').Substring(1));
+        //            if (!File.Exists(filePath)) {
+        //                Console.Error.WriteLine($"File {filePath} not found. Serving file path in the mock response");
+        //                responseComponents.Body = bodyString;
+        //            }
+        //            else {
+        //                if (e.HttpClient.Request.Headers.FirstOrDefault((HttpHeader h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
+        //                    responseComponents.Headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
+        //                }
 
-            if (matchingResponse.ResponseBody is not null) {
-                var bodyString = JsonSerializer.Serialize(matchingResponse.ResponseBody) as string;
-                // we get a JSON string so need to start with the opening quote
-                if (bodyString?.StartsWith("\"@") ?? false) {
-                    // we've got a mock body starting with @-token which means we're sending
-                    // a response from a file on disk
-                    // if we can read the file, we can immediately send the response and
-                    // skip the rest of the logic in this method
-                    // remove the surrounding quotes and the @-token
-                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), bodyString.Trim('"').Substring(1));
-                    if (!File.Exists(filePath)) {
-                        Console.Error.WriteLine($"File {filePath} not found. Serving file path in the mock response");
-                        responseComponents.Body = bodyString;
-                    }
-                    else {
-                        if (e.HttpClient.Request.Headers.FirstOrDefault((HttpHeader h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
-                            responseComponents.Headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
-                        }
-
-                        var bodyBytes = File.ReadAllBytes(filePath);
-                        e.GenericResponse(bodyBytes, responseComponents.ErrorStatus, responseComponents.Headers);
-                        responseComponents.ResponseIsComplete = true;
-                    }
-                }
-                else {
-                    responseComponents.Body = bodyString;
-                }
-            }
-        }
+        //                var bodyBytes = File.ReadAllBytes(filePath);
+        //                e.GenericResponse(bodyBytes, responseComponents.ErrorStatus, responseComponents.Headers);
+        //                responseComponents.ResponseIsComplete = true;
+        //            }
+        //        }
+        //        else {
+        //            responseComponents.Body = bodyString;
+        //        }
+        //    }
+        //}
 
         private bool ShouldDecryptRequest(string hostName) {
-            return hostsToWatch.Any(h => h.IsMatch(hostName));
+            return _hostsToWatch.Any(h => h.IsMatch(hostName));
         }
 
         private bool ShouldWatchRequest(string requestUrl) {
-            return urlsToWatch.Any(u => u.IsMatch(requestUrl));
+            return _urlsToWatch.Any(u => u.IsMatch(requestUrl));
         }
 
-        private ProxyMockResponse? GetMatchingMockResponse(Request request) {
-            if (_config.NoMocks ||
-                _config.Responses is null ||
-                !_config.Responses.Any()) {
-                return null;
-            }
+        //private ProxyMockResponse? GetMatchingMockResponse(Request request) {
+        //    if (_config.NoMocks ||
+        //        _config.Responses is null ||
+        //        !_config.Responses.Any()) {
+        //        return null;
+        //    }
 
-            var mockResponse = _config.Responses.FirstOrDefault(mockResponse => {
-                if (mockResponse.Method != request.Method) return false;
-                if (mockResponse.Url == request.Url) {
-                    return true;
-                }
+        //    var mockResponse = _config.Responses.FirstOrDefault(mockResponse => {
+        //        if (mockResponse.Method != request.Method) return false;
+        //        if (mockResponse.Url == request.Url) {
+        //            return true;
+        //        }
 
-                // check if the URL contains a wildcard
-                // if it doesn't, it's not a match for the current request for sure
-                if (!mockResponse.Url.Contains('*')) {
-                    return false;
-                }
+        //        check if the URL contains a wildcard
+        //         if it doesn't, it's not a match for the current request for sure
+        //        if (!mockResponse.Url.Contains('*')) {
+        //                    return false;
+        //                }
 
-                // turn mock URL with wildcard into a regex and match against the request URL
-                var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
-                return Regex.IsMatch(request.Url, mockResponseUrlRegex);
-            });
-            return mockResponse;
-        }
-
-        private void UpdateProxyResponse(SessionEventArgs e, ResponseComponents responseComponents, ProxyMockResponse? matchingResponse) {
-            if (responseComponents.ErrorStatus == HttpStatusCode.TooManyRequests) {
-                var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
-                _throttledRequests[BuildThrottleKey(e.HttpClient.Request)] = retryAfterDate;
-                responseComponents.Headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
-            }
-
-            if (e.HttpClient.Request.Headers.FirstOrDefault((HttpHeader h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
-                responseComponents.Headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
-                responseComponents.Headers.Add(new HttpHeader("Access-Control-Expose-Headers", "ETag, Location, Preference-Applied, Content-Range, request-id, client-request-id, ReadWriteConsistencyToken, SdkVersion, WWW-Authenticate, x-ms-client-gcc-tenant, Retry-After"));
-            }
-
-            if ((int)responseComponents.ErrorStatus >= 400 && string.IsNullOrEmpty(responseComponents.Body)) {
-                responseComponents.Body = JsonSerializer.Serialize(new ErrorResponseBody(
-                    new ErrorResponseError {
-                        Code = new Regex("([A-Z])").Replace(responseComponents.ErrorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
-                        Message = BuildApiErrorMessage(e.HttpClient.Request),
-                        InnerError = new ErrorResponseInnerError {
-                            RequestId = responseComponents.RequestId,
-                            Date = responseComponents.RequestDate
-                        }
-                    })
-                );
-            }
-            Console.WriteLine($"\t{(matchingResponse is not null ? "Mocked" : "Failed")} {e.HttpClient.Request.Url} with {responseComponents.ErrorStatus}");
-            e.GenericResponse(responseComponents.Body ?? string.Empty, responseComponents.ErrorStatus, responseComponents.Headers);
-        }
-
-        private string BuildApiErrorMessage(Request r) => $"Some error was generated by the proxy. {(IsGraphRequest(r) ? (IsSdkRequest(r) ? "" : BuildUseSdkMessage(r)) : "")}";
-
-        private string BuildThrottleKey(Request r) => $"{r.Method}-{r.Url}";
+        //        turn mock URL with wildcard into a regex and match against the request URL
+        //        var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
+        //        return Regex.IsMatch(request.Url, mockResponseUrlRegex);
+        //    });
+        //    return mockResponse;
+        //}
 
         // Modify response
         async Task OnResponse(object sender, SessionEventArgs e) {
@@ -515,29 +361,6 @@ namespace Microsoft.Graph.DeveloperProxy {
         Task OnCertificateSelection(object sender, CertificateSelectionEventArgs e) {
             // set e.clientCertificate to override
             return Task.CompletedTask;
-        }
-    }
-
-    public class ResponseComponents {
-        public string RequestId { get; } = Guid.NewGuid().ToString();
-        public string RequestDate { get; } = DateTime.Now.ToString();
-        public List<HttpHeader> Headers { get; } = new List<HttpHeader>
-        {
-            new HttpHeader("Cache-Control", "no-store"),
-            new HttpHeader("x-ms-ags-diagnostic", ""),
-            new HttpHeader("Strict-Transport-Security", "")
-        };
-
-        public string? Body { get; set; } = string.Empty;
-        public HttpStatusCode ErrorStatus { get; set; } = HttpStatusCode.OK;
-        public bool ResponseIsComplete { get; set; } = false;
-
-        public static ResponseComponents Build() {
-            var result = new ResponseComponents();
-            result.Headers.Add(new HttpHeader("request-id", result.RequestId));
-            result.Headers.Add(new HttpHeader("client-request-id", result.RequestId));
-            result.Headers.Add(new HttpHeader("Date", result.RequestDate));
-            return result;
         }
     }
 }

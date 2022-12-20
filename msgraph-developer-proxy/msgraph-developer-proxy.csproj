@@ -35,6 +35,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\msgraph-developer-proxy-abstractions\msgraph-developer-proxy-abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
