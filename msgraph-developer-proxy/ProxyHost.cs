@@ -29,11 +29,6 @@ namespace Microsoft.Graph.DeveloperProxy {
             noMocksOptions.ArgumentHelpName = "no mocks";
             noMocksOptions.SetDefaultValue(false);
 
-            var cloudOption = new Option<string>("--cloud", "Set the target cloud to proxy requests for");
-            cloudOption.AddAlias("-c");
-            cloudOption.ArgumentHelpName = "cloud";
-            cloudOption.SetDefaultValue("global");
-
             var allowedErrorsOption = new Option<IEnumerable<int>>("--allowed-errors", "List of errors that the developer proxy may produce");
             allowedErrorsOption.AddAlias("-a");
             allowedErrorsOption.ArgumentHelpName = "allowed errors";
@@ -45,11 +40,10 @@ namespace Microsoft.Graph.DeveloperProxy {
                 portOption,
                 rateOption,
                 noMocksOptions,
-                cloudOption,
                 allowedErrorsOption
             };
             command.Description = "HTTP proxy to create random failures for calls to Microsoft Graph";
-            command.Handler = new ProxyCommandHandler(portOption, rateOption, noMocksOptions, cloudOption, allowedErrorsOption);
+            command.Handler = new ProxyCommandHandler(portOption, rateOption, noMocksOptions, allowedErrorsOption);
 
             return command;
         }
