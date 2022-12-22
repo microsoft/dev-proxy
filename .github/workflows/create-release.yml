@@ -23,16 +23,16 @@ jobs:
         with:
           dotnet-version: 6.0.x
       - name: Publish ${{ matrix.architecture }}
-        run: dotnet publish ./msgraph-developer-proxy/msgraph-developer-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} -o ./${{ release }}
-      - name: Archive Release ${{ release }}
+        run: dotnet publish ./msgraph-developer-proxy/msgraph-developer-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} -o ./${{ env.release }}
+      - name: Archive Release ${{ env.release }}
         uses: thedoctor0/zip-release@master
         with:
-          filename: './${{ release }}.zip'
-          path: './${{ release }}'
+          filename: './${{ env.release }}.zip'
+          path: './${{ env.release }}'
       - uses: actions/upload-artifact@v3
         with:
-          name: binaries-${{ release }}
-          path: ./${{ release }}.zip
+          name: binaries-${{ env.release }}
+          path: ./${{ env.release }}.zip
   create_release:
     name: Create Release
     needs: [publish_binaries]
