@@ -14,6 +14,8 @@ jobs:
           - win-x86
           - linux-x64
           - osx-x64
+    env:
+      release: 'msgraph-developer-proxy-${{ matrix.architecture }}-${{  github.ref_name }}'
     steps:
       - uses: actions/checkout@v3
       - name: Setup .NET
@@ -21,16 +23,16 @@ jobs:
         with:
           dotnet-version: 6.0.x
       - name: Publish ${{ matrix.architecture }}
-        run: dotnet publish ./msgraph-developer-proxy/msgraph-developer-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} -o ./${{ matrix.architecture }}
-      - name: Archive Release ${{ matrix.architecture }}
+        run: dotnet publish ./msgraph-developer-proxy/msgraph-developer-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} -o ./${{ release }}
+      - name: Archive Release ${{ release }}
         uses: thedoctor0/zip-release@master
         with:
-          filename: './${{ matrix.architecture }}.zip'
-          path: './${{ matrix.architecture }}'
+          filename: './${{ release }}.zip'
+          path: './${{ release }}'
       - uses: actions/upload-artifact@v3
         with:
-          name: binaries-${{ matrix.architecture }}
-          path: ./${{ matrix.architecture }}.zip
+          name: binaries-${{ release }}
+          path: ./${{ release }}.zip
   create_release:
     name: Create Release
     needs: [publish_binaries]
