@@ -22,9 +22,10 @@ Plugins will utilize event listeners to provide a decoupled and late bound integ
 
 The existing `appsettings.json` file will be used to provide configuration. Both for determining which plugins are loaded into the proxy and providing configuration for each of the loaded plugins. The set of plugins to be loaded will be specified as an array of objects at the root of the configuration file in the `plugins` property. Each plugin must supply a `pluginPath` and `name` and may optionally provide `configSection` and `urlsToWatch` in the plugins array.
 - `pluginPath` - required, a string which is the relative path to the assembly containing the class definition for the plugin which will be loaded using reflection.
-- `name` - required, a string identifier for the plugin class, allows developer to ship multiple plugins in a single assembly.
+- `name` - required, a string identifier for the plugin class, allows developer to ship multiple plugins in a single assembly. This should correspond to the value returned by the `Name` property defined on the plugin class. Plugin names must be unique per-assembly.
 - `configSection` - optional, a string for which there must be a matching object property at the root of the configuration file. If a plugin supplies a `configSection` and no corresponding property exists in the configuration file an error will be thrown during start up of the proxy.
 - `urlsToWatch` - optional, an array of strings defining the urls for which this plugin will watch instead of the `urlsToWatch` at the root of the config file, this behavior is defined in the [Multi URL support spec](./multi-url-support.md).
+- `disabled` - optional boolean when true the proxy will not attempt to load this plugin.
 
 ```json
   "plugins": [
@@ -36,6 +37,7 @@ The existing `appsettings.json` file will be used to provide configuration. Both
             "https://graph.microsoft.com/v1.0/*",
             "https://graph.microsoft.com/beta/*"
         ],
+        "disabled": false
     }
   ],
   "randomErrors": {
@@ -53,7 +55,9 @@ Plugin classes must implement the `IProxyPlugin` interface and provide a paramet
 ```cs
 public interface IProxyPlugin {
     string Name { get; }
-    void Register(IPluginEvents pluginEvents, IConfigurationSection? configSection);
+    void Register(IPluginEvents pluginEvents,
+                  IProxyContext context,
+                  IConfigurationSection? configSection);
 }
 
 public interface IPluginEvents {
@@ -62,24 +66,28 @@ public interface IPluginEvents {
     event EventHandler<ProxyRequestArgs> Request;
     event EventHandler<ProxyResponseArgs> Response;
 }
+
+public interface IPluginContext {
+    ILogger logger { get; }
+}
 ```
 
 ### Registration
 
-The `Register` method of a `IProxyPlugin` will be called after an instance is created and will provide an `ISet<Regex>` to define the urls the plugin wll watch, either using the default or a plugin specific set based on the supplied configuration and an `IConfigurationSection` if one was loaded.
+The `Register` method of a `IProxyPlugin` will be called after an instance is created and will provide an `ISet<Regex>` to define the urls the plugin wll watch, either using the default or a plugin specific set based on the supplied configuration, a `IProxyContext` to supply utility objects from the proxy, and an `IConfigurationSection` if one was loaded.
 
 > It is strongly recommended that plugin implementers provide a default configuration in their code.
 
+Plugin classes should store the supplied `IProxyContext` for use when events are fired. At a minimum this context will supply the `ILogger` which plugins will use to provide output messages.
+
+The details of the ILogger interface and implementation are out of the scope of this spec, except to say that they will provide plugins with a standardized mechanism for logging messages using preset formatting and categorization.
+
 Plugin classes may register a handler for any events provided in the `IPluginEvents` interface. Plugins registering a handler for the `Init` event should also register a handler for the `OptionsLoaded` event to consume the supplied options.
 
-All of the event arg types will inherit from a common base type which will supply common logic and utilities. A proposed implementation of the `PluginArgsBase` is provided here:
+A set of static utility methods will be provided via the `ProxyUtils` class. A proposed initial implementation of the `ProxyUtils` class is provided here:
 
 ```cs
-public abstract class PluginArgsBase {
-    protected PluginArgsBase(IConsoleLogger consoleLogger) {
-        ConsoleLogger = consoleLogger ?? throw new ArgumentNullException(nameof(consoleLogger));
-    }
-    public IConsoleLogger ConsoleLogger { get; set; }
+public static class ProxyUtils {
 
     public static bool IsSdkRequest(Request request) {
         return request.Headers.HeaderExists("SdkVersion");
@@ -88,20 +96,10 @@ public abstract class PluginArgsBase {
     public static bool IsGraphRequest(Request request) {
         return request.RequestUri.Host.Contains("graph", StringComparison.OrdinalIgnoreCase);
     }
-    public static string GetMoveToSdkUrl(Request request) {
-        // TODO: return language-specific guidance links based on the language detected from the User-Agent
-        return "https://aka.ms/move-to-graph-js-sdk";
-    }
-
-    public static string BuildApiErrorMessage(Request r) => $"Some error was generated by the proxy. {(IsGraphRequest(r) ? (IsSdkRequest(r) ? "" : BuildUseSdkMessage(r)) : "")}";
-
-    public static string BuildUseSdkMessage(Request r) => $"To handle API errors more easily, use the Graph SDK. More info at {GetMoveToSdkUrl(r)}";
 }
 ```
 
-The details of the IConsoleLogger interface and implementation are out of the scope of this spec, except to say that they will provide plugins with a standardized mechanism for logging messages using preset formatting and categorization.
-
-It is anticipated that the set of helper methods offered in the `PluginArgsBase` class will grow and change over time.
+It is anticipated that the set of helper methods offered in the `ProxyUtils` class will grow and change over time.
 
 ### Init
 
@@ -114,12 +112,6 @@ This event provides the plugin with any values supplied for options registered o
 ### Request
 
 The event is fired when the proxy intercepts an HTTP request.Implementers should check the ResponseState on the suppied event args and the url the request is targeting against the set of urlsToWatch supplied during registration to determine if their plugin logic should execute.
-
-An helper method is provided on the event args object can be used like so: `e.ShouldExecute(this.urlsToWatch))`
-
-### Request
-
-This event is fired when the proxy intercepts an HTTP request.Implementers should check the ResponseState on the suppied event args and the url the request is targeting against the set of urlsToWatch supplied during registration to determine if their plugin logic should execute.
 
 An helper method is provided on the event args object can be used like so: `e.ShouldExecute(this.urlsToWatch))`
 
