@@ -57,6 +57,7 @@ public interface IProxyPlugin {
     string Name { get; }
     void Register(IPluginEvents pluginEvents,
                   IProxyContext context,
+                  ISet<Regex> urlsToWatch,
                   IConfigurationSection? configSection);
 }
 
@@ -74,11 +75,11 @@ public interface IPluginContext {
 
 ### Registration
 
-The `Register` method of a `IProxyPlugin` will be called after an instance is created and will provide an `ISet<Regex>` to define the urls the plugin wll watch, either using the default or a plugin specific set based on the supplied configuration, a `IProxyContext` to supply utility objects from the proxy, and an `IConfigurationSection` if one was loaded.
+The `Register` method of an `IProxyPlugin` will be called after an instance is created and will provide an `ISet<Regex>` to define the urls the plugin wll watch, either using the default or a plugin specific set based on the supplied configuration, an `IProxyContext` to supply utility objects from the proxy, and an `IConfigurationSection` if one was loaded.
 
 > It is strongly recommended that plugin implementers provide a default configuration in their code.
 
-Plugin classes should store the supplied `IProxyContext` for use when events are fired. At a minimum this context will supply the `ILogger` which plugins will use to provide output messages.
+Plugin classes should store the supplied `IProxyContext` for use when events are fired. At a minimum this context will supply the `ILogger` which plugins will use to provide output messages. The contents of the context are likely to evolve as new requirements for plugin emerge.
 
 The details of the ILogger interface and implementation are out of the scope of this spec, except to say that they will provide plugins with a standardized mechanism for logging messages using preset formatting and categorization.
 
@@ -123,4 +124,50 @@ This allows plugin implementers to modify the response being sent to the caller 
 
 Again, implementers should check that the response against the urlsToWatch supplied during registration to determine if the plugin should execute.
 
-Again, the event args object supplies a `e.ShouldExecute(this.urlsToWatch))` helper method.
+In this instance, the event args object supplies a `e.HasRequestUrlMatch(this.urlsToWatch))` helper method.
+
+## Sample plugin implementation
+
+```cs
+public class SelectGuidancePlugin : IProxyPlugin {
+    private ISet<Regex>? _urlsToWatch;
+    private ILogger? _logger;
+    public string Name => nameof(SelectGuidancePlugin);
+
+    public void Register(IPluginEvents pluginEvents,
+                            IProxyContext context,
+                            ISet<Regex> urlsToWatch,
+                            IConfigurationSection? configSection = null) {
+        if (pluginEvents is null) {
+            throw new ArgumentNullException(nameof(pluginEvents));
+        }
+
+        if (context is null || context.Logger is null) {
+            throw new ArgumentException($"{nameof(context)} must not be null and must supply a non-null Logger", nameof(context));
+        }
+
+        if (urlsToWatch is null || urlsToWatch.Count == 0) {
+            throw new ArgumentExceptions($"{nameof(urlsToWatch) cannot be null or empty}", nameof(urlsToWatch));
+        }
+
+        _urlsToWatch = urlsToWatch;
+        _logger = context.Logger;
+
+        pluginEvents.Request += OnRequest;
+    }
+
+    private void OnRequest(object? sender, ProxyRequestArgs e) {
+        Request request = e.Session.HttpClient.Request;
+        if (_urlsToWatch is not null && e.ShouldExecute(_urlsToWatch) && WarnNoSelect(request))
+            _logger?.LogWarn(BuildUseSelectMessage(request));
+    }
+
+    private static bool WarnNoSelect(Request request) =>
+        ProxyUtils.IsGraphRequest(request) &&
+            request.Method == "GET" &&
+            !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
+
+    private static string GetSelectParameterGuidanceUrl() => "https://learn.microsoft.com/graph/query-parameters#select-parameter";
+    private static string BuildUseSelectMessage(Request r) => $"To improve performance of your application, use the $select parameter when calling {r.RequestUriString}. More info at {GetSelectParameterGuidanceUrl()}";
+}
+```
