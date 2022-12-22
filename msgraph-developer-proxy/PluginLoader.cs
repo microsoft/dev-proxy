@@ -26,6 +26,7 @@ namespace Microsoft.Graph.DeveloperProxy {
             List<Regex> allWatchedUrls = HandlerConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
             ISet<Regex> urlsToWatch = allWatchedUrls.ToHashSet();
             foreach (HandlerReference h in config.Handlers) {
+                if (h.Disabled) continue;
                 // Load Handler Assembly
                 string? root = Path.GetDirectoryName(typeof(Program).Assembly.Location);
                 if (!string.IsNullOrEmpty(root)) {
@@ -100,6 +101,8 @@ namespace Microsoft.Graph.DeveloperProxy {
     }
 
     internal class HandlerReference {
+
+        public bool Disabled { get; set; }
         public string? ConfigSection { get; set; }
         public string HandlerPath { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
