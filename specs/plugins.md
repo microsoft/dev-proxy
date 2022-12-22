@@ -147,7 +147,7 @@ public class SelectGuidancePlugin : IProxyPlugin {
         }
 
         if (urlsToWatch is null || urlsToWatch.Count == 0) {
-            throw new ArgumentExceptions($"{nameof(urlsToWatch) cannot be null or empty}", nameof(urlsToWatch));
+            throw new ArgumentException($"{nameof(urlsToWatch)} cannot be null or empty", nameof(urlsToWatch));
         }
 
         _urlsToWatch = urlsToWatch;
