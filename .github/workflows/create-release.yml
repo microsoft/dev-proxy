@@ -27,8 +27,8 @@ jobs:
       - name: Archive Release ${{ env.release }}
         uses: thedoctor0/zip-release@master
         with:
-          filename: './${{ env.release }}.zip'
-          path: './${{ env.release }}'
+          filename: '../${{ env.release }}.zip'
+          directory: './${{ env.release }}'
       - uses: actions/upload-artifact@v3
         with:
           name: binaries-${{ env.release }}
