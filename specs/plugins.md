@@ -69,7 +69,7 @@ public interface IPluginEvents {
 }
 
 public interface IPluginContext {
-    ILogger logger { get; }
+    ILogger Logger { get; }
 }
 ```
 
