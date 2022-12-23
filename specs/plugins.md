@@ -46,7 +46,7 @@ The existing `appsettings.json` file will be used to provide configuration. Both
   }
 ```
 
-Plugins will executed in the order that they are listed in the plugins configuration array. At least one plugin must be present in the configuration, otherwise the proxy will exit with an error informing the user that their configuration is invalid and contains no plugins.
+Plugins will be executed in the order that they are listed in the plugins configuration array. At least one plugin must be present in the configuration, otherwise the proxy will exit with an error informing the user that their configuration is invalid and contains no plugins.
 
 ## Plugins
 
