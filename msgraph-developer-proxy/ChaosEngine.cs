@@ -181,9 +181,9 @@ namespace Microsoft.Graph.DeveloperProxy {
 
         async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e) {
             // Ensures that only the targeted Https domains are proxyied
-            //if (!hostname.Contains(_config.HostName)) {
-            //    e.DecryptSsl = false;
-            //}
+            if (!ShouldDecryptRequest(e.HttpClient.Request.RequestUri.Host)) {
+                e.DecryptSsl = false;
+            }
         }
 
         async Task OnRequest(object sender, SessionEventArgs e) {
