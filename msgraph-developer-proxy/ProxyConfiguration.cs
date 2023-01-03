@@ -10,10 +10,6 @@ namespace Microsoft.Graph.DeveloperProxy {
         [JsonPropertyName("port")]
         public int Port { get; set; } = 8000;
 
-        //public string HostName => CloudHosts.ContainsKey(Cloud) ? CloudHosts[Cloud] : throw new ArgumentOutOfRangeException(nameof(Cloud), InvalidCloudMessage);
-
-        //private string InvalidCloudMessage => $"The value provided for the cloud: {Cloud} is not valid, current valid values are: {string.Join(", ", CloudHosts.Keys.ToArray())}.";
-
         [JsonPropertyName("responses")]
         public IEnumerable<ProxyMockResponse> Responses { get; set; } = Array.Empty<ProxyMockResponse>();
 

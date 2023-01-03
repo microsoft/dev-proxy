@@ -242,13 +242,6 @@ namespace Microsoft.Graph.DeveloperProxy {
             }
         }
 
-        private static string BuildUseSdkMessage(Request r) => $"To handle API errors more easily, use the Graph SDK. More info at {GetMoveToSdkUrl(r)}";
-
-        private static string GetMoveToSdkUrl(Request request) {
-            // TODO: return language-specific guidance links based on the language detected from the User-Agent
-            return "https://aka.ms/move-to-graph-js-sdk";
-        }
-
         //private static void ProcessMockResponse(SessionEventArgs e, ResponseComponents responseComponents, ProxyMockResponse matchingResponse) {
         //    if (matchingResponse.ResponseCode is not null) {
         //        responseComponents.ErrorStatus = (HttpStatusCode)matchingResponse.ResponseCode;

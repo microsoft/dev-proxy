@@ -225,7 +225,7 @@ namespace Microsoft.Graph.DeveloperProxy.Plugins {
                 var failMode = ShouldFail(e);
 
                 if (failMode == FailMode.PassThru && _confguration.Rate != 100) {
-                    _logger.Log($"\tPassed through {session.HttpClient.Request.Url}");
+                    _logger?.Log($"\tPassed through {session.HttpClient.Request.Url}");
                     return;
                 }
                 FailResponse(e, failMode);

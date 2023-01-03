@@ -3,7 +3,6 @@
 
 using Microsoft.Graph.DeveloperProxy;
 using System.CommandLine;
-using System.Text.RegularExpressions;
 
 ILogger logger = new ConsoleLogger();
 IProxyContext context = new ProxyContext(logger);
