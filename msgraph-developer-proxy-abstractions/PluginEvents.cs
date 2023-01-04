@@ -8,12 +8,12 @@ using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
+
 public interface IProxyContext {
     public ILogger Logger { get; }
 }
 
 public class ProxyHttpEventArgsBase {
-
     internal ProxyHttpEventArgsBase(SessionEventArgs session) =>
         Session = session ?? throw new ArgumentNullException(nameof(session));
 
@@ -23,7 +23,6 @@ public class ProxyHttpEventArgsBase {
 }
 
 public class ProxyRequestArgs : ProxyHttpEventArgsBase {
-
     public ProxyRequestArgs(SessionEventArgs session, ResponseState responseState) : base(session) {
         ResponseState = responseState ?? throw new ArgumentNullException(nameof(responseState));
     }
@@ -32,7 +31,6 @@ public class ProxyRequestArgs : ProxyHttpEventArgsBase {
     public bool ShouldExecute(ISet<Regex> watchedUrls) =>
         !ResponseState.HasBeenSet
         && HasRequestUrlMatch(watchedUrls);
-
 }
 
 public class ProxyResponseArgs : ProxyHttpEventArgsBase {
@@ -71,19 +69,19 @@ public class PluginEvents : IPluginEvents {
     public event EventHandler<ProxyRequestArgs>? Request;
     public event EventHandler<ProxyResponseArgs>? Response;
 
-    public void FireInit(InitArgs args) {
+    public void RaiseInit(InitArgs args) {
         Init?.Invoke(this, args);
     }
 
-    public void FireOptionsLoaded(OptionsLoadedArgs args) {
+    public void RaiseOptionsLoaded(OptionsLoadedArgs args) {
         OptionsLoaded?.Invoke(this, args);
     }
 
-    public void FireProxyRequest(ProxyRequestArgs args) {
+    public void RaiseProxyRequest(ProxyRequestArgs args) {
         Request?.Invoke(this, args);
     }
 
-    public void FireProxyResponse(ProxyResponseArgs args) {
+    public void RaiseProxyResponse(ProxyResponseArgs args) {
         Response?.Invoke(this, args);
     }
 }

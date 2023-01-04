@@ -34,7 +34,7 @@ public class ProxyCommandHandler : ICommandHandler {
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
         Configuration.Port = port;
 
-        _pluginEvents.FireOptionsLoaded(new OptionsLoadedArgs(context));
+        _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context));
 
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion();
         if (newReleaseInfo != null) {

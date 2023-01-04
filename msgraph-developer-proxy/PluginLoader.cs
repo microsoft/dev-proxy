@@ -18,18 +18,16 @@ internal class PluginLoaderResult {
 }
 
 internal class PluginLoader {
-
     public PluginLoader(ILogger logger) {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public PluginLoaderResult LoadPlugins(IPluginEvents pluginEvents, IProxyContext proxyContext) {
-
         List<IProxyPlugin> plugins = new();
-        PluginConfig config = HandlerConfig;
-        List<Regex> allWatchedUrls = HandlerConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
-        ISet<Regex> urlsToWatch = allWatchedUrls.ToHashSet();
-        foreach (PluginReference h in config.Handlers) {
+        PluginConfig config = PluginConfig;
+        List<Regex> globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
+        ISet<Regex> defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
+        foreach (PluginReference h in config.Plugins) {
             if (h.Disabled) continue;
             // Load Handler Assembly if not disabled
             string? root = Path.GetDirectoryName(typeof(Program).Assembly.Location);
@@ -38,25 +36,24 @@ internal class PluginLoader {
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
                 _logger.Log($"Loading from: {pluginLocation}");
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
-                IEnumerable<Regex>? handlerUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
-                ISet<Regex>? handlerUrls = null;
-                if (handlerUrlsList is not null) {
-                    handlerUrls = handlerUrlsList.ToHashSet();
-                    allWatchedUrls.AddRange(handlerUrlsList);
+                IEnumerable<Regex>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
+                ISet<Regex>? pluginUrls = null;
+                if (pluginUrlsList is not null) {
+                    pluginUrls = pluginUrlsList.ToHashSet();
+                    globallyWatchedUrls.AddRange(pluginUrlsList);
                 }
                 // Load Plugins from assembly
-                IProxyPlugin plugin = CreateHandler(assembly, h);
-                plugin.Register(pluginEvents, proxyContext, handlerUrls ?? urlsToWatch, h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection));
+                IProxyPlugin plugin = CreatePlugin(assembly, h);
+                plugin.Register(pluginEvents, proxyContext, pluginUrls ?? defaultUrlsToWatch, h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection));
                 plugins.Add(plugin);
             }
         }
         return plugins.Count > 0
-            ? new PluginLoaderResult(allWatchedUrls.ToHashSet(), plugins)
+            ? new PluginLoaderResult(globallyWatchedUrls.ToHashSet(), plugins)
             : throw new InvalidDataException("No handlers were loaded");
     }
 
-    private IProxyPlugin CreateHandler(Assembly assembly, PluginReference h) {
-
+    private IProxyPlugin CreatePlugin(Assembly assembly, PluginReference h) {
         foreach (Type type in assembly.GetTypes()) {
             if (typeof(IProxyPlugin).IsAssignableFrom(type)) {
                 IProxyPlugin? result = Activator.CreateInstance(type) as IProxyPlugin;
@@ -68,26 +65,26 @@ internal class PluginLoader {
 
         string availableTypes = string.Join(",", assembly.GetTypes().Select(t => t.FullName));
         throw new ApplicationException(
-            $"Can't find plugin {h.Name} which implement ProxyHandler in {assembly} from {assembly.Location}.\n" +
+            $"Can't find plugin {h.Name} which implement IProxyPlugin in {assembly} from {assembly.Location}.\n" +
             $"Available types: {availableTypes}");
     }
 
     public static Regex ConvertToRegex(string stringMatcher) =>
         new Regex(Regex.Escape(stringMatcher).Replace("\\*", ".*"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private PluginConfig? _handlerConfig;
+    private PluginConfig? _pluginConfig;
     private ILogger _logger;
 
-    private PluginConfig HandlerConfig {
+    private PluginConfig PluginConfig {
         get {
-            if (_handlerConfig == null) {
-                _handlerConfig = new PluginConfig();
-                Configuration.Bind(_handlerConfig);
+            if (_pluginConfig == null) {
+                _pluginConfig = new PluginConfig();
+                Configuration.Bind(_pluginConfig);
             }
-            if (_handlerConfig == null || !_handlerConfig.Handlers.Any()) {
-                throw new InvalidDataException("The configuration must contain at least one handler");
+            if (_pluginConfig == null || !_pluginConfig.Plugins.Any()) {
+                throw new InvalidDataException("The configuration must contain at least one plugin");
             }
-            return _handlerConfig;
+            return _pluginConfig;
         }
     }
 
@@ -101,12 +98,11 @@ internal class PluginLoader {
 }
 
 internal class PluginConfig {
-    public List<PluginReference> Handlers { get; set; } = new();
+    public List<PluginReference> Plugins { get; set; } = new();
     public List<string> UrlsToWatch { get; set; } = new();
 }
 
 internal class PluginReference {
-
     public bool Disabled { get; set; }
     public string? ConfigSection { get; set; }
     public string PluginPath { get; set; } = string.Empty;

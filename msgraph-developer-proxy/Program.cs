@@ -13,7 +13,7 @@ PluginEvents pluginEvents = new PluginEvents();
 PluginLoaderResult loaderResults = new PluginLoader(logger).LoadPlugins(pluginEvents, context);
 
 // have all the plugins init and provide any command line options
-pluginEvents.FireInit(new InitArgs(rootCommand));
+pluginEvents.RaiseInit(new InitArgs(rootCommand));
 
 rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, loaderResults.UrlsToWatch, logger);
 

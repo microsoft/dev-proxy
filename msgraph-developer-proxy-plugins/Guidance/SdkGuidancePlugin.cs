@@ -38,15 +38,8 @@ public class SdkGuidancePlugin : IProxyPlugin {
     private void OnRequest(object? sender, ProxyRequestArgs e) {
         Request request = e.Session.HttpClient.Request;
         if (_urlsToWatch is not null && e.ShouldExecute(_urlsToWatch) && WarnNoSdk(request))
-            _logger?.LogWarn(BuildUseSdkMessage(request));
+            _logger?.LogWarn(MessageUtils.BuildUseSdkMessage(request));
     }
 
     private static bool WarnNoSdk(Request request) => ProxyUtils.IsGraphRequest(request) && !ProxyUtils.IsSdkRequest(request);
-
-    private static string BuildUseSdkMessage(Request r) => $"To handle API errors more easily, use the Graph SDK. More info at {GetMoveToSdkUrl(r)}";
-
-    private static string GetMoveToSdkUrl(Request request) {
-        // TODO: return language-specific guidance links based on the language detected from the User-Agent
-        return "https://aka.ms/move-to-graph-js-sdk";
-    }
 }

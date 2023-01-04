@@ -15,7 +15,6 @@ using Titanium.Web.Proxy.Models;
 namespace Microsoft.Graph.DeveloperProxy;
 
 public class ProxyEngine {
-
     private readonly PluginEvents _pluginEvents;
     private readonly ILogger _logger;
     private readonly ProxyConfiguration _config;
@@ -26,7 +25,6 @@ public class ProxyEngine {
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
     private ISet<Regex> _hostsToWatch = new HashSet<Regex>();
-
 
     private static string __productVersion = string.Empty;
     private static string _productVersion {
@@ -205,7 +203,7 @@ public class ProxyEngine {
 
     private void HandleRequest(SessionEventArgs e) {
         ResponseState responseState = new ResponseState();
-        _pluginEvents.FireProxyRequest(new ProxyRequestArgs(e, responseState));
+        _pluginEvents.RaiseProxyRequest(new ProxyRequestArgs(e, responseState));
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!responseState.HasBeenSet) {
@@ -235,7 +233,7 @@ public class ProxyEngine {
         }
 
         if (e.UserData is not null && e.UserData is Request request) {
-            _pluginEvents.FireProxyResponse(new ProxyResponseArgs(e, request, new ResponseState()));
+            _pluginEvents.RaiseProxyResponse(new ProxyResponseArgs(e, request, new ResponseState()));
         }
     }
 
