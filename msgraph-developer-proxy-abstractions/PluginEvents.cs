@@ -1,50 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Microsoft.Extensions.Configuration;
-using Org.BouncyCastle.Asn1.Cmp;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Drawing;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.EventArguments;
+using Titanium.Web.Proxy.Http;
 
-public interface ILogger {
-    public void Log(string message);
-    public void LogWarn(string message);
-    public void LogError(string message);
-}
-
-public class ConsoleLogger : ILogger {
-    private readonly ConsoleColor _color;
-
-    public ConsoleLogger() {
-        _color = Console.ForegroundColor;
-    }
-
-    public void Log(string message) {
-        Console.WriteLine(message);
-    }
-
-    public void LogWarn(string message) {
-
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Error.WriteLine($"\tWARNING: {message}");
-        Console.ForegroundColor = _color;
-    }
-
-    public void LogError(string message) {
-        Console.Error.WriteLine(message);
-    }
-}
-
+namespace Microsoft.Graph.DeveloperProxy.Abstractions;
 public interface IProxyContext {
     public ILogger Logger { get; }
 }
 
 public class ProxyHttpEventArgsBase {
 
-    internal ProxyHttpEventArgsBase(SessionEventArgs session) => 
+    internal ProxyHttpEventArgsBase(SessionEventArgs session) =>
         Session = session ?? throw new ArgumentNullException(nameof(session));
 
     public SessionEventArgs Session { get; }
@@ -52,22 +22,24 @@ public class ProxyHttpEventArgsBase {
         watchedUrls.Any(r => r.IsMatch(Session.HttpClient.Request.RequestUri.AbsoluteUri));
 }
 
-public class ProxyRequestArgs: ProxyHttpEventArgsBase {
+public class ProxyRequestArgs : ProxyHttpEventArgsBase {
 
-    public ProxyRequestArgs(SessionEventArgs session, ResponseState responseState): base(session) {
+    public ProxyRequestArgs(SessionEventArgs session, ResponseState responseState) : base(session) {
         ResponseState = responseState ?? throw new ArgumentNullException(nameof(responseState));
     }
     public ResponseState ResponseState { get; }
 
-    public bool ShouldExecute(ISet<Regex> watchedUrls) => 
-        !ResponseState.HasBeenSet 
+    public bool ShouldExecute(ISet<Regex> watchedUrls) =>
+        !ResponseState.HasBeenSet
         && HasRequestUrlMatch(watchedUrls);
 
 }
 
-public class ProxyResponseArgs: ProxyHttpEventArgsBase {
-    public ProxyResponseArgs(SessionEventArgs session): base(session) {
+public class ProxyResponseArgs : ProxyHttpEventArgsBase {
+    public ProxyResponseArgs(SessionEventArgs session, Request request, ResponseState responseState) : base(session) {
+        Request = request ?? throw new ArgumentNullException(nameof(request));
     }
+    public Request Request { get; }
 }
 
 public class InitArgs {
@@ -111,15 +83,7 @@ public class PluginEvents : IPluginEvents {
         Request?.Invoke(this, args);
     }
 
-    public void FireProxyResponse(ProxyResponseArgs args) { 
-        Response?.Invoke(this, args); 
+    public void FireProxyResponse(ProxyResponseArgs args) {
+        Response?.Invoke(this, args);
     }
-}
-
-public interface IProxyPlugin {
-    string Name { get; }
-    void Register(IPluginEvents pluginEvents,
-                  IProxyContext context,
-                  ISet<Regex> urlsToWatch,
-                  IConfigurationSection? configSection = null);
 }
