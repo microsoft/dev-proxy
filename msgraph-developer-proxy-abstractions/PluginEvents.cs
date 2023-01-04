@@ -42,7 +42,6 @@ public class ProxyResponseArgs : ProxyHttpEventArgsBase {
 
 public class InitArgs {
     public InitArgs(RootCommand rootCommand) {
-
         RootCommand = rootCommand ?? throw new ArgumentNullException(nameof(rootCommand));
     }
     public RootCommand RootCommand { get; set; }

@@ -174,7 +174,6 @@ public class RandomErrorPlugin : IProxyPlugin {
                          IProxyContext context,
                          ISet<Regex> urlsToWatch,
                          IConfigurationSection? configSection = null) {
-
         if (pluginEvents is null) {
             throw new ArgumentNullException(nameof(pluginEvents));
         }

@@ -50,7 +50,7 @@ internal class PluginLoader {
         }
         return plugins.Count > 0
             ? new PluginLoaderResult(globallyWatchedUrls.ToHashSet(), plugins)
-            : throw new InvalidDataException("No handlers were loaded");
+            : throw new InvalidDataException("No plugins were loaded");
     }
 
     private IProxyPlugin CreatePlugin(Assembly assembly, PluginReference h) {
