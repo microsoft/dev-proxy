@@ -17,13 +17,20 @@ public class ConsoleLogger : ILogger {
     }
 
     public void LogWarn(string message) {
-
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Error.WriteLine($"\tWARNING: {message}");
         Console.ForegroundColor = _color;
     }
 
     public void LogError(string message) {
+        Console.ForegroundColor = ConsoleColor.Red;
         Console.Error.WriteLine(message);
+        Console.ForegroundColor = _color;
+    }
+
+    public void LogDebug(string message) {
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.Error.WriteLine(message);
+        Console.ForegroundColor = _color;
     }
 }

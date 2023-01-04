@@ -7,4 +7,5 @@ public interface ILogger {
     public void Log(string message);
     public void LogWarn(string message);
     public void LogError(string message);
+    public void LogDebug(string message);
 }

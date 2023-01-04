@@ -34,7 +34,7 @@ internal class PluginLoader {
             if (!string.IsNullOrEmpty(root)) {
                 string pluginLocation = Path.GetFullPath(Path.Combine(root, h.PluginPath.Replace('\\', Path.DirectorySeparatorChar)));
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
-                _logger.Log($"Loading from: {pluginLocation}");
+                _logger.LogDebug($"Loading from: {pluginLocation}");
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
                 IEnumerable<Regex>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
                 ISet<Regex>? pluginUrls = null;
@@ -65,7 +65,7 @@ internal class PluginLoader {
 
         string availableTypes = string.Join(",", assembly.GetTypes().Select(t => t.FullName));
         throw new ApplicationException(
-            $"Can't find plugin {h.Name} which implement IProxyPlugin in {assembly} from {assembly.Location}.\n" +
+            $"Can't find plugin {h.Name} which implements IProxyPlugin in {assembly} from {assembly.Location}.\n" +
             $"Available types: {availableTypes}");
     }
 
