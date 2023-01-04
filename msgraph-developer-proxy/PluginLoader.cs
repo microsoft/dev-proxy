@@ -85,7 +85,7 @@ internal class PluginLoader {
                 Configuration.Bind(_handlerConfig);
             }
             if (_handlerConfig == null || !_handlerConfig.Handlers.Any()) {
-                throw new InvalidDataException("The configuraiton must contain at least one handler");
+                throw new InvalidDataException("The configuration must contain at least one handler");
             }
             return _handlerConfig;
         }
