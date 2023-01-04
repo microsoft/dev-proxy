@@ -14,7 +14,7 @@ using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.Graph.DeveloperProxy;
 
-public class ChaosEngine {
+public class ProxyEngine {
 
     private readonly PluginEvents _pluginEvents;
     private readonly ILogger _logger;
@@ -43,7 +43,7 @@ public class ChaosEngine {
         }
     }
 
-    public ChaosEngine(ProxyConfiguration config, ISet<Regex> urlsToWatch, PluginEvents pluginEvents, ILogger logger) {
+    public ProxyEngine(ProxyConfiguration config, ISet<Regex> urlsToWatch, PluginEvents pluginEvents, ILogger logger) {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));

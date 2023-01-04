@@ -44,7 +44,7 @@ public class ProxyCommandHandler : ICommandHandler {
         }
 
         try {
-            await new ChaosEngine(Configuration, _urlsToWatch, _pluginEvents, _logger).Run(cancellationToken);
+            await new ProxyEngine(Configuration, _urlsToWatch, _pluginEvents, _logger).Run(cancellationToken);
             return 0;
         }
         catch (Exception ex) {
