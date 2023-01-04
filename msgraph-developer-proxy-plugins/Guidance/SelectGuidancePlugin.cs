@@ -32,7 +32,7 @@ public class SelectGuidancePlugin : IProxyPlugin {
         _urlsToWatch = urlsToWatch;
         _logger = context.Logger;
 
-        pluginEvents.Request += OnRequest;
+        pluginEvents.BeforeRequest += OnRequest;
     }
 
     private void OnRequest(object? sender, ProxyRequestArgs e) {

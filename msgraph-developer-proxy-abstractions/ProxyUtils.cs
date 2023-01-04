@@ -7,7 +7,9 @@ using Titanium.Web.Proxy.Models;
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
 
 public static class ProxyUtils {
-    public static bool IsGraphRequest(Request request) => request.RequestUri.Host.Contains("graph", StringComparison.OrdinalIgnoreCase);
+    public static bool IsGraphRequest(Request request) => 
+        request.RequestUri.Host.Contains("graph.microsoft.", StringComparison.OrdinalIgnoreCase) ||
+        request.RequestUri.Host.Contains("microsoftgraph.", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsSdkRequest(Request request) => request.Headers.HeaderExists("SdkVersion");
 

@@ -62,7 +62,7 @@ public class MockResponsePlugin : IProxyPlugin {
 
         pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
-        pluginEvents.Request += OnRequest;
+        pluginEvents.BeforeRequest += OnRequest;
     }
 
     private void OnInit(object? sender, InitArgs e) {

@@ -32,13 +32,18 @@ public class SdkGuidancePlugin : IProxyPlugin {
         _urlsToWatch = urlsToWatch;
         _logger = context.Logger;
 
-        pluginEvents.Request += OnRequest;
+        pluginEvents.AfterResponse += OnAfterResponse;
     }
 
-    private void OnRequest(object? sender, ProxyRequestArgs e) {
+    private void OnAfterResponse(object? sender, ProxyResponseArgs e) {
         Request request = e.Session.HttpClient.Request;
-        if (_urlsToWatch is not null && e.ShouldExecute(_urlsToWatch) && WarnNoSdk(request))
+        // only show the message if there is an error.
+        if (e.Session.HttpClient.Response.StatusCode >= 400 
+            && _urlsToWatch is not null 
+            && e.HasRequestUrlMatch(_urlsToWatch) 
+            && WarnNoSdk(request)) {
             _logger?.LogWarn(MessageUtils.BuildUseSdkMessage(request));
+        }
     }
 
     private static bool WarnNoSdk(Request request) => ProxyUtils.IsGraphRequest(request) && !ProxyUtils.IsSdkRequest(request);

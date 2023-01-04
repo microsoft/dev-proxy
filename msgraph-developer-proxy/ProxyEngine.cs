@@ -60,7 +60,8 @@ public class ProxyEngine {
 
         _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
         _proxyServer.BeforeRequest += OnRequest;
-        _proxyServer.BeforeResponse += OnResponse;
+        _proxyServer.BeforeResponse += OnBeforeResponse;
+        _proxyServer.AfterResponse += OnAfterResponse;
         _proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
         _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelection;
         cancellationToken?.Register(OnCancellation);
@@ -94,7 +95,6 @@ public class ProxyEngine {
             _logger.LogWarn("Configure your operating system to use this proxy's port and address");
         }
 
-        // wait here (You can use something else as a wait function, I am using this as a demo)
         _logger.Log("Press CTRL+C to stop the Microsoft Graph Developer Proxy");
         Console.CancelKeyPress += Console_CancelKeyPress;
         // wait for the proxy to stop
@@ -141,9 +141,10 @@ public class ProxyEngine {
                 _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
             }
 
-            if (_proxyServer != null) {
+            if (_proxyServer is not null) {
                 _proxyServer.BeforeRequest -= OnRequest;
-                _proxyServer.BeforeResponse -= OnResponse;
+                _proxyServer.BeforeResponse -= OnBeforeResponse;
+                _proxyServer.AfterResponse -= OnAfterResponse;
                 _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
                 _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
 
@@ -162,7 +163,8 @@ public class ProxyEngine {
 
         if (_proxyServer is not null) {
             _proxyServer.BeforeRequest -= OnRequest;
-            _proxyServer.BeforeResponse -= OnResponse;
+            _proxyServer.BeforeResponse -= OnBeforeResponse;
+            _proxyServer.AfterResponse -= OnAfterResponse;
             _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
             _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
 
@@ -172,7 +174,7 @@ public class ProxyEngine {
 
     async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e) {
         // Ensures that only the targeted Https domains are proxyied
-        if (!ShouldDecryptRequest(e.HttpClient.Request.RequestUri.Host)) {
+        if (!IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             e.DecryptSsl = false;
         }
         await Task.CompletedTask;
@@ -180,30 +182,17 @@ public class ProxyEngine {
 
     async Task OnRequest(object sender, SessionEventArgs e) {
         var method = e.HttpClient.Request.Method.ToUpper();
-        if (method is "POST" or "PUT" or "PATCH") {
-            // Get/Set request body bytes
-            byte[] bodyBytes = await e.GetRequestBody();
-            e.SetRequestBody(bodyBytes);
-
-            // Get/Set request body as string
-            string bodyString = await e.GetRequestBodyAsString();
-            e.SetRequestBodyString(bodyString);
-
-            // store request
-            // so that you can find it from response handler
-            e.UserData = e.HttpClient.Request;
-        }
-
         // The proxy does not intercept or alter OPTIONS requests
-        if (method is not "OPTIONS") {
-            _logger.Log($"saw a graph request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUriString}");
+        if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+            e.UserData = e.HttpClient.Request;
+            _logger.Log($"saw a proxied request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUriString}");
             HandleRequest(e);
         }
     }
 
     private void HandleRequest(SessionEventArgs e) {
         ResponseState responseState = new ResponseState();
-        _pluginEvents.RaiseProxyRequest(new ProxyRequestArgs(e, responseState));
+        _pluginEvents.RaiseProxyBeforeRequest(new ProxyRequestArgs(e, responseState));
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!responseState.HasBeenSet) {
@@ -213,27 +202,19 @@ public class ProxyEngine {
 
     private static void AddProxyHeader(Request r) => r.Headers?.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{_productVersion}");
 
-    private bool ShouldDecryptRequest(string hostName) => _hostsToWatch.Any(h => h.IsMatch(hostName));
+    private bool IsProxiedHost(string hostName) => _hostsToWatch.Any(h => h.IsMatch(hostName));
 
     // Modify response
-    async Task OnResponse(object sender, SessionEventArgs e) {
+    async Task OnBeforeResponse(object sender, SessionEventArgs e) {
         // read response headers
-        var responseHeaders = e.HttpClient.Response.Headers;
-
-        if (e.HttpClient.Request.Method is "GET" or "POST") {
-            if (e.HttpClient.Response.StatusCode == 200) {
-                if (e.HttpClient.Response.ContentType is not null && e.HttpClient.Response.ContentType.Trim().ToLower().Contains("text/html")) {
-                    byte[] bodyBytes = await e.GetResponseBody();
-                    e.SetResponseBody(bodyBytes);
-
-                    string body = await e.GetResponseBodyAsString();
-                    e.SetResponseBodyString(body);
-                }
-            }
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+            _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, new ResponseState()));
         }
-
-        if (e.UserData is not null && e.UserData is Request request) {
-            _pluginEvents.RaiseProxyResponse(new ProxyResponseArgs(e, request, new ResponseState()));
+    }
+    async Task OnAfterResponse(object sender, SessionEventArgs e) {
+        // read response headers
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+            _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, new ResponseState()));
         }
     }
 
