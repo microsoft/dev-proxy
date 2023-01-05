@@ -6,9 +6,24 @@
 <h4 align="center">
   Build with Microsoft Graph. Reliably 
 </h4>
+ 
+<p align="center">
+    <a href="https://github.com/microsoftgraph/msgraph-developer-proxy/releases">
+        <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/microsoftgraph/msgraph-developer-proxy/total">
+    </a>
+    <a href="https://github.com/microsoftgraph/msgraph-developer-proxy/releases/latest">
+        <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/downloads/microsoftgraph/msgraph-developer-proxy/latest/total">
+    </a>
+</p>
 
 <p align="center">
+  <a href="https://github.com/microsoftgraph/msgraph-developer-proxy/releases/latest">Download</a> |
   <a href="#get-started">Get started</a> |
+  <a href="https://github.com/microsoftgraph/msgraph-developer-proxy/wiki/">Documentation</a>
+  
+</p>
+
+<p align="center">
   <a href="#example-usage">Example usage</a> |
   <a href="#features">Features</a> |
   <a href="#trademarks">Trademarks</a> |
