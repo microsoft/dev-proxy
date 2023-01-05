@@ -1,32 +1,41 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-	<RootNamespace>Microsoft.Graph.DeveloperProxy.Plugins</RootNamespace>
+    <RootNamespace>Microsoft.Graph.DeveloperProxy.Plugins</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	<EnableDynamicLoading>true</EnableDynamicLoading>
-	<RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0">
-		  <Private>false</Private>
-		  <ExcludeAssets>runtime</ExcludeAssets>
-	  </PackageReference>
-	  <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1">
-		  <Private>false</Private>
-		  <ExcludeAssets>runtime</ExcludeAssets>
-	  </PackageReference>
-	<PackageReference Include="Titanium.Web.Proxy" Version="3.2.0">
-		<Private>false</Private>
-		<ExcludeAssets>runtime</ExcludeAssets>
-	</PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Titanium.Web.Proxy" Version="3.2.0">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
-	  <ProjectReference Include="..\msgraph-developer-proxy-abstractions\msgraph-developer-proxy-abstractions.csproj">
-		<Private>false</Private>
-		<ExcludeAssets>runtime</ExcludeAssets>		  
-	  </ProjectReference>
+    <ProjectReference Include="..\msgraph-developer-proxy-abstractions\msgraph-developer-proxy-abstractions.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
   </ItemGroup>
+  <Target Name="CopyFiles" AfterTargets="PostBuildEvent">
+    <ItemGroup>
+      <!-- Because this ItemGroup is inside the target, this will enumerate
+        all files just before calling Copy. If the ItemGroup were outside
+        the target , it would enumerate the files during evaluation, before
+        the build starts, which may miss files created during the build. -->
+      <MySourceFiles Include="$(OutDir)\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(MySourceFiles)" DestinationFiles="$(SolutionDir)msgraph-developer-proxy\$(OutDir)\GraphProxyPlugins\%(RecursiveDir)%(Filename)%(Extension)" />
+  </Target>
 
 </Project>

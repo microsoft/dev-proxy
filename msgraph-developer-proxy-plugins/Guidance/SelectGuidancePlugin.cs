@@ -32,19 +32,19 @@ public class SelectGuidancePlugin : IProxyPlugin {
         _urlsToWatch = urlsToWatch;
         _logger = context.Logger;
 
-        pluginEvents.BeforeRequest += OnRequest;
+        pluginEvents.AfterResponse += AfterResponse;
     }
 
-    private void OnRequest(object? sender, ProxyRequestArgs e) {
+    private void AfterResponse(object? sender, ProxyResponseArgs e) {
         Request request = e.Session.HttpClient.Request;
-        if (_urlsToWatch is not null && e.ShouldExecute(_urlsToWatch) && WarnNoSelect(request))
+        if (_urlsToWatch is not null && e.HasRequestUrlMatch(_urlsToWatch) && WarnNoSelect(request))
             _logger?.LogWarn(BuildUseSelectMessage(request));
     }
 
     private static bool WarnNoSelect(Request request) =>
-        ProxyUtils.IsGraphRequest(request) &&
-            request.Method == "GET" &&
-            !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
+        ProxyUtils.IsGraphRequest(request)
+        && request.Method == "GET"
+        && !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
 
     private static string GetSelectParameterGuidanceUrl() => "https://learn.microsoft.com/graph/query-parameters#select-parameter";
     private static string BuildUseSelectMessage(Request r) => $"To improve performance of your application, use the $select parameter when calling {r.RequestUriString}. More info at {GetSelectParameterGuidanceUrl()}";
