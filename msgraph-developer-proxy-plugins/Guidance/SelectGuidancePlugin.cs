@@ -8,10 +8,10 @@ using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.Graph.DeveloperProxy.Plugins.Guidance;
 
-public class SelectGuidancePlugin : IProxyPlugin {
+public class GraphSelectGuidancePlugin : IProxyPlugin {
     private ISet<Regex>? _urlsToWatch;
     private ILogger? _logger;
-    public string Name => nameof(SelectGuidancePlugin);
+    public string Name => nameof(GraphSelectGuidancePlugin);
 
     public void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
