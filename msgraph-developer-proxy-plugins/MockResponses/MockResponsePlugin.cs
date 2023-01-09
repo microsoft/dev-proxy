@@ -29,6 +29,7 @@ public class MockResponsePlugin : IProxyPlugin {
     private MockResponseConfiguration _configuration = new();
     private MockResponsesLoader? _loader = null;
     private readonly Option<bool> _noMocks;
+    private readonly Option<string?> _mocksFile;
     public string Name => nameof(MockResponsePlugin);
 
     public MockResponsePlugin() {
@@ -36,6 +37,10 @@ public class MockResponsePlugin : IProxyPlugin {
         _noMocks.AddAlias("-n");
         _noMocks.ArgumentHelpName = "no mocks";
         _noMocks.SetDefaultValue(false);
+
+        _mocksFile = new Option<string?>("--mocks-file", "Provide a file populated with mock responses");
+        _mocksFile.ArgumentHelpName= "mocks file";
+        _mocksFile.SetDefaultValue(null);
     }
 
     public void Register(IPluginEvents pluginEvents,
@@ -58,7 +63,6 @@ public class MockResponsePlugin : IProxyPlugin {
         _logger = context.Logger;
         configSection?.Bind(_configuration);
         _loader = new MockResponsesLoader(_logger, _configuration);
-        _loader.InitResponsesWatcher();
 
         pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
@@ -67,12 +71,20 @@ public class MockResponsePlugin : IProxyPlugin {
 
     private void OnInit(object? sender, InitArgs e) {
         e.RootCommand.AddOption(_noMocks);
+        e.RootCommand.AddOption(_mocksFile);
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e) {
         InvocationContext context = e.Context;
         // allow disabling of mocks as a command line option
         _configuration.NoMocks = context.ParseResult.GetValueForOption(_noMocks);
+        // update the name of the mocks file to load from if supplied
+        string? mocksFile = context.ParseResult.GetValueForOption(_mocksFile);
+        if (mocksFile is not null) {
+            _configuration.MocksFile = mocksFile;
+        }
+        // load the responses from the configured mocks file
+        _loader?.InitResponsesWatcher();
     }
 
     private void OnRequest(object? sender, ProxyRequestArgs e) {
