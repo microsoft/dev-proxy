@@ -21,6 +21,8 @@ We highly recommend that you use a Microsoft 365 Developer Tenant with content p
 
 There are two ways which you can configure the App Registration required for the samples to work correctly, through automatation using either a `bash` or `pwsh` script we provide for you in the `scripts` directory, or manually through Azure Portal.
 
+> Note that the script will create a file called `env.js`, in the root of the `samples` directory. This file contains the client ID of the application registration that is created.
+
 ### <a id="pwsh">PowerShell 7</a>
 
 > The script uses CLI for Microsoft 365 to authenticate with and create the app registration in your tenant, therefore requires nodejs, v8 or greater to be installed
