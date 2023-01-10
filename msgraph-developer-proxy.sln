@@ -12,6 +12,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		settings.editorconfig = settings.editorconfig
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "msgraph-developer-proxy-plugins", "msgraph-developer-proxy-plugins\msgraph-developer-proxy-plugins.csproj", "{CEEEAB75-B242-47CC-9956-2C4311EF010A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "msgraph-developer-proxy-abstractions", "msgraph-developer-proxy-abstractions\msgraph-developer-proxy-abstractions.csproj", "{E9AADB3C-A855-4E1A-8D91-036FC0EAC85A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +26,14 @@ Global
 		{A1047491-5E52-4755-B5D7-17B3774E35FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1047491-5E52-4755-B5D7-17B3774E35FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1047491-5E52-4755-B5D7-17B3774E35FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEEEAB75-B242-47CC-9956-2C4311EF010A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEEEAB75-B242-47CC-9956-2C4311EF010A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEEEAB75-B242-47CC-9956-2C4311EF010A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEEEAB75-B242-47CC-9956-2C4311EF010A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9AADB3C-A855-4E1A-8D91-036FC0EAC85A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9AADB3C-A855-4E1A-8D91-036FC0EAC85A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9AADB3C-A855-4E1A-8D91-036FC0EAC85A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9AADB3C-A855-4E1A-8D91-036FC0EAC85A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

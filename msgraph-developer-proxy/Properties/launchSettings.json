@@ -1,5 +1,10 @@
 {
   "profiles": {
+    "No args": {
+      "commandName": "Project",
+      "commandLineArgs": "",
+      "hotReloadEnabled": true
+    },
     "No chaos with mock responses": {
       "commandName": "Project",
       "commandLineArgs": "--port 8080 --failure-rate 0",
@@ -13,6 +18,11 @@
     "High chaos only 429 503 and no mocks": {
       "commandName": "Project",
       "commandLineArgs": "--port 8080 --failure-rate 95 -a 429 503 --no-mocks",
+      "hotReloadEnabled": true
+    },
+    "No chaos and custom mocks file": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 8080 --failure-rate 0 --mocks-file foo.json",
       "hotReloadEnabled": true
     },
     "High chaos only 429 and no mocks": {

@@ -1,6 +1,25 @@
 {
   "responses": [
     {
+      "url": "https://graph.microsoft.com/v1.0/me?*",
+      "responseBody": {
+        "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+        "businessPhones": [
+          "+1 412 555 0109"
+        ],
+        "displayName": "Megan Bowen",
+        "givenName": "Megan",
+        "jobTitle": "Auditor",
+        "mail": "MeganB@M365x214355.onmicrosoft.com",
+        "mobilePhone": null,
+        "officeLocation": "12/1110",
+        "preferredLanguage": "en-US",
+        "surname": "Bowen",
+        "userPrincipalName": "MeganB@M365x214355.onmicrosoft.com",
+        "id": "48d31887-5fad-4d73-a9f5-3c356e68a038"
+      }
+    },
+    {
       "url": "https://graph.microsoft.com/v1.0/me",
       "responseBody": {
         "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
@@ -23,7 +42,7 @@
       "url": "https://graph.microsoft.com/v1.0/me",
       "method": "PATCH",
       "responseBody": {},
-      "responseCode":  204
+      "responseCode": 204
     },
     {
       "url": "https://graph.microsoft.com/v1.0/users/48d31887-5fad-4d73-a9f5-3c356e68a038",
@@ -47,6 +66,13 @@
     {
       "url": "https://graph.microsoft.com/v1.0/me/photo",
       "responseCode": 404
+    },
+    {
+      "url": "https://graph.microsoft.com/v1.0/me/photo/$value",
+      "responseBody": "@picture.jpg",
+      "responseHeaders": {
+        "content-type": "image/jpeg"
+      }
     },
     {
       "url": "https://graph.microsoft.com/v1.0/users/*/photo/$value",
