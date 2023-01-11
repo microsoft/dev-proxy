@@ -30,9 +30,9 @@
   </video>
 </p>
 
-Microsoft Graph Developer Proxy is a command line tool that simulates real world behaviours of Microsoft Graph, locally.
+Microsoft Graph Developer Proxy is a command line tool that simulates real world behaviours of Microsoft Graph and other APIs, locally.
 
-Microsoft Graph Developer Proxy aims to provide a better way to test applications that use Microsoft Graph. Using the proxy to simulate errors, mock responses and demonstrate behaviours like throttling, developers can identify and fix issues in their code early in the development cycle before they reach production.
+Microsoft Graph Developer Proxy aims to provide a better way to test applications that use Microsoft Graph and other APIs. Using the proxy to simulate errors, mock responses and demonstrate behaviours like throttling, developers can identify and fix issues in their code early in the development cycle before they reach production.
 
 ## Get started
 
@@ -40,7 +40,7 @@ If you are new to Microsoft Graph Developer Proxy, we highly recommend that you 
 
 ## Example usage
 
-Start the proxy on port 8080, set the chance for a request to Microsoft Graph to fail with an HTTP status code of either 429 or 503 at 50%, and ignore any mock responses that may have been provided, execute:
+Start the proxy on port 8080, set the chance for a request to fail with an HTTP status code of either 429 or 503 at 50%, and ignore any mock responses that may have been provided, execute:
 
 ```
 msgraph-developer-proxy --port 8080 --failure-rate 50 --no-mocks --allowed-errors 429 503
@@ -52,16 +52,18 @@ msgraph-developer-proxy --port 8080 --failure-rate 50 --no-mocks --allowed-error
   - Windows
   - macOS
   - Linux
-- simulate different Microsoft Graph API errors
-- verify that your application properly handles throttling
-- mock Microsoft Graph API responses
+- intercept requests from Microsoft Graph and other APIs
+- simulate errors
+- simulate throttling
+- mock responses
 - define wildcard paths to serve mocked responses
 - mock responses of different types (JSON, binary, etc.)
+- `$select` guidance to improve performance
 - configure proxy to your needs, by setting:
   - failure rate
   - port
   - whether to use mock responses or not
-  - which Microsoft Cloud to use (public, DoD, etc.)
+  - URLs to intercept traffic
 
 ## Trademarks
 
