@@ -145,7 +145,7 @@ To improve readability, multiline messages will be visually grouped together, us
 To support requirements listed above, and ensure consistent logging from the Proxy's core and its plugins, we'll implement a centralized method, that accepts an array of messages, the type of the message, and context information about the request:
 
 ```cs
-interface RequestContext {
+interface LoggingContext {
     public ProxyRequestArgs RequestArgs { get; }
 }
 
