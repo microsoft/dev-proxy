@@ -68,9 +68,9 @@ public class ProxyCommandHandler : ICommandHandler {
 
     }
 
-    private ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
+    public static ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
 
-    private readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() => {
+    private static readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() => {
         var builder = new ConfigurationBuilder();
         var configuration = builder
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)

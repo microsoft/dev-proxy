@@ -42,7 +42,7 @@ public class GraphSdkGuidancePlugin : IProxyPlugin {
             && _urlsToWatch is not null 
             && e.HasRequestUrlMatch(_urlsToWatch) 
             && WarnNoSdk(request)) {
-            _logger?.LogWarn(MessageUtils.BuildUseSdkMessage(request));
+            _logger?.LogRequest(MessageUtils.BuildUseSdkMessage(request), MessageType.Tip, new LoggingContext(e.Session));
         }
     }
 
