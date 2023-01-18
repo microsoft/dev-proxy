@@ -146,8 +146,8 @@ To support requirements listed above, and ensure consistent logging from the Pro
 
 ```cs
 interface LoggingContext {
-    public ProxyRequestArgs RequestArgs { get; }
+    public SessionEventArgs RequestArgs { get; }
 }
 
-Log(string[] messages, MessageType messageType, RequestContext: context): void
+Log(string[] messages, MessageType messageType, LoggingContext: context = null): void
 ```
