@@ -7,7 +7,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/msgraph-developer-proxy/msgraph-developer-proxy.csproj",
+        "${workspaceFolder}/msgraph-developer-proxy.sln",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -19,7 +19,7 @@
       "type": "process",
       "args": [
         "publish",
-        "${workspaceFolder}/msgraph-developer-proxy/msgraph-developer-proxy.csproj",
+        "${workspaceFolder}/msgraph-developer-proxy.sln",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -33,7 +33,7 @@
         "watch",
         "run",
         "--project",
-        "${workspaceFolder}/msgraph-developer-proxy/msgraph-developer-proxy.csproj"
+        "${workspaceFolder}/msgraph-developer-proxy.sln"
       ],
       "problemMatcher": "$msCompile"
     }
