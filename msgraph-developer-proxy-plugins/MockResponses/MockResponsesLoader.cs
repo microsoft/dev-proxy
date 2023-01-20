@@ -20,7 +20,7 @@ internal class MockResponsesLoader : IDisposable {
 
     public void LoadResponses() {
         if (!File.Exists(_responsesFilePath)) {
-            _logger.LogWarn($"Unable to find {_configuration.MocksFile}, no mocks will be provided");
+            _logger.LogWarn($"File {_configuration.MocksFile} not found in the current directory. No mocks will be provided");
             _configuration.Responses = Array.Empty<MockResponse>();
             return;
         }
