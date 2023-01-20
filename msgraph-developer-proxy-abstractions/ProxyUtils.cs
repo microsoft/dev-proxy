@@ -13,6 +13,10 @@ public static class ProxyUtils {
 
     public static bool IsSdkRequest(Request request) => request.Headers.HeaderExists("SdkVersion");
 
+    public static bool IsGraphBetaRequest(Request request) => 
+        IsGraphRequest(request) &&
+        request.RequestUri.AbsolutePath.Contains("/beta/", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// Utiliy to build HTTP respopnse headers consistent with Microsoft Graph
     /// </summary>
