@@ -8,7 +8,6 @@ namespace Microsoft.Graph.DeveloperProxy;
 public class ConsoleLogger : ILogger {
     private readonly ConsoleColor _color;
     private readonly LabelMode _labelMode;
-    private readonly LogLevel _logLevel;
     private readonly string _boxTopLeft = "\u250c ";
     private readonly string _boxLeft = "\u2502 ";
     private readonly string _boxBottomLeft = "\u2514 ";
@@ -17,14 +16,16 @@ public class ConsoleLogger : ILogger {
 
     private static readonly object lockObject = new object();
 
+    public LogLevel LogLevel { get; set; }
+
     public ConsoleLogger(ProxyConfiguration configuration) {
         _color = Console.ForegroundColor;
         _labelMode = configuration.LabelMode;
-        _logLevel = configuration.LogLevel;
+        LogLevel = configuration.LogLevel;
     }
 
     public void LogInfo(string message) {
-        if (_logLevel > LogLevel.Info) {
+        if (LogLevel > LogLevel.Info) {
             return;
         }
 
@@ -32,7 +33,7 @@ public class ConsoleLogger : ILogger {
     }
 
     public void LogWarn(string message) {
-        if (_logLevel > LogLevel.Warn) {
+        if (LogLevel > LogLevel.Warn) {
             return;
         }
 
@@ -42,7 +43,7 @@ public class ConsoleLogger : ILogger {
     }
 
     public void LogError(string message) {
-        if (_logLevel > LogLevel.Error) {
+        if (LogLevel > LogLevel.Error) {
             return;
         }
 
@@ -52,7 +53,7 @@ public class ConsoleLogger : ILogger {
     }
 
     public void LogDebug(string message) {
-        if (_logLevel > LogLevel.Debug) {
+        if (LogLevel > LogLevel.Debug) {
             return;
         }
 

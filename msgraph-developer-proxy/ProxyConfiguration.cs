@@ -3,6 +3,7 @@
 
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Microsoft.Graph.DeveloperProxy.Abstractions;
 
 namespace Microsoft.Graph.DeveloperProxy;
 
@@ -13,17 +14,6 @@ public enum LabelMode {
     Icon,
     [EnumMember(Value = "nerdFont")]
     NerdFont
-}
-
-public enum LogLevel {
-    [EnumMember(Value = "debug")]
-    Debug,
-    [EnumMember(Value = "info")]
-    Info,
-    [EnumMember(Value = "warn")]
-    Warn,
-    [EnumMember(Value = "error")]
-    Error
 }
 
 public class ProxyConfiguration {

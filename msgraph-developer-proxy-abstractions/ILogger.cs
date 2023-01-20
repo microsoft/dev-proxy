@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System.Runtime.Serialization;
 using Titanium.Web.Proxy.EventArguments;
 
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
@@ -24,7 +25,20 @@ public class LoggingContext {
     }
 }
 
+public enum LogLevel {
+    [EnumMember(Value = "debug")]
+    Debug,
+    [EnumMember(Value = "info")]
+    Info,
+    [EnumMember(Value = "warn")]
+    Warn,
+    [EnumMember(Value = "error")]
+    Error
+}
+
 public interface ILogger {
+    public LogLevel LogLevel { get; set; }
+
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null);
 
     // Logging methods for non-traffic related messages

@@ -11,15 +11,18 @@ namespace Microsoft.Graph.DeveloperProxy;
 
 public class ProxyCommandHandler : ICommandHandler {
     public Option<int> Port { get; set; }
+    public Option<LogLevel> LogLevel { get; set; }
 
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<Regex> _urlsToWatch;
     private readonly ILogger _logger;
     public ProxyCommandHandler(Option<int> port,
+                               Option<LogLevel> logLevel,
                                PluginEvents pluginEvents,
                                ISet<Regex> urlsToWatch,
                                ILogger logger) {
         Port = port ?? throw new ArgumentNullException(nameof(port));
+        LogLevel = logLevel ?? throw new ArgumentNullException(nameof(logLevel));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -31,8 +34,11 @@ public class ProxyCommandHandler : ICommandHandler {
 
     public async Task<int> InvokeAsync(InvocationContext context) {
         int port = context.ParseResult.GetValueForOption(Port);
-        CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
         Configuration.Port = port;
+        LogLevel logLevel = context.ParseResult.GetValueForOption(LogLevel);
+        _logger.LogLevel = logLevel;
+
+        CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
 
         _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context));
 
