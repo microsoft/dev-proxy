@@ -8,18 +8,21 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Graph.DeveloperProxy;
 
 internal class ProxyHost {
-    private Option<int> _portOption;
-    private Option<LogLevel> _logLevelOption;
+    private Option<int?> _portOption;
+    private Option<LogLevel?> _logLevelOption;
 
     public ProxyHost() {
-        _portOption = new Option<int>("--port", "The port for the proxy server to listen on");
+        _portOption = new Option<int?>("--port", "The port for the proxy server to listen on");
         _portOption.AddAlias("-p");
         _portOption.ArgumentHelpName = "port";
-        _portOption.SetDefaultValue(8000);
 
-        _logLevelOption = new Option<LogLevel>("--logLevel", "Level of messages to log");
+        _logLevelOption = new Option<LogLevel?>("--logLevel", $"Level of messages to log. Allowed values: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}");
         _logLevelOption.ArgumentHelpName = "logLevel";
-        _logLevelOption.SetDefaultValue(LogLevel.Info);
+        _logLevelOption.AddValidator(input => {
+            if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel)) {
+                input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid log level. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}";
+            }
+        });
     }
 
     public RootCommand GetRootCommand() {
