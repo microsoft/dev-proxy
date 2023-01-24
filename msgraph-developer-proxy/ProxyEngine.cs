@@ -50,7 +50,7 @@ public class ProxyEngine {
 
     public async Task Run(CancellationToken? cancellationToken) {
         if (!_urlsToWatch.Any()) {
-            _logger.Log("No URLs to watch configured. Please add URLs to watch in the appsettings.json config file.");
+            _logger.LogInfo("No URLs to watch configured. Please add URLs to watch in the appsettings.json config file.");
             return;
         }
 
@@ -83,7 +83,7 @@ public class ProxyEngine {
         _proxyServer.Start();
 
         foreach (var endPoint in _proxyServer.ProxyEndPoints) {
-            _logger.Log($"Listening on '{endPoint.GetType().Name}' endpoint at Ip {endPoint.IpAddress} and port: {endPoint.Port} ");
+            _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
         }
 
         if (RunTime.IsWindows) {
@@ -95,7 +95,8 @@ public class ProxyEngine {
             _logger.LogWarn("Configure your operating system to use this proxy's port and address");
         }
 
-        _logger.Log("Press CTRL+C to stop the Microsoft Graph Developer Proxy");
+        _logger.LogInfo("Press CTRL+C to stop the Microsoft Graph Developer Proxy");
+        _logger.LogInfo("");
         Console.CancelKeyPress += Console_CancelKeyPress;
         // wait for the proxy to stop
         Console.ReadLine();
@@ -185,7 +186,7 @@ public class ProxyEngine {
         // The proxy does not intercept or alter OPTIONS requests
         if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             e.UserData = e.HttpClient.Request;
-            _logger.Log($"saw a proxied request: {e.HttpClient.Request.Method} {e.HttpClient.Request.RequestUriString}");
+            _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest);
             HandleRequest(e);
         }
     }

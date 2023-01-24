@@ -38,7 +38,7 @@ public class GraphSelectGuidancePlugin : IProxyPlugin {
     private void AfterResponse(object? sender, ProxyResponseArgs e) {
         Request request = e.Session.HttpClient.Request;
         if (_urlsToWatch is not null && e.HasRequestUrlMatch(_urlsToWatch) && WarnNoSelect(request))
-            _logger?.LogWarn(BuildUseSelectMessage(request));
+            _logger?.LogRequest(BuildUseSelectMessage(request), MessageType.Warning, new LoggingContext(e.Session));
     }
 
     private static bool WarnNoSelect(Request request) =>
@@ -47,5 +47,5 @@ public class GraphSelectGuidancePlugin : IProxyPlugin {
         && !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
 
     private static string GetSelectParameterGuidanceUrl() => "https://learn.microsoft.com/graph/query-parameters#select-parameter";
-    private static string BuildUseSelectMessage(Request r) => $"To improve performance of your application, use the $select parameter when calling {r.RequestUriString}. More info at {GetSelectParameterGuidanceUrl()}";
+    private static string[] BuildUseSelectMessage(Request r) => new[] { $"To improve performance of your application, use the $select parameter.", $"More info at {GetSelectParameterGuidanceUrl()}" };
 }

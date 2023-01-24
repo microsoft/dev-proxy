@@ -20,7 +20,7 @@ internal enum FailMode {
     PassThru
 }
 
-public class RandomErrorConfguration {
+public class RandomErrorConfiguration {
     public int Rate { get; set; } = 0;
     public List<int> AllowedErrors { get; set; } = new();
 }
@@ -30,62 +30,62 @@ public class RandomErrorPlugin : IProxyPlugin {
     private ILogger? _logger;
     private readonly Option<int?> _rate;
     private readonly Option<IEnumerable<int>> _allowedErrors;
-    private readonly RandomErrorConfguration _configuration = new();
+    private readonly RandomErrorConfiguration _configuration = new();
 
     public string Name => nameof(RandomErrorPlugin);
 
     private const int retryAfterInSeconds = 5;
     private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new()
     {
-            {
-                "GET", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout
-                }
-            },
-            {
-                "POST", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout,
-                    HttpStatusCode.InsufficientStorage
-                }
-            },
-            {
-                "PUT", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout,
-                    HttpStatusCode.InsufficientStorage
-                }
-            },
-            {
-                "PATCH", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout
-                }
-            },
-            {
-                "DELETE", new[] {
-                    HttpStatusCode.TooManyRequests,
-                    HttpStatusCode.InternalServerError,
-                    HttpStatusCode.BadGateway,
-                    HttpStatusCode.ServiceUnavailable,
-                    HttpStatusCode.GatewayTimeout,
-                    HttpStatusCode.InsufficientStorage
-                }
+        {
+            "GET", new[] {
+                HttpStatusCode.TooManyRequests,
+                HttpStatusCode.InternalServerError,
+                HttpStatusCode.BadGateway,
+                HttpStatusCode.ServiceUnavailable,
+                HttpStatusCode.GatewayTimeout
             }
-        };
+        },
+        {
+            "POST", new[] {
+                HttpStatusCode.TooManyRequests,
+                HttpStatusCode.InternalServerError,
+                HttpStatusCode.BadGateway,
+                HttpStatusCode.ServiceUnavailable,
+                HttpStatusCode.GatewayTimeout,
+                HttpStatusCode.InsufficientStorage
+            }
+        },
+        {
+            "PUT", new[] {
+                HttpStatusCode.TooManyRequests,
+                HttpStatusCode.InternalServerError,
+                HttpStatusCode.BadGateway,
+                HttpStatusCode.ServiceUnavailable,
+                HttpStatusCode.GatewayTimeout,
+                HttpStatusCode.InsufficientStorage
+            }
+        },
+        {
+            "PATCH", new[] {
+                HttpStatusCode.TooManyRequests,
+                HttpStatusCode.InternalServerError,
+                HttpStatusCode.BadGateway,
+                HttpStatusCode.ServiceUnavailable,
+                HttpStatusCode.GatewayTimeout
+            }
+        },
+        {
+            "DELETE", new[] {
+                HttpStatusCode.TooManyRequests,
+                HttpStatusCode.InternalServerError,
+                HttpStatusCode.BadGateway,
+                HttpStatusCode.ServiceUnavailable,
+                HttpStatusCode.GatewayTimeout,
+                HttpStatusCode.InsufficientStorage
+            }
+        }
+    };
 
     private readonly Dictionary<string, DateTime> _throttledRequests;
     private readonly Random _random;
@@ -115,7 +115,7 @@ public class RandomErrorPlugin : IProxyPlugin {
         string key = BuildThrottleKey(r);
         if (_throttledRequests.TryGetValue(key, out DateTime retryAfterDate)) {
             if (retryAfterDate > DateTime.Now) {
-                _logger?.LogError($"Calling {r.Url} again before waiting for the Retry-After period. Request will be throttled");
+                _logger?.LogRequest(new[] { $"Calling {r.Url} again before waiting for the Retry-After period.", "Request will be throttled" }, MessageType.Failed, new LoggingContext(e.Session));
                 // update the retryAfterDate to extend the throttling window to ensure that brute forcing won't succeed.
                 _throttledRequests[key] = retryAfterDate.AddSeconds(retryAfterInSeconds);
                 return FailMode.Throttled;
@@ -164,7 +164,7 @@ public class RandomErrorPlugin : IProxyPlugin {
                 }
             })
         );
-        _logger?.Log($"\tFailed {request.Url} with {errorStatus}");
+        _logger?.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
         session.GenericResponse(body ?? string.Empty, errorStatus, headers);
     }
     private static string BuildApiErrorMessage(Request r) => $"Some error was generated by the proxy. {(ProxyUtils.IsGraphRequest(r) ? ProxyUtils.IsSdkRequest(r) ? "" : MessageUtils.BuildUseSdkMessage(r) : "")}";
@@ -220,7 +220,7 @@ public class RandomErrorPlugin : IProxyPlugin {
             var failMode = ShouldFail(e);
 
             if (failMode == FailMode.PassThru && _configuration.Rate != 100) {
-                _logger?.Log($"\tPassed through {session.HttpClient.Request.Url}");
+                _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e.Session));
                 return;
             }
             FailResponse(e, failMode);

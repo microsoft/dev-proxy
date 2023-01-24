@@ -10,16 +10,19 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Graph.DeveloperProxy;
 
 public class ProxyCommandHandler : ICommandHandler {
-    public Option<int> Port { get; set; }
+    public Option<int?> Port { get; set; }
+    public Option<LogLevel?> LogLevel { get; set; }
 
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<Regex> _urlsToWatch;
     private readonly ILogger _logger;
-    public ProxyCommandHandler(Option<int> port,
+    public ProxyCommandHandler(Option<int?> port,
+                               Option<LogLevel?> logLevel,
                                PluginEvents pluginEvents,
                                ISet<Regex> urlsToWatch,
                                ILogger logger) {
         Port = port ?? throw new ArgumentNullException(nameof(port));
+        LogLevel = logLevel ?? throw new ArgumentNullException(nameof(logLevel));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -30,9 +33,16 @@ public class ProxyCommandHandler : ICommandHandler {
     }
 
     public async Task<int> InvokeAsync(InvocationContext context) {
-        int port = context.ParseResult.GetValueForOption(Port);
+        var port = context.ParseResult.GetValueForOption(Port);
+        if (port is not null) {
+            Configuration.Port = port.Value;
+        }
+        var logLevel = context.ParseResult.GetValueForOption(LogLevel);
+        if (logLevel is not null) {
+            _logger.LogLevel = logLevel.Value;
+        }
+
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
-        Configuration.Port = port;
 
         _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context));
 
@@ -68,9 +78,9 @@ public class ProxyCommandHandler : ICommandHandler {
 
     }
 
-    private ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
+    public static ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
 
-    private readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() => {
+    private static readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() => {
         var builder = new ConfigurationBuilder();
         var configuration = builder
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)

@@ -5,7 +5,7 @@ using Microsoft.Graph.DeveloperProxy;
 using Microsoft.Graph.DeveloperProxy.Abstractions;
 using System.CommandLine;
 
-ILogger logger = new ConsoleLogger();
+ILogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration);
 IProxyContext context = new ProxyContext(logger);
 ProxyHost proxyHost = new();
 RootCommand rootCommand = proxyHost.GetRootCommand();

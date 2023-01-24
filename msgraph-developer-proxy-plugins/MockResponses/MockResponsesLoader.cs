@@ -20,7 +20,7 @@ internal class MockResponsesLoader : IDisposable {
 
     public void LoadResponses() {
         if (!File.Exists(_responsesFilePath)) {
-            _logger.LogWarn($"Unable to find {_configuration.MocksFile}, no mocks will be provided");
+            _logger.LogWarn($"File {_configuration.MocksFile} not found in the current directory. No mocks will be provided");
             _configuration.Responses = Array.Empty<MockResponse>();
             return;
         }
@@ -31,7 +31,7 @@ internal class MockResponsesLoader : IDisposable {
             IEnumerable<MockResponse>? configResponses = responsesConfig?.Responses;
             if (configResponses is not null) {
                 _configuration.Responses = configResponses;
-                _logger.Log($"Mock responses for {configResponses.Count()} url patterns loaded from from {_configuration.MocksFile}");
+                _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from from {_configuration.MocksFile}");
             }
         }
         catch (Exception ex) {
