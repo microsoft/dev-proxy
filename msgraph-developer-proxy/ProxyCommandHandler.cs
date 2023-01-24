@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
@@ -10,14 +10,15 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Graph.DeveloperProxy;
 
 public class ProxyCommandHandler : ICommandHandler {
-    public Option<int> Port { get; set; }
-    public Option<LogLevel> LogLevel { get; set; }
+    public Option<int?> Port { get; set; }
+    public Option<LogLevel?> LogLevel { get; set; }
 
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<Regex> _urlsToWatch;
     private readonly ILogger _logger;
-    public ProxyCommandHandler(Option<int> port,
-                               Option<LogLevel> logLevel,
+
+    public ProxyCommandHandler(Option<int?> port,
+                               Option<LogLevel?> logLevel,
                                PluginEvents pluginEvents,
                                ISet<Regex> urlsToWatch,
                                ILogger logger) {
@@ -33,10 +34,14 @@ public class ProxyCommandHandler : ICommandHandler {
     }
 
     public async Task<int> InvokeAsync(InvocationContext context) {
-        int port = context.ParseResult.GetValueForOption(Port);
-        Configuration.Port = port;
-        LogLevel logLevel = context.ParseResult.GetValueForOption(LogLevel);
-        _logger.LogLevel = logLevel;
+        var port = context.ParseResult.GetValueForOption(Port);
+        if (port is not null) {
+            Configuration.Port = port.Value;
+        }
+        var logLevel = context.ParseResult.GetValueForOption(LogLevel);
+        if (logLevel is not null) {
+            _logger.LogLevel = logLevel.Value;
+        }
 
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
 
