@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using Microsoft.Graph.DeveloperProxy.Abstractions;
@@ -15,7 +15,7 @@ internal class ProxyHost {
         _portOption = new Option<int?>("--port", "The port for the proxy server to listen on");
         _portOption.AddAlias("-p");
         _portOption.ArgumentHelpName = "port";
-
+        
         _logLevelOption = new Option<LogLevel?>("--logLevel", $"Level of messages to log. Allowed values: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}");
         _logLevelOption.ArgumentHelpName = "logLevel";
         _logLevelOption.AddValidator(input => {

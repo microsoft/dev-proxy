@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
@@ -16,6 +16,7 @@ public class ProxyCommandHandler : ICommandHandler {
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<Regex> _urlsToWatch;
     private readonly ILogger _logger;
+
     public ProxyCommandHandler(Option<int?> port,
                                Option<LogLevel?> logLevel,
                                PluginEvents pluginEvents,
