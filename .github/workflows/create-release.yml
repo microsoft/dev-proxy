@@ -27,7 +27,7 @@ jobs:
       - name: Build plugins
         run: dotnet build ./msgraph-developer-proxy-plugins/msgraph-developer-proxy-plugins.csproj -c Release -r ${{ matrix.architecture }} --no-self-contained
       - name: Add plugins to output
-        run: cp ./msgraph-developer-proxy/bin/Release/net6.0/${{ matrix.architecture }}/GraphProxyPlugins ./${{ env.release }}
+        run: cp ./msgraph-developer-proxy/bin/Release/net6.0/${{ matrix.architecture }}/GraphProxyPlugins ./${{ env.release }} -r
       - name: Archive Release ${{ env.release }}
         uses: thedoctor0/zip-release@master
         with:
