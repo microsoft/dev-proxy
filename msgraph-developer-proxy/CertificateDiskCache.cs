@@ -92,18 +92,7 @@ public sealed class CertificateDiskCache : ICertificateCache {
                 rootCertificatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ProxyConfigurationFolderName);
             }
             else {
-                var assemblyLocation = GetType().Assembly.Location;
-
-                // dynamically loaded assemblies returns string.Empty location
-                if (assemblyLocation == string.Empty) assemblyLocation = Assembly.GetEntryAssembly()?.Location;
-
-#if NETSTANDARD2_1
-                    // single-file app returns string.Empty location
-                    if (assemblyLocation == string.Empty)
-                    {
-                        assemblyLocation = AppContext.BaseDirectory;
-                    }
-#endif
+                var assemblyLocation = AppContext.BaseDirectory;
 
                 var path = Path.GetDirectoryName(assemblyLocation);
 

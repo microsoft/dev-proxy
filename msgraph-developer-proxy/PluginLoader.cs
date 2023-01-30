@@ -27,12 +27,12 @@ internal class PluginLoader {
         PluginConfig config = PluginConfig;
         List<Regex> globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
         ISet<Regex> defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
-        foreach (PluginReference h in config.Plugins) {
-            if (h.Disabled) continue;
-            // Load Handler Assembly if not disabled
-            string? root = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-            if (!string.IsNullOrEmpty(root)) {
-                string pluginLocation = Path.GetFullPath(Path.Combine(root, h.PluginPath.Replace('\\', Path.DirectorySeparatorChar)));
+        string? rootDirectory = Path.GetDirectoryName(AppContext.BaseDirectory);
+        if (!string.IsNullOrEmpty(rootDirectory)) {
+            foreach (PluginReference h in config.Plugins) {
+                if (h.Disabled) continue;
+                // Load Handler Assembly if not disabled
+                string pluginLocation = Path.GetFullPath(Path.Combine(rootDirectory, h.PluginPath.Replace('\\', Path.DirectorySeparatorChar)));
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
                 _logger.LogDebug($"Loading from: {pluginLocation}");
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
@@ -65,7 +65,7 @@ internal class PluginLoader {
 
         string availableTypes = string.Join(",", assembly.GetTypes().Select(t => t.FullName));
         throw new ApplicationException(
-            $"Can't find plugin {h.Name} which implements IProxyPlugin in {assembly} from {assembly.Location}.\n" +
+            $"Can't find plugin {h.Name} which implements IProxyPlugin in {assembly} from {AppContext.BaseDirectory}.\n" +
             $"Available types: {availableTypes}");
     }
 

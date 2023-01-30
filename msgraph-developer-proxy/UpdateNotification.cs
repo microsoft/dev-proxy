@@ -49,9 +49,8 @@ internal static class UpdateNotification {
     }
 
     private static Version GetCurrentVersion() {
-        var assembly = Assembly.GetExecutingAssembly();
-        var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-        var currentVersion = new Version(fvi.ProductVersion);
+        var fvi = FileVersionInfo.GetVersionInfo(AppContext.BaseDirectory);
+        var currentVersion = new Version(fvi.ProductVersion ?? "0.0.0.0");
 
         return currentVersion;
     }
