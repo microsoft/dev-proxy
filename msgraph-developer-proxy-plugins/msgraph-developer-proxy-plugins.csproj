@@ -35,7 +35,7 @@
         the build starts, which may miss files created during the build. -->
       <MySourceFiles Include="$(OutDir)\**\*.*" />
     </ItemGroup>
-    <Copy SourceFiles="@(MySourceFiles)" DestinationFiles="$(SolutionDir)msgraph-developer-proxy\$(OutDir)\GraphProxyPlugins\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Copy SourceFiles="@(MySourceFiles)" DestinationFiles="$(ProjectDir)..\msgraph-developer-proxy\$(OutDir)\GraphProxyPlugins\%(RecursiveDir)%(Filename)%(Extension)" />
   </Target>
 
 </Project>
