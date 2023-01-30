@@ -4,7 +4,6 @@
 using Microsoft.Graph.DeveloperProxy.Abstractions;
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
@@ -30,11 +29,8 @@ public class ProxyEngine {
     private static string _productVersion {
         get {
             if (__productVersion == string.Empty) {
-                var assembly = Assembly.GetExecutingAssembly();
-                if (assembly != null) {
-                    var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-                    __productVersion = fileVersionInfo?.ProductVersion!;
-                }
+                var fileVersionInfo = FileVersionInfo.GetVersionInfo(AppContext.BaseDirectory);
+                __productVersion = fileVersionInfo?.ProductVersion!;
             }
 
             return __productVersion;
