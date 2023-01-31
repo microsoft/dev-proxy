@@ -59,6 +59,7 @@ msgraph-developer-proxy --port 8080 --failure-rate 50 --no-mocks --allowed-error
 - define wildcard paths to serve mocked responses
 - mock responses of different types (JSON, binary, etc.)
 - `$select` guidance to improve performance
+- non-production beta endpoint guidance for Microsoft Graph
 - configure proxy to your needs, by setting:
   - failure rate
   - port
