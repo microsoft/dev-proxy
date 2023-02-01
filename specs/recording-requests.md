@@ -10,7 +10,7 @@ Recording requests allows Developer Proxy to capture requests and related messag
 
 ## Implementation
 
-Developer Proxy can be put in recording mode either by using the `--record` command line option or by pressing `r` after starting the proxy. Recording can be stopped by pressing `s` while running the proxy or by closing the proxy using `CTRL+C`. When the recording is stopped while proxy is running, users can start a new recording session by pressing `r` again.
+Developer Proxy can be put in recording mode either by using the `--record` command line option or by pressing `r` after starting the proxy. Recording can be stopped by pressing `s` while running the proxy or by closing the proxy using `CTRL+C`. While recording is stopped and the proxy is running, users can start a new recording session by pressing `r` again.
 
 While recording, Developer Proxy will show and indicator in the terminal window. The indicator will be displayed in the top right corner of the window and will be hidden if the proxy is not recording.
 
