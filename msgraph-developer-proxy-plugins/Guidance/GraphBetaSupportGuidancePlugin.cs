@@ -8,29 +8,14 @@ using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.Graph.DeveloperProxy.Plugins.Guidance;
 
-public class GraphBetaSupportGuidancePlugin : IProxyPlugin {
-    private ISet<Regex>? _urlsToWatch;
-    private ILogger? _logger;
-    public string Name => nameof(GraphBetaSupportGuidancePlugin);
+public class GraphBetaSupportGuidancePlugin : BaseProxyPlugin {
+    public override string Name => nameof(GraphBetaSupportGuidancePlugin);
 
-    public void Register(IPluginEvents pluginEvents,
+    public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
                             ISet<Regex> urlsToWatch,
                             IConfigurationSection? configSection = null) {
-        if (pluginEvents is null) {
-            throw new ArgumentNullException(nameof(pluginEvents));
-        }
-
-        if (context is null || context.Logger is null) {
-            throw new ArgumentException($"{nameof(context)} must not be null and must supply a non-null Logger", nameof(context));
-        }
-
-        if (urlsToWatch is null || urlsToWatch.Count == 0) {
-            throw new ArgumentException($"{nameof(urlsToWatch)} cannot be null or empty", nameof(urlsToWatch));
-        }
-
-        _urlsToWatch = urlsToWatch;
-        _logger = context.Logger;
+        base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         pluginEvents.AfterResponse += AfterResponse;
     }

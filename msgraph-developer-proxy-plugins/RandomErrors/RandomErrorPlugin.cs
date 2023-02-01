@@ -25,14 +25,12 @@ public class RandomErrorConfiguration {
     public List<int> AllowedErrors { get; set; } = new();
 }
 
-public class RandomErrorPlugin : IProxyPlugin {
-    private ISet<Regex>? _urlsToWatch;
-    private ILogger? _logger;
+public class RandomErrorPlugin : BaseProxyPlugin {
     private readonly Option<int?> _rate;
     private readonly Option<IEnumerable<int>> _allowedErrors;
     private readonly RandomErrorConfiguration _configuration = new();
 
-    public string Name => nameof(RandomErrorPlugin);
+    public override string Name => nameof(RandomErrorPlugin);
 
     private const int retryAfterInSeconds = 5;
     private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new()
@@ -171,15 +169,11 @@ public class RandomErrorPlugin : IProxyPlugin {
 
     private string BuildThrottleKey(Request r) => $"{r.Method}-{r.Url}";
 
-    public void Register(IPluginEvents pluginEvents,
+    public override void Register(IPluginEvents pluginEvents,
                          IProxyContext context,
                          ISet<Regex> urlsToWatch,
                          IConfigurationSection? configSection = null) {
-        if (pluginEvents is null) {
-            throw new ArgumentNullException(nameof(pluginEvents));
-        }
-        _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
-        _logger = context?.Logger ?? throw new ArgumentNullException(nameof(context));
+        base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         configSection?.Bind(_configuration);
         pluginEvents.Init += OnInit;
