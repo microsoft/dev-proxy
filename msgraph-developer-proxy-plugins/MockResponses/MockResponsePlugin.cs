@@ -23,14 +23,12 @@ internal class MockResponseConfiguration {
     public IEnumerable<MockResponse> Responses { get; set; } = Array.Empty<MockResponse>();
 }
 
-public class MockResponsePlugin : IProxyPlugin {
-    private ISet<Regex>? _urlsToWatch;
-    private ILogger? _logger;
+public class MockResponsePlugin : BaseProxyPlugin {
     private MockResponseConfiguration _configuration = new();
     private MockResponsesLoader? _loader = null;
     private readonly Option<bool> _noMocks;
     private readonly Option<string?> _mocksFile;
-    public string Name => nameof(MockResponsePlugin);
+    public override string Name => nameof(MockResponsePlugin);
 
     public MockResponsePlugin() {
         _noMocks = new Option<bool>("--no-mocks", "Disable loading mock requests");
@@ -43,26 +41,14 @@ public class MockResponsePlugin : IProxyPlugin {
         _mocksFile.SetDefaultValue(null);
     }
 
-    public void Register(IPluginEvents pluginEvents,
+    public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
                             ISet<Regex> urlsToWatch,
                             IConfigurationSection? configSection = null) {
-        if (pluginEvents is null) {
-            throw new ArgumentNullException(nameof(pluginEvents));
-        }
-
-        if (context is null || context.Logger is null) {
-            throw new ArgumentException($"{nameof(context)} must not be null and must supply a non-null Logger", nameof(context));
-        }
-
-        if (urlsToWatch is null || urlsToWatch.Count == 0) {
-            throw new ArgumentException($"{nameof(urlsToWatch)} cannot be null or empty", nameof(urlsToWatch));
-        }
-
-        _urlsToWatch = urlsToWatch;
-        _logger = context.Logger;
+        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        
         configSection?.Bind(_configuration);
-        _loader = new MockResponsesLoader(_logger, _configuration);
+        _loader = new MockResponsesLoader(_logger!, _configuration);
 
         pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
