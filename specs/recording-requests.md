@@ -14,7 +14,7 @@ Developer Proxy can be put in recording mode either by using the `--record` comm
 
 While recording, Developer Proxy will show an indicator in the terminal window. The indicator will be displayed in the top right corner of the window and will be hidden if the proxy is not recording.
 
-Proxy is recording requests by subscribing to a `LogRequest` event which is raised each time proxy logs a request-related log message. The event contains information about the logged message.
+Proxy is recording requests by subscribing to a `RequestLogged` event which is raised each time proxy logged a request-related log message. The event contains information about the logged message.
 
 After the recording is stopped, Developer Proxy will raise the `RecordingStopped` event. Plugins can subscribe to this event to process the captured requests.
 
