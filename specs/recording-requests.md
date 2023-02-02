@@ -1,4 +1,4 @@
-# Recording requests
+# Record request logging
 
 Record request logging allows Developer Proxy to capture request logging activities that occurred while the proxy was in record mode. The captured request logging items are passed for further processing to the Developer Proxy plugins. This feature is foundational for scenarios such as permission analysis, building tailored SDKs, audit reports, etc.
 
