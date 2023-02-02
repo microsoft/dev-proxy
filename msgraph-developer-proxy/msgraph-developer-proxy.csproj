@@ -11,6 +11,7 @@
     <Version>0.4.0</Version>
     <Company>Microsoft</Company>
     <Product>Microsoft Graph Developer Proxy</Product>
+    <AssemblyName>mgdp</AssemblyName>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
