@@ -26,15 +26,15 @@ internal class MockResponseConfiguration {
 public class MockResponsePlugin : BaseProxyPlugin {
     private MockResponseConfiguration _configuration = new();
     private MockResponsesLoader? _loader = null;
-    private readonly Option<bool> _noMocks;
+    private readonly Option<bool?> _noMocks;
     private readonly Option<string?> _mocksFile;
     public override string Name => nameof(MockResponsePlugin);
 
     public MockResponsePlugin() {
-        _noMocks = new Option<bool>("--no-mocks", "Disable loading mock requests");
+        _noMocks = new Option<bool?>("--no-mocks", "Disable loading mock requests");
         _noMocks.AddAlias("-n");
         _noMocks.ArgumentHelpName = "no mocks";
-        _noMocks.SetDefaultValue(false);
+        _noMocks.SetDefaultValue(null);
 
         _mocksFile = new Option<string?>("--mocks-file", "Provide a file populated with mock responses");
         _mocksFile.ArgumentHelpName= "mocks file";
@@ -62,8 +62,17 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e) {
         InvocationContext context = e.Context;
+
         // allow disabling of mocks as a command line option
-        _configuration.NoMocks = context.ParseResult.GetValueForOption(_noMocks);
+        var noMocks = context.ParseResult.GetValueForOption(_noMocks);
+        if (noMocks.HasValue) {
+            _configuration.NoMocks = noMocks.Value;
+        }
+        if (_configuration.NoMocks) {
+            // mocks have been disabled. No need to continue
+            return;
+        }
+
         // update the name of the mocks file to load from if supplied
         string? mocksFile = context.ParseResult.GetValueForOption(_mocksFile);
         if (mocksFile is not null) {
