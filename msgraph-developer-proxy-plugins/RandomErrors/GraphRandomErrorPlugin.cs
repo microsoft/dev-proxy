@@ -14,23 +14,23 @@ using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.Graph.DeveloperProxy.Plugins.RandomErrors;
-internal enum FailMode {
+internal enum GraphRandomErrorFailMode {
     Throttled,
     Random,
     PassThru
 }
 
-public class RandomErrorConfiguration {
+public class GraphRandomErrorConfiguration {
     public int Rate { get; set; } = 0;
     public List<int> AllowedErrors { get; set; } = new();
 }
 
-public class RandomErrorPlugin : BaseProxyPlugin {
+public class GraphRandomErrorPlugin : BaseProxyPlugin {
     private readonly Option<int?> _rate;
     private readonly Option<IEnumerable<int>> _allowedErrors;
-    private readonly RandomErrorConfiguration _configuration = new();
+    private readonly GraphRandomErrorConfiguration _configuration = new();
 
-    public override string Name => nameof(RandomErrorPlugin);
+    public override string Name => nameof(GraphRandomErrorPlugin);
 
     private const int retryAfterInSeconds = 5;
     private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new()
@@ -88,7 +88,7 @@ public class RandomErrorPlugin : BaseProxyPlugin {
     private readonly Dictionary<string, DateTime> _throttledRequests;
     private readonly Random _random;
 
-    public RandomErrorPlugin() {
+    public GraphRandomErrorPlugin() {
         _rate = new Option<int?>("--failure-rate", "The percentage of requests to graph to respond with failures");
         _rate.AddAlias("-f");
         _rate.ArgumentHelpName = "failure rate";
@@ -108,7 +108,7 @@ public class RandomErrorPlugin : BaseProxyPlugin {
     }
 
     // uses config to determine if a request should be failed
-    private FailMode ShouldFail(ProxyRequestArgs e) {
+    private GraphRandomErrorFailMode ShouldFail(ProxyRequestArgs e) {
         var r = e.Session.HttpClient.Request;
         string key = BuildThrottleKey(r);
         if (_throttledRequests.TryGetValue(key, out DateTime retryAfterDate)) {
@@ -116,20 +116,20 @@ public class RandomErrorPlugin : BaseProxyPlugin {
                 _logger?.LogRequest(new[] { $"Calling {r.Url} again before waiting for the Retry-After period.", "Request will be throttled" }, MessageType.Failed, new LoggingContext(e.Session));
                 // update the retryAfterDate to extend the throttling window to ensure that brute forcing won't succeed.
                 _throttledRequests[key] = retryAfterDate.AddSeconds(retryAfterInSeconds);
-                return FailMode.Throttled;
+                return GraphRandomErrorFailMode.Throttled;
             }
             else {
                 // clean up expired throttled request and ensure that this request is passed through.
                 _throttledRequests.Remove(key);
-                return FailMode.PassThru;
+                return GraphRandomErrorFailMode.PassThru;
             }
         }
-        return _random.Next(1, 100) <= _configuration.Rate ? FailMode.Random : FailMode.PassThru;
+        return _random.Next(1, 100) <= _configuration.Rate ? GraphRandomErrorFailMode.Random : GraphRandomErrorFailMode.PassThru;
     }
 
-    private void FailResponse(ProxyRequestArgs e, FailMode failMode) {
+    private void FailResponse(ProxyRequestArgs e, GraphRandomErrorFailMode failMode) {
         HttpStatusCode errorStatus;
-        if (failMode == FailMode.Throttled) {
+        if (failMode == GraphRandomErrorFailMode.Throttled) {
             errorStatus = HttpStatusCode.TooManyRequests;
         }
         else {
@@ -152,11 +152,11 @@ public class RandomErrorPlugin : BaseProxyPlugin {
             headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
         }
 
-        string body = JsonSerializer.Serialize(new ErrorResponseBody(
-            new ErrorResponseError {
+        string body = JsonSerializer.Serialize(new GraphErrorResponseBody(
+            new GraphErrorResponseError {
                 Code = new Regex("([A-Z])").Replace(errorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
                 Message = BuildApiErrorMessage(request),
-                InnerError = new ErrorResponseInnerError {
+                InnerError = new GraphErrorResponseInnerError {
                     RequestId = requestId,
                     Date = requestDate
                 }
@@ -213,7 +213,7 @@ public class RandomErrorPlugin : BaseProxyPlugin {
             && e.ShouldExecute(_urlsToWatch)) {
             var failMode = ShouldFail(e);
 
-            if (failMode == FailMode.PassThru && _configuration.Rate != 100) {
+            if (failMode == GraphRandomErrorFailMode.PassThru && _configuration.Rate != 100) {
                 return;
             }
             FailResponse(e, failMode);
@@ -223,25 +223,25 @@ public class RandomErrorPlugin : BaseProxyPlugin {
 }
 
 
-internal class ErrorResponseBody {
+internal class GraphErrorResponseBody {
     [JsonPropertyName("error")]
-    public ErrorResponseError Error { get; set; }
+    public GraphErrorResponseError Error { get; set; }
 
-    public ErrorResponseBody(ErrorResponseError error) {
+    public GraphErrorResponseBody(GraphErrorResponseError error) {
         Error = error;
     }
 }
 
-internal class ErrorResponseError {
+internal class GraphErrorResponseError {
     [JsonPropertyName("code")]
     public string Code { get; set; } = string.Empty;
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
     [JsonPropertyName("innerError")]
-    public ErrorResponseInnerError? InnerError { get; set; }
+    public GraphErrorResponseInnerError? InnerError { get; set; }
 }
 
-internal class ErrorResponseInnerError {
+internal class GraphErrorResponseInnerError {
     [JsonPropertyName("request-id")]
     public string RequestId { get; set; } = string.Empty;
     [JsonPropertyName("date")]
