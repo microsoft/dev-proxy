@@ -30,7 +30,7 @@ internal class ProxyHost {
             _portOption,
             _logLevelOption
         };
-        command.Description = "HTTP proxy to create random failures for calls to Microsoft Graph";
+        command.Description = "Microsoft Graph Developer Proxy is a command line tool that simulates real world behaviors of Microsoft Graph and other APIs, locally.";
 
         return command;
     }
