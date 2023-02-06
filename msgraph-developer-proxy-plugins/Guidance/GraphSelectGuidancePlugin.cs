@@ -27,9 +27,10 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin {
     }
 
     private static bool WarnNoSelect(Request request) =>
-        ProxyUtils.IsGraphRequest(request)
-        && request.Method == "GET"
-        && !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase);
+        ProxyUtils.IsGraphRequest(request) &&
+        request.Method == "GET" &&
+        !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase) &&
+        !request.Url.Contains("%24select", StringComparison.OrdinalIgnoreCase);
 
     private static string GetSelectParameterGuidanceUrl() => "https://learn.microsoft.com/graph/query-parameters#select-parameter";
     private static string[] BuildUseSelectMessage(Request r) => new[] { $"To improve performance of your application, use the $select parameter.", $"More info at {GetSelectParameterGuidanceUrl()}" };
