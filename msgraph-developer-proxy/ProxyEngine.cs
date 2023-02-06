@@ -106,7 +106,7 @@ public class ProxyEngine {
     private void LoadHostNamesFromUrls() {
         foreach (var url in _urlsToWatch) {
             // extract host from the URL
-            string urlToWatch = Regex.Unescape(url.ToString());
+            string urlToWatch = Regex.Unescape(url.ToString()).Replace(".*", "*");
             string hostToWatch;
             if (urlToWatch.ToString().Contains("://")) {
                 // if the URL contains a protocol, extract the host from the URL
@@ -121,7 +121,7 @@ public class ProxyEngine {
             var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
             Regex hostRegex = new Regex(hostToWatchRegexString, RegexOptions.Compiled | RegexOptions.IgnoreCase);
             // don't add the same host twice
-            if (!_hostsToWatch.Contains(hostRegex)) {
+            if (!_hostsToWatch.Any(h => h.ToString() == hostRegex.ToString())) {
                 _hostsToWatch.Add(hostRegex);
             }
         }
