@@ -165,6 +165,6 @@ public class MockResponsePlugin : BaseProxyPlugin {
             e.GenericResponse(body ?? string.Empty, statusCode, headers);
         }
 
-        _logger?.LogRequest(new[] { $"{matchingResponse.ResponseCode ?? 200} ${matchingResponse.Url}" }, MessageType.Mocked, new LoggingContext(e));
+        _logger?.LogRequest(new[] { $"{matchingResponse.ResponseCode ?? 200} {matchingResponse.Url}" }, MessageType.Mocked, new LoggingContext(e));
     }
 }
