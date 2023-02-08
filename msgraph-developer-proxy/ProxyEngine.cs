@@ -25,15 +25,16 @@ public class ProxyEngine {
     // used for deciding which URLs to decrypt for further inspection
     private ISet<Regex> _hostsToWatch = new HashSet<Regex>();
 
-    private static string __productVersion = string.Empty;
-    private static string _productVersion {
+    private static string _productVersion = string.Empty;
+    public static string ProductVersion {
         get {
-            if (__productVersion == string.Empty) {
-                var fileVersionInfo = FileVersionInfo.GetVersionInfo(AppContext.BaseDirectory);
-                __productVersion = fileVersionInfo?.ProductVersion!;
+            if (_productVersion == string.Empty) {
+                var assemblyPath = Process.GetCurrentProcess()?.MainModule?.FileName ?? typeof(ProxyEngine).Assembly.Location;
+                var fileVersionInfo = FileVersionInfo.GetVersionInfo(assemblyPath);
+                _productVersion = fileVersionInfo?.ProductVersion!;
             }
 
-            return __productVersion;
+            return _productVersion;
         }
     }
 
@@ -197,7 +198,7 @@ public class ProxyEngine {
         }
     }
 
-    private static void AddProxyHeader(Request r) => r.Headers?.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{_productVersion}");
+    private static void AddProxyHeader(Request r) => r.Headers?.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{ProductVersion}");
 
     private bool IsProxiedHost(string hostName) => _hostsToWatch.Any(h => h.IsMatch(hostName));
 
