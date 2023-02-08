@@ -10,13 +10,13 @@
       "request": "launch",
       "preLaunchTask": "build",
       // If you have changed target frameworks, make sure to update the program path.
-      "program": "${workspaceFolder}/msgraph-developer-proxy/bin/Debug/net6.0/msgraph-developer-proxy.dll",
+      "program": "${workspaceFolder}/msgraph-developer-proxy/bin/Debug/net6.0/mgdp.dll",
       "args": [],
       "cwd": "${workspaceFolder}/msgraph-developer-proxy",
       // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
       "console": "internalConsole",
       "stopAtEntry": false,
-      "launchSettingsProfile": "High chaos only 429 and no mocks"
+      "launchSettingsProfile": "Default"
     },
     {
       "name": ".NET Core Attach",

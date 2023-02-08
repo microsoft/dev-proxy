@@ -25,15 +25,16 @@ public class ProxyEngine {
     // used for deciding which URLs to decrypt for further inspection
     private ISet<Regex> _hostsToWatch = new HashSet<Regex>();
 
-    private static string __productVersion = string.Empty;
-    private static string _productVersion {
+    private static string _productVersion = string.Empty;
+    public static string ProductVersion {
         get {
-            if (__productVersion == string.Empty) {
-                var fileVersionInfo = FileVersionInfo.GetVersionInfo(AppContext.BaseDirectory);
-                __productVersion = fileVersionInfo?.ProductVersion!;
+            if (_productVersion == string.Empty) {
+                var assemblyPath = Process.GetCurrentProcess()?.MainModule?.FileName ?? typeof(ProxyEngine).Assembly.Location;
+                var fileVersionInfo = FileVersionInfo.GetVersionInfo(assemblyPath);
+                _productVersion = fileVersionInfo?.ProductVersion!;
             }
 
-            return __productVersion;
+            return _productVersion;
         }
     }
 
@@ -106,7 +107,7 @@ public class ProxyEngine {
     private void LoadHostNamesFromUrls() {
         foreach (var url in _urlsToWatch) {
             // extract host from the URL
-            string urlToWatch = Regex.Unescape(url.ToString());
+            string urlToWatch = Regex.Unescape(url.ToString()).Replace(".*", "*");
             string hostToWatch;
             if (urlToWatch.ToString().Contains("://")) {
                 // if the URL contains a protocol, extract the host from the URL
@@ -121,7 +122,7 @@ public class ProxyEngine {
             var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
             Regex hostRegex = new Regex(hostToWatchRegexString, RegexOptions.Compiled | RegexOptions.IgnoreCase);
             // don't add the same host twice
-            if (!_hostsToWatch.Contains(hostRegex)) {
+            if (!_hostsToWatch.Any(h => h.ToString() == hostRegex.ToString())) {
                 _hostsToWatch.Add(hostRegex);
             }
         }
@@ -193,11 +194,12 @@ public class ProxyEngine {
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!responseState.HasBeenSet) {
+            _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e));
             AddProxyHeader(e.HttpClient.Request);
         }
     }
 
-    private static void AddProxyHeader(Request r) => r.Headers?.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{_productVersion}");
+    private static void AddProxyHeader(Request r) => r.Headers?.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{ProductVersion}");
 
     private bool IsProxiedHost(string hostName) => _hostsToWatch.Any(h => h.IsMatch(hostName));
 
