@@ -49,9 +49,7 @@ internal static class UpdateNotification {
     }
 
     private static Version GetCurrentVersion() {
-        var fvi = FileVersionInfo.GetVersionInfo(AppContext.BaseDirectory);
-        var currentVersion = new Version(fvi.ProductVersion ?? "0.0.0.0");
-
+        var currentVersion = new Version(ProxyEngine.ProductVersion ?? "0.0.0.0");
         return currentVersion;
     }
 
