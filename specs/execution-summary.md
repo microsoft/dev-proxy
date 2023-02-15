@@ -6,7 +6,7 @@ Execution summary gives users a quick overview of the requests intercepted by th
 
 | Version | Date | Comments | Author |
 | ------- | ---- | -------- | ------ |
-| 1.0 | 2023-02-06 | Initial specifications | @waldekmastykarz |
+| 1.0 | 2023-02-15 | Initial specifications | @waldekmastykarz |
 
 ## Implementation
 
@@ -32,11 +32,11 @@ Execution summary contains the following information:
     - List of requests captured during the recording session sorted alphabetically. For each request:
       - Request method
       - Request URL
-      - List of unique request log messages for this request issued by the proxy, grouped and sorted by severity. Excluding the `InterceptedRequest` and `PassedThrough` severity.
+      - List of unique request log messages for this request issued by the proxy, grouped and sorted by severity, along with the number of occurrences. Excluding the `InterceptedRequest` and `PassedThrough` severity.
   - if grouped by message type:
     - List of severities sorted by severity level. For each severity:
       - Severity name
-      - List of unique URLs logged for this severity sorted alphabetically
+      - List of unique URLs logged for this severity sorted alphabetically, along with the number of occurrences
 - Summary
   - Total number of requests captured
   - For each type of request log message:
@@ -57,21 +57,21 @@ Date: 2023-02-06 12:00:00
 
 #### Warning
 
-- To improve performance of your application, use the $select parameter. ore info at https://learn.microsoft.com/graph/query-parameters#select-parameter
+- (10) To improve performance of your application, use the $select parameter. ore info at https://learn.microsoft.com/graph/query-parameters#select-parameter
 
 #### Tip
 
-- To handle API errors more easily, use the Graph SDK. More info at https://aka.ms/move-to-graph-js-sdk
+- (22) To handle API errors more easily, use the Graph SDK. More info at https://aka.ms/move-to-graph-js-sdk
 
 #### Failed
 
-- Calling https://graph.microsoft.com/v1.0/me again before waiting for the Retry-After period. Request will be throttled
+- (1) Calling https://graph.microsoft.com/v1.0/me again before waiting for the Retry-After period. Request will be throttled
 
 #### Chaos
 
-- 503 ServiceUnavailable
-- 429 TooManyRequests
-- 500 InternalServerError
+- (15) 503 ServiceUnavailable
+- (20) 429 TooManyRequests
+- (10) 500 InternalServerError
 
 #### Mocked
 
@@ -79,21 +79,21 @@ Date: 2023-02-06 12:00:00
 
 #### Warning
 
-- To improve performance of your application, use the $select parameter. ore info at https://learn.microsoft.com/graph/query-parameters#select-parameter
+- (10) To improve performance of your application, use the $select parameter. ore info at https://learn.microsoft.com/graph/query-parameters#select-parameter
 
 #### Tip
 
-- To handle API errors more easily, use the Graph SDK. More info at https://aka.ms/move-to-graph-js-sdk
+- (22) To handle API errors more easily, use the Graph SDK. More info at https://aka.ms/move-to-graph-js-sdk
 
 #### Failed
 
-- Calling https://graph.microsoft.com/v1.0/me/users again before waiting for the Retry-After period. Request will be throttled
+- (1) Calling https://graph.microsoft.com/v1.0/me/users again before waiting for the Retry-After period. Request will be throttled
 
 #### Chaos
 
-- 503 ServiceUnavailable
-- 429 TooManyRequests
-- 500 InternalServerError
+- (15) 503 ServiceUnavailable
+- (20) 429 TooManyRequests
+- (10) 500 InternalServerError
 
 #### Mocked
 
@@ -121,48 +121,48 @@ Date: 2023-02-06 12:00:00
 
 ### Requests intercepted
 
-- GET https://graph.microsoft.com/v1.0/me
-- GET https://graph.microsoft.com/v1.0/me/messages
-- GET https://graph.microsoft.com/v1.0/me/users
+- (10) GET https://graph.microsoft.com/v1.0/me
+- (30) GET https://graph.microsoft.com/v1.0/me/messages
+- (12) GET https://graph.microsoft.com/v1.0/me/users
 
 ### Requests passed through
 
-- GET https://graph.microsoft.com/v1.0/me
+- (10) GET https://graph.microsoft.com/v1.0/me
 
 ### Requests with chaos
 
 #### 429 TooManyRequests
 
-- GET https://graph.microsoft.com/v1.0/me
-- GET https://graph.microsoft.com/v1.0/me/users
+- (64) GET https://graph.microsoft.com/v1.0/me
+- (32) GET https://graph.microsoft.com/v1.0/me/users
   
 #### 500 InternalServerError
 
-- GET https://graph.microsoft.com/v1.0/me
+- (33) GET https://graph.microsoft.com/v1.0/me
 
 ### Requests mocked
 
 #### https://graph.microsoft.com/v1.0/me/*
 
-- GET https://graph.microsoft.com/v1.0/me/messages
+- (23) GET https://graph.microsoft.com/v1.0/me/messages
 
 ### Tips
 
 #### To handle API errors more easily, use the Graph SDK. More info at https://aka.ms/move-to-graph-js-sdk
 
-- GET https://graph.microsoft.com/v1.0/me
+- (14) GET https://graph.microsoft.com/v1.0/me
 
 ### Warnings
 
 #### To improve performance of your application, use the $select parameter. ore info at https://learn.microsoft.com/graph/query-parameters#select-parameter
 
-- GET https://graph.microsoft.com/v1.0/me
+- (23) GET https://graph.microsoft.com/v1.0/me
 
 ### Failures
 
 #### Calling https://graph.microsoft.com/v1.0/me again before waiting for the Retry-After period. Request will be throttled
 
-- GET https://graph.microsoft.com/v1.0/me
+- (33) GET https://graph.microsoft.com/v1.0/me
 
 ## Summary
 
