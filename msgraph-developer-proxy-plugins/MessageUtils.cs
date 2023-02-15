@@ -10,6 +10,6 @@ internal class MessageUtils {
 
     public static string GetMoveToSdkUrl(Request request) {
         // TODO: return language-specific guidance links based on the language detected from the User-Agent
-        return "https://aka.ms/move-to-graph-js-sdk";
+        return "https://aka.ms/graph/proxy/guidance/move-to-js-sdk";
     }
 }

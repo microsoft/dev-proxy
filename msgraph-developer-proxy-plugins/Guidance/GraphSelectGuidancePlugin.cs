@@ -32,6 +32,6 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin {
         !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase) &&
         !request.Url.Contains("%24select", StringComparison.OrdinalIgnoreCase);
 
-    private static string GetSelectParameterGuidanceUrl() => "https://learn.microsoft.com/graph/query-parameters#select-parameter";
+    private static string GetSelectParameterGuidanceUrl() => "https://aka.ms/graph/proxy/guidance/select";
     private static string[] BuildUseSelectMessage(Request r) => new[] { $"To improve performance of your application, use the $select parameter.", $"More info at {GetSelectParameterGuidanceUrl()}" };
 }
