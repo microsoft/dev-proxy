@@ -28,6 +28,6 @@ public class GraphBetaSupportGuidancePlugin : BaseProxyPlugin {
             _logger?.LogRequest(BuildBetaSupportMessage(request), MessageType.Warning, new LoggingContext(e.Session));
     }
 
-    private static string GetBetaSupportGuidanceUrl() => "https://graph/proxy/guidance/beta";
+    private static string GetBetaSupportGuidanceUrl() => "https://aka.ms/graph/proxy/guidance/beta-support";
     private static string[] BuildBetaSupportMessage(Request r) => new[] { $"Don't use beta APIs in production because they can change or be deprecated.", $"More info at {GetBetaSupportGuidanceUrl()}" };
 }
