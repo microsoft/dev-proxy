@@ -38,6 +38,9 @@ public class ProxyEngine {
         }
     }
 
+    private bool _isRecording = false;
+    private List<RequestLog> _requestLogs = new List<RequestLog>();
+
     public ProxyEngine(ProxyConfiguration config, ISet<Regex> urlsToWatch, PluginEvents pluginEvents, ILogger logger) {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
@@ -95,9 +98,78 @@ public class ProxyEngine {
         _logger.LogInfo("Press CTRL+C to stop the Microsoft Graph Developer Proxy");
         _logger.LogInfo("");
         Console.CancelKeyPress += Console_CancelKeyPress;
-        // wait for the proxy to stop
-        Console.ReadLine();
+
+        if (_config.Record) {
+            StartRecording();
+        }
+        _pluginEvents.AfterRequestLog += AfterRequestLog;
+
+        // we need this check or proxy will fail with an exception
+        // when run for example in VSCode's integrated terminal
+        if (!Console.IsInputRedirected) {
+            ReadKeys();
+        }
         while (_proxyServer.ProxyRunning) { Thread.Sleep(10); }
+    }
+
+    private void AfterRequestLog(object? sender, RequestLogArgs e) {
+        if (!_isRecording)
+        {
+            return;
+        }
+
+        _requestLogs.Add(e.RequestLog);
+    }
+
+    private void ReadKeys() {
+        ConsoleKey key;
+        do {
+            key = Console.ReadKey(true).Key;
+            if (key == ConsoleKey.R) {
+                StartRecording();
+            }
+            else if (key == ConsoleKey.S) {
+                StopRecording();
+            }
+        } while (key != ConsoleKey.Escape);
+    }
+
+    private void StartRecording() {
+        if (_isRecording) {
+            return;
+        }
+
+        _isRecording = true;
+        PrintRecordingIndicator();
+    }
+
+    private void StopRecording() {
+        if (!_isRecording) {
+            return;
+        }
+
+        _isRecording = false;
+        PrintRecordingIndicator();
+        // clone the list so that we can clear the original
+        // list in case a new recording is started, and
+        // we let plugins handle previously recorded requests
+        var clonedLogs = _requestLogs.ToArray();
+        _requestLogs.Clear();
+        _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs));
+    }
+
+    private void PrintRecordingIndicator() {
+        lock (ConsoleLogger.ConsoleLock) {
+            if (_isRecording) {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.Write("◉");
+                Console.ResetColor();
+                Console.Error.WriteLine(" Recording... ");
+            }
+            else {
+                Console.Error.WriteLine("○ Stopped recording");
+            }
+        }
     }
 
     // Convert strings from config to regexes.
@@ -129,6 +201,7 @@ public class ProxyEngine {
     }
 
     private void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
+        StopRecording();
         StopProxy();
     }
 
