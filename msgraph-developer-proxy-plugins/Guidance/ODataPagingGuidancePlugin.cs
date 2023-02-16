@@ -136,6 +136,6 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
   private static string[] BuildIncorrectPagingUrlMessage() => new[] {
     "This paging URL seems to be created manually and is not aligned with paging information from the API.",
     "This could lead to incorrect data in your app.",
-    "For more information about paging see https://learn.microsoft.com/graph/paging"
+    "For more information about paging see https://aka.ms/graph/proxy/guidance/paging"
   };
 }
