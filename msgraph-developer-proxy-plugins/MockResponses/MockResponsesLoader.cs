@@ -31,7 +31,7 @@ internal class MockResponsesLoader : IDisposable {
             IEnumerable<MockResponse>? configResponses = responsesConfig?.Responses;
             if (configResponses is not null) {
                 _configuration.Responses = configResponses;
-                _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from from {_configuration.MocksFile}");
+                _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from {_configuration.MocksFile}");
             }
         }
         catch (Exception ex) {
