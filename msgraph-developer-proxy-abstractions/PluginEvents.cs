@@ -55,6 +55,33 @@ public class OptionsLoadedArgs {
     public InvocationContext Context { get; set; }
 }
 
+public class RequestLog {
+    public string[] Message { get; set; }
+    public MessageType MessageType { get; set; }
+    public LoggingContext? Context { get; set; }
+
+    public RequestLog(string[] message, MessageType messageType, LoggingContext? context)
+    {
+        Message = message ?? throw new ArgumentNullException(nameof(message));
+        MessageType = messageType;
+        Context = context;
+    }
+}
+
+public class RecordingArgs {
+    public RecordingArgs(IEnumerable<RequestLog> requestLogs) {
+        RequestLogs = requestLogs ?? throw new ArgumentNullException(nameof(requestLogs));
+    }
+    public IEnumerable<RequestLog> RequestLogs { get; set; }
+}
+
+public class RequestLogArgs {
+    public RequestLogArgs(RequestLog requestLog) {
+        RequestLog = requestLog ?? throw new ArgumentNullException(nameof(requestLog));
+    }
+    public RequestLog RequestLog { get; set; }
+}
+
 public interface IPluginEvents {
     /// <summary>
     /// Raised while starting the proxy, allows plugins to register command line options
@@ -81,6 +108,14 @@ public interface IPluginEvents {
     /// Raised for all responses
     /// </summary>
     event EventHandler<ProxyResponseArgs>? AfterResponse;
+    /// <summary>
+    /// Raised after request message has been logged.
+    /// </summary>
+    event EventHandler<RequestLogArgs>? AfterRequestLog;
+    /// <summary>
+    /// Raised after recording request logs has stopped.
+    /// </summary>
+    event EventHandler<RecordingArgs>? AfterRecordingStop;
 }
 
 public class PluginEvents : IPluginEvents {
@@ -94,6 +129,10 @@ public class PluginEvents : IPluginEvents {
     public event EventHandler<ProxyResponseArgs>? BeforeResponse;
     /// <inheritdoc />
     public event EventHandler<ProxyResponseArgs>? AfterResponse;
+    /// <inheritdoc />
+    public event EventHandler<RequestLogArgs>? AfterRequestLog;
+    /// <inheritdoc />
+    public event EventHandler<RecordingArgs>? AfterRecordingStop;
 
     public void RaiseInit(InitArgs args) {
         Init?.Invoke(this, args);
@@ -113,5 +152,13 @@ public class PluginEvents : IPluginEvents {
 
     public void RaiseProxyAfterResponse(ProxyResponseArgs args) {
         AfterResponse?.Invoke(this, args);
+    }
+
+    public void RaiseRequestLogged(RequestLogArgs args) {
+        AfterRequestLog?.Invoke(this, args);
+    }
+
+    public void RaiseRecordingStopped(RecordingArgs args) {
+        AfterRecordingStop?.Invoke(this, args);
     }
 }

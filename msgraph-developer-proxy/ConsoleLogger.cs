@@ -8,19 +8,21 @@ namespace Microsoft.Graph.DeveloperProxy;
 public class ConsoleLogger : ILogger {
     private readonly ConsoleColor _color;
     private readonly LabelMode _labelMode;
+    private readonly PluginEvents _pluginEvents;
     private readonly string _boxTopLeft = "\u250c ";
     private readonly string _boxLeft = "\u2502 ";
     private readonly string _boxBottomLeft = "\u2514 ";
     // used to align single-line messages
     private readonly string _boxSpacing = "  ";
 
-    private static readonly object lockObject = new object();
+    public static readonly object ConsoleLock = new object();
 
     public LogLevel LogLevel { get; set; }
 
-    public ConsoleLogger(ProxyConfiguration configuration) {
+    public ConsoleLogger(ProxyConfiguration configuration, PluginEvents pluginEvents) {
         _color = Console.ForegroundColor;
         _labelMode = configuration.LabelMode;
+        _pluginEvents = pluginEvents;
         LogLevel = configuration.LogLevel;
     }
 
@@ -72,7 +74,7 @@ public class ConsoleLogger : ILogger {
             messageLines.Add($"{context.Session.HttpClient.Request.Method} {context.Session.HttpClient.Request.Url}");
         }
 
-        lock (lockObject) {
+        lock (ConsoleLock) {
             switch (_labelMode) {
                 case LabelMode.Text:
                     WriteBoxedWithInvertedLabels(messageLines.ToArray(), messageType);
@@ -85,6 +87,8 @@ public class ConsoleLogger : ILogger {
                     break;
             }
         }
+
+        _pluginEvents.RaiseRequestLogged(new RequestLogArgs(new RequestLog(message, messageType, context)));
     }
 
     public void WriteBoxedWithInvertedLabels(string[] message, MessageType messageType) {
