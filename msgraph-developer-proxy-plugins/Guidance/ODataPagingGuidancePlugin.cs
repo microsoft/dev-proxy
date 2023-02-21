@@ -29,6 +29,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
   private void OnBeforeRequest(object? sender, ProxyRequestArgs e)
   {
     if (_urlsToWatch is null ||
+        e.Session.HttpClient.Request.Method != "GET" ||
         !e.HasRequestUrlMatch(_urlsToWatch))
     {
       return;
@@ -44,7 +45,11 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
   private async void OnBeforeResponse(object? sender, ProxyResponseArgs e)
   {
     if (_urlsToWatch is null ||
-        !e.HasRequestUrlMatch(_urlsToWatch))
+        e.Session.HttpClient.Request.Method != "GET" ||
+        !e.HasRequestUrlMatch(_urlsToWatch) ||
+        e.Session.HttpClient.Response.ContentType is null ||
+        (!e.Session.HttpClient.Response.ContentType.Contains("json") &&
+        !e.Session.HttpClient.Response.ContentType.Contains("application/atom+xml")))
     {
       return;
     }
@@ -57,8 +62,11 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
   {
     if (_urlsToWatch is null ||
         !e.HasRequestUrlMatch(_urlsToWatch) ||
+        e.Session.HttpClient.Request.Method != "GET" ||
         e.Session.HttpClient.Response.StatusCode >= 300 ||
-        e.Session.HttpClient.Response.ContentType is null)
+        e.Session.HttpClient.Response.ContentType is null ||
+        (!e.Session.HttpClient.Response.ContentType.Contains("json") &&
+        !e.Session.HttpClient.Response.ContentType.Contains("application/atom+xml")))
     {
       return;
     }
