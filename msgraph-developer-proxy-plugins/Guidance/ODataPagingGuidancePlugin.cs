@@ -23,7 +23,6 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
 
     pluginEvents.BeforeRequest += OnBeforeRequest;
     pluginEvents.BeforeResponse += OnBeforeResponse;
-    pluginEvents.AfterResponse += OnAfterResponse;
   }
 
   private void OnBeforeRequest(object? sender, ProxyRequestArgs e)
@@ -45,31 +44,18 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
   private async void OnBeforeResponse(object? sender, ProxyResponseArgs e)
   {
     if (_urlsToWatch is null ||
-        e.Session.HttpClient.Request.Method != "GET" ||
-        !e.HasRequestUrlMatch(_urlsToWatch) ||
-        e.Session.HttpClient.Response.ContentType is null ||
-        (!e.Session.HttpClient.Response.ContentType.Contains("json") &&
-        !e.Session.HttpClient.Response.ContentType.Contains("application/atom+xml")))
-    {
-      return;
-    }
-
-    // necessary for the response body to be available in the AfterResponse event
-    await e.Session.GetResponseBodyAsString();
-  }
-
-  private async void OnAfterResponse(object? sender, ProxyResponseArgs e)
-  {
-    if (_urlsToWatch is null ||
         !e.HasRequestUrlMatch(_urlsToWatch) ||
         e.Session.HttpClient.Request.Method != "GET" ||
         e.Session.HttpClient.Response.StatusCode >= 300 ||
         e.Session.HttpClient.Response.ContentType is null ||
         (!e.Session.HttpClient.Response.ContentType.Contains("json") &&
-        !e.Session.HttpClient.Response.ContentType.Contains("application/atom+xml")))
+        !e.Session.HttpClient.Response.ContentType.Contains("application/atom+xml")) ||
+        !e.Session.HttpClient.Response.HasBody)
     {
       return;
     }
+
+    e.Session.HttpClient.Response.KeepBody = true;
 
     var nextLink = string.Empty;
     var bodyString = await e.Session.GetResponseBodyAsString();
