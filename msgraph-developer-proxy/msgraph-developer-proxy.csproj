@@ -13,6 +13,7 @@
     <Product>Microsoft Graph Developer Proxy</Product>
     <AssemblyName>mgdp</AssemblyName>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 
   <ItemGroup>

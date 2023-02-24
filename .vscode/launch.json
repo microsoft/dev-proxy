@@ -19,6 +19,24 @@
       "launchSettingsProfile": "Default"
     },
     {
+      // Use IntelliSense to find out which attributes exist for C# debugging
+      // Use hover for the description of the existing attributes
+      // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
+      "name": "Selfcontained .NET Core Launch (console)",
+      "type": "coreclr",
+      "targetArchitecture": "x86_64",
+      "request": "launch",
+      "preLaunchTask": "build selfcontained",
+      // If you have changed target frameworks, make sure to update the program path.
+      "program": "${workspaceFolder}/msgraph-developer-proxy/bin/package/mgdp",
+      "args": [],
+      "cwd": "${workspaceFolder}/msgraph-developer-proxy",
+      // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "launchSettingsProfile": "Default"
+    },
+    {
       "name": ".NET Core Attach",
       "type": "coreclr",
       "request": "attach"

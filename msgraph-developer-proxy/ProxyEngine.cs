@@ -29,7 +29,10 @@ public class ProxyEngine {
     public static string ProductVersion {
         get {
             if (_productVersion == string.Empty) {
-                var assemblyPath = Process.GetCurrentProcess()?.MainModule?.FileName ?? typeof(ProxyEngine).Assembly.Location;
+
+                var assemblyPath = Process.GetCurrentProcess()?.MainModule?.FileName;
+                Console.Error.WriteLine(assemblyPath);
+                Console.Error.WriteLine(typeof(ProxyEngine).Assembly.Location);
                 var fileVersionInfo = FileVersionInfo.GetVersionInfo(assemblyPath);
                 _productVersion = fileVersionInfo?.ProductVersion!;
             }

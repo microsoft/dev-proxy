@@ -53,7 +53,6 @@ public class ProxyCommandHandler : ICommandHandler {
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
 
         _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context));
-
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion();
         if (newReleaseInfo != null) {
             _logger.LogError($"New version {newReleaseInfo.Version} of the Graph Developer Proxy is available.");

@@ -14,6 +14,45 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "buildProxy",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "publish",
+        "${workspaceFolder}/msgraph-developer-proxy/msgraph-developer-proxy.csproj",
+        "-c",
+        "Debug",
+        "-p:PublishSingleFile=true",
+        "--self-contained",
+        "-r",
+        "linux-x64",
+        "-o",
+        "${workspaceFolder}/msgraph-developer-proxy/bin/package"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "buildPlugins",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "publish",
+        "${workspaceFolder}/msgraph-developer-proxy-plugins/msgraph-developer-proxy-plugins.csproj",
+        "-c",
+        "Debug",
+        "--no-self-contained",
+        "-o",
+        "${workspaceFolder}/msgraph-developer-proxy/bin/package/GraphProxyPlugins"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build selfcontained",
+      "dependsOrder": "sequence",
+      // "dependsOn": ["buildProxy"]
+      "dependsOn": ["build", "buildProxy", "buildPlugins"]
+    },
+    {
       "label": "publish",
       "command": "dotnet",
       "type": "process",
