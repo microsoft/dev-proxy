@@ -6,7 +6,7 @@ on:
 jobs:
   publish_binaries:
     name: Publish binaries
-    runs-on: [self-hosted, 1ES.Pool=1es-graphdevx-ubuntu-github-latest]
+    runs-on: [windows-latest]
     strategy:
       matrix:
         architecture:
@@ -42,7 +42,7 @@ jobs:
     needs: [publish_binaries]
     environment:
       name: gh_releases
-    runs-on: [self-hosted, 1ES.Pool=1es-graphdevx-ubuntu-github-latest]
+    runs-on: [windows-latest]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
