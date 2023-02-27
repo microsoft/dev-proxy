@@ -45,7 +45,14 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
         return;
       }
 
-      var outputDir = Path.GetFullPath(Path.GetDirectoryName(outputFilePath));
+      var dirName = Path.GetDirectoryName(outputFilePath);
+      if (string.IsNullOrEmpty(dirName))
+      {
+        // current directory exists so no need to check
+        return;
+      }
+
+      var outputDir = Path.GetFullPath(dirName);
       if (!Directory.Exists(outputDir))
       {
         input.ErrorMessage = $"The directory {outputDir} does not exist.";

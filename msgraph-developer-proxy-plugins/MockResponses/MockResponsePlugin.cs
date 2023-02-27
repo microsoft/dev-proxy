@@ -34,11 +34,9 @@ public class MockResponsePlugin : BaseProxyPlugin {
         _noMocks = new Option<bool?>("--no-mocks", "Disable loading mock requests");
         _noMocks.AddAlias("-n");
         _noMocks.ArgumentHelpName = "no mocks";
-        _noMocks.SetDefaultValue(null);
 
         _mocksFile = new Option<string?>("--mocks-file", "Provide a file populated with mock responses");
         _mocksFile.ArgumentHelpName= "mocks file";
-        _mocksFile.SetDefaultValue(null);
     }
 
     public override void Register(IPluginEvents pluginEvents,

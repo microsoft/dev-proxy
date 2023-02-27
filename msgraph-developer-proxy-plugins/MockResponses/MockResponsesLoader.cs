@@ -46,7 +46,7 @@ internal class MockResponsesLoader : IDisposable {
         }
 
         string path = Path.GetDirectoryName(_responsesFilePath) ?? throw new InvalidOperationException($"{_responsesFilePath} is an invalid path");
-        _watcher = new FileSystemWatcher(path);
+        _watcher = new FileSystemWatcher(Path.GetFullPath(path));
         _watcher.NotifyFilter = NotifyFilters.CreationTime
                              | NotifyFilters.FileName
                              | NotifyFilters.LastWrite
