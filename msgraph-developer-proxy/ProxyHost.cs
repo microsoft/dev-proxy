@@ -17,7 +17,7 @@ internal class ProxyHost {
         _portOption.AddAlias("-p");
         _portOption.ArgumentHelpName = "port";
         
-        _logLevelOption = new Option<LogLevel?>("--logLevel", $"Level of messages to log. Allowed values: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}");
+        _logLevelOption = new Option<LogLevel?>("--log-level", $"Level of messages to log. Allowed values: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}");
         _logLevelOption.ArgumentHelpName = "logLevel";
         _logLevelOption.AddValidator(input => {
             if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel)) {
