@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="#example-usage">Example usage</a> |
+  <a href="#example">Example</a> |
   <a href="#features">Features</a> |
   <a href="#trademarks">Trademarks</a> |
   <a href="#community-preview">Community Preview</a>
@@ -30,20 +30,28 @@
   </video>
 </p>
 
-Microsoft Graph Developer Proxy is a command line tool that simulates real world behaviours of Microsoft Graph and other APIs, locally.
+Microsoft Graph Developer Proxy is a command line tool for testing Microsoft Graph and other APIs.
 
-Microsoft Graph Developer Proxy aims to provide a better way to test applications that use Microsoft Graph and other APIs. Using the proxy to simulate errors, mock responses and demonstrate behaviours like throttling, developers can identify and fix issues in their code early in the development cycle before they reach production.
+It aims to provide a better way to test applications. 
+
+Use the proxy to:
+
+- simulate errors
+- simulate throttling
+- mock responses
+
+Identify and fix issues in your code before they reach production.
 
 ## Get started
 
-If you are new to Microsoft Graph Developer Proxy, we highly recommend that you begin with our [tutorial](https://github.com/microsoftgraph/msgraph-developer-proxy/wiki/Get-started) which will guide you through the installation process and running the proxy for the first time.
+Begin with our [tutorial](https://github.com/microsoftgraph/msgraph-developer-proxy/wiki/Get-started). It will guide you through the installation process and running the proxy for the first time.
 
-## Example usage
+## Example
 
-Start the proxy on port 8080, set the chance for a request to fail with an HTTP status code of either 429 or 503 at 50%, and ignore any mock responses that may have been provided, execute:
+Fail requests (with a 50% chance) and respond with `429 Too Many Requests` or `503 Service Unavailable`:
 
 ```
-msgraph-developer-proxy --port 8080 --failure-rate 50 --no-mocks --allowed-errors 429 503
+mgdp --failure-rate 50 --no-mocks --allowed-errors 429 503
 ```
 
 ## Features
@@ -56,6 +64,7 @@ msgraph-developer-proxy --port 8080 --failure-rate 50 --no-mocks --allowed-error
 - simulate errors
 - simulate throttling
 - mock responses
+- mock error responses
 - define wildcard paths to serve mocked responses
 - mock responses of different types (JSON, binary, etc.)
 - `$select` guidance to improve performance
@@ -65,6 +74,8 @@ msgraph-developer-proxy --port 8080 --failure-rate 50 --no-mocks --allowed-error
   - port
   - whether to use mock responses or not
   - URLs to intercept traffic
+- record proxy activity
+- get proxy activity summary report
 
 ## Trademarks
 
