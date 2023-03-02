@@ -21,7 +21,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
       - name: Publish ${{ matrix.architecture }}
         run: dotnet publish ./msgraph-developer-proxy/msgraph-developer-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} --self-contained -o ./${{ env.release }}
       - name: Build plugins
