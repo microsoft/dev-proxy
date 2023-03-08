@@ -25,7 +25,7 @@ The existing `appsettings.json` file will be used to provide configuration. Both
 - `name` - required, a string identifier for the plugin class, allows developer to ship multiple plugins in a single assembly. This should correspond to the value returned by the `Name` property defined on the plugin class. Plugin names must be unique per-assembly.
 - `configSection` - optional, a string for which there must be a matching object property at the root of the configuration file. If a plugin supplies a `configSection` and no corresponding property exists in the configuration file an error will be thrown during start up of the proxy.
 - `urlsToWatch` - optional, an array of strings defining the urls for which this plugin will watch instead of the `urlsToWatch` at the root of the config file, this behavior is defined in the [Multi URL support spec](./multi-url-support.md).
-- `disabled` - optional boolean when true the proxy will not attempt to load this plugin.
+- `enabled` - optional boolean when `false` the proxy will not attempt to load this plugin. `true` by default.
 
 ```json
   "plugins": [
@@ -37,7 +37,7 @@ The existing `appsettings.json` file will be used to provide configuration. Both
             "https://graph.microsoft.com/v1.0/*",
             "https://graph.microsoft.com/beta/*"
         ],
-        "disabled": false
+        "enabled": true
     }
   ],
   "randomErrors": {
