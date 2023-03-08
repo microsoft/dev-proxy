@@ -30,8 +30,8 @@ internal class PluginLoader {
         string? rootDirectory = Path.GetDirectoryName(AppContext.BaseDirectory);
         if (!string.IsNullOrEmpty(rootDirectory)) {
             foreach (PluginReference h in config.Plugins) {
-                if (h.Disabled) continue;
-                // Load Handler Assembly if not disabled
+                if (!h.Enabled) continue;
+                // Load Handler Assembly if enabled
                 string pluginLocation = Path.GetFullPath(Path.Combine(rootDirectory, h.PluginPath.Replace('\\', Path.DirectorySeparatorChar)));
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
                 _logger.LogDebug($"Loading from: {pluginLocation}");
@@ -103,7 +103,7 @@ internal class PluginConfig {
 }
 
 internal class PluginReference {
-    public bool Disabled { get; set; }
+    public bool Enabled { get; set; } = true;
     public string? ConfigSection { get; set; }
     public string PluginPath { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
