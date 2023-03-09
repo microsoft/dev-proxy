@@ -41,7 +41,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
     }
   }
 
-  private async void OnBeforeResponse(object? sender, ProxyResponseArgs e)
+  private async Task OnBeforeResponse(object? sender, ProxyResponseArgs e)
   {
     if (_urlsToWatch is null ||
         !e.HasRequestUrlMatch(_urlsToWatch) ||

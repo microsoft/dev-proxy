@@ -102,7 +102,7 @@ public interface IPluginEvents {
     /// Is not raised if a response is set during the BeforeRequest event.
     /// Allows plugins to modify a response received from the server.
     /// </summary>
-    event EventHandler<ProxyResponseArgs> BeforeResponse;
+    event AsyncEventHandler<ProxyResponseArgs> BeforeResponse;
     /// <summary>
     /// Raised after a response is sent to the client.
     /// Raised for all responses
@@ -126,7 +126,7 @@ public class PluginEvents : IPluginEvents {
     /// <inheritdoc />
     public event EventHandler<ProxyRequestArgs>? BeforeRequest;
     /// <inheritdoc />
-    public event EventHandler<ProxyResponseArgs>? BeforeResponse;
+    public event AsyncEventHandler<ProxyResponseArgs>? BeforeResponse;
     /// <inheritdoc />
     public event EventHandler<ProxyResponseArgs>? AfterResponse;
     /// <inheritdoc />
@@ -146,8 +146,8 @@ public class PluginEvents : IPluginEvents {
         BeforeRequest?.Invoke(this, args);
     }
 
-    public void RaiseProxyBeforeResponse(ProxyResponseArgs args) {
-        BeforeResponse?.Invoke(this, args);
+    public async Task RaiseProxyBeforeResponse(ProxyResponseArgs args) {
+        await BeforeResponse?.InvokeAsync(this, args, null);
     }
 
     public void RaiseProxyAfterResponse(ProxyResponseArgs args) {
