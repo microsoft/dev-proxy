@@ -11,6 +11,8 @@ internal class ProxyHost {
     private Option<int?> _portOption;
     private Option<LogLevel?> _logLevelOption;
     private Option<bool?> _recordOption;
+    private Option<IEnumerable<int>?> _watchPidsOption;
+    private Option<IEnumerable<string>?> _watchProcessNamesOption;
 
     public ProxyHost() {
         _portOption = new Option<int?>("--port", "The port for the proxy server to listen on");
@@ -26,19 +28,29 @@ internal class ProxyHost {
         });
 
         _recordOption = new Option<bool?>("--record", "Use this option to record all request logs");
+
+        _watchPidsOption = new Option<IEnumerable<int>?>("--watch-pids", "The IDs of processes to watch for requests");
+        _watchPidsOption.ArgumentHelpName = "pids";
+        _watchPidsOption.AllowMultipleArgumentsPerToken = true;
+
+        _watchProcessNamesOption = new Option<IEnumerable<string>?>("--watch-process-names", "The names of processes to watch for requests");
+        _watchProcessNamesOption.ArgumentHelpName = "processNames";
+        _watchProcessNamesOption.AllowMultipleArgumentsPerToken = true;
     }
 
     public RootCommand GetRootCommand() {
         var command = new RootCommand {
             _portOption,
             _logLevelOption,
-            _recordOption
+            _recordOption,
+            _watchPidsOption,
+            _watchProcessNamesOption
         };
         command.Description = "Microsoft Graph Developer Proxy is a command line tool that simulates real world behaviors of Microsoft Graph and other APIs, locally.";
 
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<Regex> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _logLevelOption, _recordOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<Regex> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _logLevelOption, _recordOption, _watchPidsOption, _watchProcessNamesOption, pluginEvents, urlsToWatch, logger);
 }
 
