@@ -18,7 +18,7 @@ Setting|Description
 `headerRemaining`|Name of the `RateLimit-Remaining` header returned by the API. Default: `RateLimit-Remaining`
 `headerReset`|Name of the `RateLimit-Reset` header returned by the API. Default: `RateLimit-Reset`
 `headerRetryAfter`|Name of the `Retry-After` header returned by the API. Default: `Retry-After`
-`costPerRequest`|Number of resources consumed by a single request. Default: `1`
+`costPerRequest`|Number of resources consumed by a single request. Default: `2`
 `resetTimeWindowSeconds`|Number of seconds before the resource counter is reset. Default: `60`
 `warningThresholdPercent`|Percentage of remaining resources at which the warning should be displayed. Default: `80`
 `rateLimit`|Number of resources available in the time window. Default: `120`
@@ -39,3 +39,5 @@ If the application tries calling the API again before the time specified in the 
 When the time of next reset is reached, the plugin will reset the total number of resources available to the value of the `rateLimit` setting.
 
 Rate limiting and retry after headers are configurable because some APIs use different names for these headers, such as `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, and `X-Retry-After`. Default names for these headers are aligned with the IETF spec and Microsoft Graph.
+
+In the documentation, include a reference to [throttling documentation](https://learn.microsoft.com/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online#application-throttling) so that customers know how to configure settings to simulate different scenarios.
