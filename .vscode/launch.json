@@ -12,7 +12,7 @@
       // If you have changed target frameworks, make sure to update the program path.
       "program": "${workspaceFolder}/msgraph-developer-proxy/bin/Debug/net7.0/mgdp.dll",
       "args": [],
-      "cwd": "${workspaceFolder}/msgraph-developer-proxy",
+      "cwd": "${workspaceFolder}/msgraph-developer-proxy/bin/Debug/net7.0",
       // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
       "console": "integratedTerminal",
       "stopAtEntry": false,
