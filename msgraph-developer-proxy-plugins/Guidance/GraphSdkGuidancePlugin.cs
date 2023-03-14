@@ -27,7 +27,7 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin {
             && _urlsToWatch is not null 
             && e.HasRequestUrlMatch(_urlsToWatch) 
             && WarnNoSdk(request)) {
-            _logger?.LogRequest(MessageUtils.BuildUseSdkMessage(request), MessageType.Tip, new LoggingContext(e.Session));
+            _logger?.LogRequest(MessageUtils.BuildUseSdkForErrorsMessage(request), MessageType.Tip, new LoggingContext(e.Session));
         }
     }
 
