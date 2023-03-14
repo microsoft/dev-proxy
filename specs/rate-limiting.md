@@ -28,7 +28,7 @@ Setting|Description
 
 Rate limiting guidance will be implemented as a plugin, subscribed to the `BeforeRequest` event.
 
-The plugin starts with the total number of resources available and the time of next reset as configured in the `rateLimit` and `resetTimeWindowSeconds` settings.
+The plugin starts with the total number of resources available and the time of next reset as configured in the `rateLimit` and `resetTimeWindowSeconds` settings. The reset period is defined using a tumbling window as defined [here](https://learn.microsoft.com/azure/stream-analytics/stream-analytics-window-functions).
 
 On each intercepted request, the plugin will subtract the value of the `costPerRequest` setting from the total number of resources available and pass the request through. When the number of resources left until the next reset drops below the percentage configured in the `warningThresholdPercent` setting, the plugin will still pass the request through but add to the response Rate Limiting headers using the names configured in the `headerLimit`, `headerRemaining`, and `headerReset` settings.
 
