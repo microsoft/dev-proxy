@@ -96,7 +96,7 @@ public interface IPluginEvents {
     /// Raised before a request is sent to the server.
     /// Used to intercept requests.
     /// </summary>
-    event EventHandler<ProxyRequestArgs> BeforeRequest;
+    event AsyncEventHandler<ProxyRequestArgs> BeforeRequest;
     /// <summary>
     /// Raised after the response is received from the server.
     /// Is not raised if a response is set during the BeforeRequest event.
@@ -107,7 +107,7 @@ public interface IPluginEvents {
     /// Raised after a response is sent to the client.
     /// Raised for all responses
     /// </summary>
-    event EventHandler<ProxyResponseArgs>? AfterResponse;
+    event AsyncEventHandler<ProxyResponseArgs>? AfterResponse;
     /// <summary>
     /// Raised after request message has been logged.
     /// </summary>
@@ -124,11 +124,11 @@ public class PluginEvents : IPluginEvents {
     /// <inheritdoc />
     public event EventHandler<OptionsLoadedArgs>? OptionsLoaded;
     /// <inheritdoc />
-    public event EventHandler<ProxyRequestArgs>? BeforeRequest;
+    public event AsyncEventHandler<ProxyRequestArgs>? BeforeRequest;
     /// <inheritdoc />
     public event AsyncEventHandler<ProxyResponseArgs>? BeforeResponse;
     /// <inheritdoc />
-    public event EventHandler<ProxyResponseArgs>? AfterResponse;
+    public event AsyncEventHandler<ProxyResponseArgs>? AfterResponse;
     /// <inheritdoc />
     public event EventHandler<RequestLogArgs>? AfterRequestLog;
     /// <inheritdoc />

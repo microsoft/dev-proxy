@@ -25,7 +25,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
     pluginEvents.BeforeResponse += OnBeforeResponse;
   }
 
-  private void OnBeforeRequest(object? sender, ProxyRequestArgs e)
+  private async Task OnBeforeRequest(object? sender, ProxyRequestArgs e)
   {
     if (_urlsToWatch is null ||
         e.Session.HttpClient.Request.Method != "GET" ||
