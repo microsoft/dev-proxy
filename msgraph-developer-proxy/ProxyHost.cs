@@ -70,6 +70,8 @@ internal class ProxyHost {
             _portOption,
             _logLevelOption,
             _recordOption,
+            // _configFileOption is set during the call to load
+            // `ProxyCommandHandler.Configuration`. As such, it's always set here
             _configFileOption!
         };
         command.Description = "Microsoft Graph Developer Proxy is a command line tool that simulates real world behaviors of Microsoft Graph and other APIs, locally.";
