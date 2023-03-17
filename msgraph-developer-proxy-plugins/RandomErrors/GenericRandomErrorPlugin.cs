@@ -90,9 +90,29 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
             headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
         }
 
-        string body = error.Body is null ? string.Empty : JsonSerializer.Serialize(error.Body);
-        _logger?.LogRequest(new[] { $"{error.StatusCode} {((HttpStatusCode)error.StatusCode).ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
-        session.GenericResponse(body ?? string.Empty, (HttpStatusCode)error.StatusCode, headers);
+        var statusCode = (HttpStatusCode)error.StatusCode;
+        var body = error.Body is null ? string.Empty : JsonSerializer.Serialize(error.Body);
+        // we get a JSON string so need to start with the opening quote
+        if (body.StartsWith("\"@")) {
+            // we've got a mock body starting with @-token which means we're sending
+            // a response from a file on disk
+            // if we can read the file, we can immediately send the response and
+            // skip the rest of the logic in this method
+            // remove the surrounding quotes and the @-token
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), body.Trim('"').Substring(1));
+            if (!File.Exists(filePath)) {
+                _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
+                session.GenericResponse(body, statusCode, headers);
+            }
+            else {
+                var bodyBytes = File.ReadAllBytes(filePath);
+                session.GenericResponse(bodyBytes, statusCode, headers);
+            }
+        }
+        else {
+            session.GenericResponse(body, statusCode, headers);
+        }
+        _logger?.LogRequest(new[] { $"{error.StatusCode} {statusCode.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
     }
 
     private string BuildThrottleKey(Request r) => $"{r.Method}-{r.Url}";
