@@ -13,6 +13,43 @@ internal class ProxyHost {
     private Option<bool?> _recordOption;
     private Option<IEnumerable<int>?> _watchPidsOption;
     private Option<IEnumerable<string>?> _watchProcessNamesOption;
+    private static Option<string?>? _configFileOption;
+
+    private static bool _configFileResolved = false;
+    private static string _configFile = "appsettings.json";
+    public static string ConfigFile {
+        get {
+            if (_configFileResolved) {
+                return _configFile;
+            }
+            
+            if (_configFileOption is null) {
+                _configFileOption = new Option<string?>("--config-file", "The path to the configuration file");
+                _configFileOption.AddAlias("-c");
+                _configFileOption.ArgumentHelpName = "configFile";
+                _configFileOption.AddValidator(input => {
+                    var filePath = input.Tokens.First().Value;
+                    if (String.IsNullOrEmpty(filePath)) {
+                        return;
+                    }
+
+                    if (!File.Exists(filePath)) {
+                        input.ErrorMessage = $"File {filePath} does not exist";
+                    }
+                });
+            }
+
+            var result = _configFileOption.Parse(Environment.GetCommandLineArgs());
+            var configFile = result.GetValueForOption<string?>(_configFileOption);
+            if (configFile is not null) {
+                _configFile = configFile;
+            }
+
+            _configFileResolved = true;
+
+            return _configFile;
+        }
+    }
 
     public ProxyHost() {
         _portOption = new Option<int?>("--port", "The port for the proxy server to listen on");
@@ -44,7 +81,10 @@ internal class ProxyHost {
             _logLevelOption,
             _recordOption,
             _watchPidsOption,
-            _watchProcessNamesOption
+            _watchProcessNamesOption,
+            // _configFileOption is set during the call to load
+            // `ProxyCommandHandler.Configuration`. As such, it's always set here
+            _configFileOption!
         };
         command.Description = "Microsoft Graph Developer Proxy is a command line tool that simulates real world behaviors of Microsoft Graph and other APIs, locally.";
 

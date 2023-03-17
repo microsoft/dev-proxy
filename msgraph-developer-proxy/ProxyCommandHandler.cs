@@ -105,7 +105,7 @@ public class ProxyCommandHandler : ICommandHandler {
     private static readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() => {
         var builder = new ConfigurationBuilder();
         var configuration = builder
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile(ProxyHost.ConfigFile, optional: true, reloadOnChange: true)
                 .Build();
         var configObject = new ProxyConfiguration();
         configuration.Bind(configObject);
