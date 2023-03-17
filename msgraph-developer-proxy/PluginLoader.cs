@@ -92,7 +92,7 @@ internal class PluginLoader {
 
     private readonly Lazy<IConfigurationRoot> ConfigurationFactory = new(() =>
         new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile(ProxyHost.ConfigFile, optional: true, reloadOnChange: true)
                 .Build()
     );
 }
