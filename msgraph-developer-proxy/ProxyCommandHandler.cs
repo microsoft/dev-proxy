@@ -13,6 +13,8 @@ public class ProxyCommandHandler : ICommandHandler {
     public Option<int?> Port { get; set; }
     public Option<LogLevel?> LogLevel { get; set; }
     public Option<bool?> Record { get; set; }
+    public Option<IEnumerable<int>?> WatchPids { get; set; }
+    public Option<IEnumerable<string>?> WatchProcessNames { get; set; }
 
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<Regex> _urlsToWatch;
@@ -21,12 +23,16 @@ public class ProxyCommandHandler : ICommandHandler {
     public ProxyCommandHandler(Option<int?> port,
                                Option<LogLevel?> logLevel,
                                Option<bool?> record,
+                               Option<IEnumerable<int>?> watchPids,
+                               Option<IEnumerable<string>?> watchProcessNames,
                                PluginEvents pluginEvents,
                                ISet<Regex> urlsToWatch,
                                ILogger logger) {
         Port = port ?? throw new ArgumentNullException(nameof(port));
         LogLevel = logLevel ?? throw new ArgumentNullException(nameof(logLevel));
         Record = record ?? throw new ArgumentNullException(nameof(record));
+        WatchPids = watchPids ?? throw new ArgumentNullException(nameof(watchPids));
+        WatchProcessNames = watchProcessNames ?? throw new ArgumentNullException(nameof(watchProcessNames));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -48,6 +54,14 @@ public class ProxyCommandHandler : ICommandHandler {
         var record = context.ParseResult.GetValueForOption(Record);
         if (record is not null) {
             Configuration.Record = record.Value;
+        }
+        var watchPids = context.ParseResult.GetValueForOption(WatchPids);
+        if (watchPids is not null) {
+            Configuration.WatchPids = watchPids;
+        }
+        var watchProcessNames = context.ParseResult.GetValueForOption(WatchProcessNames);
+        if (watchProcessNames is not null) {
+            Configuration.WatchProcessNames = watchProcessNames;
         }
 
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
