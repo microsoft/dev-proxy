@@ -11,6 +11,8 @@ internal class ProxyHost {
     private Option<int?> _portOption;
     private Option<LogLevel?> _logLevelOption;
     private Option<bool?> _recordOption;
+    private Option<IEnumerable<int>?> _watchPidsOption;
+    private Option<IEnumerable<string>?> _watchProcessNamesOption;
     private static Option<string?>? _configFileOption;
 
     private static bool _configFileResolved = false;
@@ -63,6 +65,14 @@ internal class ProxyHost {
         });
 
         _recordOption = new Option<bool?>("--record", "Use this option to record all request logs");
+
+        _watchPidsOption = new Option<IEnumerable<int>?>("--watch-pids", "The IDs of processes to watch for requests");
+        _watchPidsOption.ArgumentHelpName = "pids";
+        _watchPidsOption.AllowMultipleArgumentsPerToken = true;
+
+        _watchProcessNamesOption = new Option<IEnumerable<string>?>("--watch-process-names", "The names of processes to watch for requests");
+        _watchProcessNamesOption.ArgumentHelpName = "processNames";
+        _watchProcessNamesOption.AllowMultipleArgumentsPerToken = true;
     }
 
     public RootCommand GetRootCommand() {
@@ -70,6 +80,8 @@ internal class ProxyHost {
             _portOption,
             _logLevelOption,
             _recordOption,
+            _watchPidsOption,
+            _watchProcessNamesOption,
             // _configFileOption is set during the call to load
             // `ProxyCommandHandler.Configuration`. As such, it's always set here
             _configFileOption!
@@ -79,6 +91,6 @@ internal class ProxyHost {
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<Regex> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _logLevelOption, _recordOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<Regex> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _logLevelOption, _recordOption, _watchPidsOption, _watchProcessNamesOption, pluginEvents, urlsToWatch, logger);
 }
 
