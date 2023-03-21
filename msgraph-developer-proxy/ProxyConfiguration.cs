@@ -27,5 +27,7 @@ public class ProxyConfiguration {
     [JsonPropertyName("logLevel")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public LogLevel LogLevel { get; set; } = LogLevel.Info;
+    public IEnumerable<int> WatchPids { get; set; } = new List<int>();
+    public IEnumerable<string> WatchProcessNames { get; set; } = new List<string>();
 }
 
