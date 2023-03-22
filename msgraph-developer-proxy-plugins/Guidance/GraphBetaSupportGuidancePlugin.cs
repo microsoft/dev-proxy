@@ -20,7 +20,7 @@ public class GraphBetaSupportGuidancePlugin : BaseProxyPlugin {
         pluginEvents.AfterResponse += AfterResponse;
     }
 
-    private void AfterResponse(object? sender, ProxyResponseArgs e) {
+    private async Task AfterResponse(object? sender, ProxyResponseArgs e) {
         Request request = e.Session.HttpClient.Request;
         if (_urlsToWatch is not null &&
             e.HasRequestUrlMatch(_urlsToWatch) &&
