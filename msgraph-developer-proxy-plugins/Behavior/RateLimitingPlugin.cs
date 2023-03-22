@@ -133,7 +133,7 @@ public class RateLimitingPlugin : BaseProxyPlugin {
     }
 
     // add rate limiting headers to the response from the API
-    private void OnResponse(object? sender, ProxyResponseArgs e) {
+    private async Task OnResponse(object? sender, ProxyResponseArgs e) {
         var session = e.Session;
         var state = e.ResponseState;
         if (_urlsToWatch is null ||
@@ -144,7 +144,7 @@ public class RateLimitingPlugin : BaseProxyPlugin {
         UpdateProxyResponse(e, HttpStatusCode.OK);
     }
 
-    private void OnRequest(object? sender, ProxyRequestArgs e) {
+    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
         var session = e.Session;
         var state = e.ResponseState;
         if (e.ResponseState.HasBeenSet ||
