@@ -349,7 +349,7 @@ public class ProxyEngine {
     async Task OnBeforeResponse(object sender, SessionEventArgs e) {
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
-            _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, new ResponseState()));
+            await _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, new ResponseState()));
         }
     }
     async Task OnAfterResponse(object sender, SessionEventArgs e) {

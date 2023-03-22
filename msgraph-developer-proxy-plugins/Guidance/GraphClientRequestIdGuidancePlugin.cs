@@ -22,7 +22,7 @@ public class GraphClientRequestIdGuidancePlugin : BaseProxyPlugin
     pluginEvents.BeforeRequest += BeforeRequest;
   }
 
-  private void BeforeRequest(object? sender, ProxyRequestArgs e)
+  private async Task BeforeRequest(object? sender, ProxyRequestArgs e)
   {
     Request request = e.Session.HttpClient.Request;
     if (_urlsToWatch is not null && e.HasRequestUrlMatch(_urlsToWatch) && WarnNoClientRequestId(request))

@@ -80,7 +80,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
         _loader?.InitResponsesWatcher();
     }
 
-    private void OnRequest(object? sender, ProxyRequestArgs e) {
+    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
         if (!_configuration.NoMocks && _urlsToWatch is not null && e.ShouldExecute(_urlsToWatch)) {

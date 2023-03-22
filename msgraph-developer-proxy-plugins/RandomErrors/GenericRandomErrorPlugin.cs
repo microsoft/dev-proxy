@@ -114,7 +114,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
         _loader?.InitResponsesWatcher();
     }
 
-    private void OnRequest(object? sender, ProxyRequestArgs e) {
+    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
         var session = e.Session;
         var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet
