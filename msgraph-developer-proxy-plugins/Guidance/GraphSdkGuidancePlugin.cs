@@ -20,7 +20,7 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin {
         pluginEvents.AfterResponse += OnAfterResponse;
     }
 
-    private void OnAfterResponse(object? sender, ProxyResponseArgs e) {
+    private async Task OnAfterResponse(object? sender, ProxyResponseArgs e) {
         Request request = e.Session.HttpClient.Request;
         // only show the message if there is an error.
         if (e.Session.HttpClient.Response.StatusCode >= 400 

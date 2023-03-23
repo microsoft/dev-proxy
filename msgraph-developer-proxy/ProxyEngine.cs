@@ -245,13 +245,81 @@ public class ProxyEngine {
 
     async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e) {
         // Ensures that only the targeted Https domains are proxyied
-        if (!IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+        if (!IsProxiedHost(e.HttpClient.Request.RequestUri.Host) ||
+            !IsProxiedProcess(e)) {
             e.DecryptSsl = false;
         }
         await Task.CompletedTask;
     }
 
-    async Task OnRequest(object sender, SessionEventArgs e) {
+  private int GetProcessId(TunnelConnectSessionEventArgs e)
+  {
+    if (RunTime.IsWindows) {
+        return e.HttpClient.ProcessId.Value;
+    }
+
+    var psi = new ProcessStartInfo {
+        FileName = "lsof",
+        Arguments = $"-i :{e.ClientRemoteEndPoint.Port}",
+        UseShellExecute = false,
+        RedirectStandardOutput = true,
+        CreateNoWindow = true
+    };
+    var proc = new Process {
+        StartInfo = psi
+    };
+    proc.Start();
+    var output = proc.StandardOutput.ReadToEnd();
+    proc.WaitForExit();
+
+    var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+    var matchingLine = lines.FirstOrDefault(l => l.Contains($"{e.ClientRemoteEndPoint.Port}->"));
+    if (matchingLine is null) {
+        return -1;
+    }
+    var pidString = Regex.Matches(matchingLine, @"^.*?\s+(\d+)")?.FirstOrDefault()?.Groups[1]?.Value;
+    if (pidString is null) {
+        return -1;
+    }
+
+    var pid = -1;
+    if (int.TryParse(pidString, out pid))
+    {
+        return pid;
+    }
+    else {
+        return -1;
+    }
+  }
+
+  private bool IsProxiedProcess(TunnelConnectSessionEventArgs e) {
+    // If no process names or IDs are specified, we proxy all processes
+    if (!_config.WatchPids.Any() &&
+        !_config.WatchProcessNames.Any()) {
+      return true;
+    }
+
+    var processId = GetProcessId(e);
+    if (processId == -1) {
+      return false;
+    }
+
+    if (_config.WatchPids.Any() &&
+        _config.WatchPids.Contains(processId)) {
+      return true;
+    }
+
+    if (_config.WatchProcessNames.Any()) {
+      var processName = Process.GetProcessById(processId).ProcessName;
+      if (_config.WatchProcessNames .Contains(processName)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  async Task OnRequest(object sender, SessionEventArgs e) {
         var method = e.HttpClient.Request.Method.ToUpper();
         // The proxy does not intercept or alter OPTIONS requests
         if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
@@ -276,11 +344,12 @@ public class ProxyEngine {
 
     private bool IsProxiedHost(string hostName) => _hostsToWatch.Any(h => h.IsMatch(hostName));
 
+
     // Modify response
     async Task OnBeforeResponse(object sender, SessionEventArgs e) {
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
-            _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, new ResponseState()));
+            await _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, new ResponseState()));
         }
     }
     async Task OnAfterResponse(object sender, SessionEventArgs e) {
