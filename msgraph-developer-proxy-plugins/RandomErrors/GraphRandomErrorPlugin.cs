@@ -121,7 +121,6 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
             else {
                 // clean up expired throttled request and ensure that this request is passed through.
                 _throttledRequests.Remove(key);
-                return GraphRandomErrorFailMode.PassThru;
             }
         }
         return _random.Next(1, 100) <= _configuration.Rate ? GraphRandomErrorFailMode.Random : GraphRandomErrorFailMode.PassThru;

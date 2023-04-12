@@ -54,7 +54,6 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
             else {
                 // clean up expired throttled request and ensure that this request is passed through.
                 _throttledRequests.Remove(key);
-                return GenericRandomErrorFailMode.PassThru;
             }
         }
         return _random.Next(1, 100) <= _configuration.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
