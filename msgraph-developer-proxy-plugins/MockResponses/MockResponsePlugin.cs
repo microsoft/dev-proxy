@@ -41,7 +41,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
     public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
-                            ISet<Regex> urlsToWatch,
+                            ISet<UrlToWatch> urlsToWatch,
                             IConfigurationSection? configSection = null) {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
         
@@ -113,7 +113,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
             //turn mock URL with wildcard into a regex and match against the request URL
             var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
-            return Regex.IsMatch(request.Url, mockResponseUrlRegex);
+            return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$");
         });
         return mockResponse;
     }
@@ -133,7 +133,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
                 headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
             }
         }
-        // default the content type to application/json unlesss set in the mock response
+        // default the content type to application/json unless set in the mock response
         if (!headers.Any(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase))) {
             headers.Add(new HttpHeader("content-type", "application/json"));
         }

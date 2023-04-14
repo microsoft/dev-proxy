@@ -4,7 +4,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph.DeveloperProxy.Abstractions;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace Microsoft.Graph.DeveloperProxy.Plugins.Guidance;
@@ -16,7 +15,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
 
   public override void Register(IPluginEvents pluginEvents,
                           IProxyContext context,
-                          ISet<Regex> urlsToWatch,
+                          ISet<UrlToWatch> urlsToWatch,
                           IConfigurationSection? configSection = null)
   {
     base.Register(pluginEvents, context, urlsToWatch, configSection);
