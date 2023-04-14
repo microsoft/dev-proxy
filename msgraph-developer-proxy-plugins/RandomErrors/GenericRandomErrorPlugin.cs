@@ -98,7 +98,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
             // if we can read the file, we can immediately send the response and
             // skip the rest of the logic in this method
             // remove the surrounding quotes and the @-token
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), body.Trim('"').Substring(1));
+            var filePath = Path.Combine(Path.GetDirectoryName(_configuration.ErrorsFile) ?? "", ProxyUtils.ReplacePathTokens(body.Trim('"').Substring(1)));
             if (!File.Exists(filePath)) {
                 _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
                 session.GenericResponse(body, statusCode, headers);
@@ -122,7 +122,11 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
                          IConfigurationSection? configSection = null) {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
+        _proxyConfiguration = context.Configuration;
+
         configSection?.Bind(_configuration);
+        _configuration.ErrorsFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.ErrorsFile ?? string.Empty), Path.GetDirectoryName(_proxyConfiguration?.ConfigFile ?? string.Empty) ?? string.Empty);
+
         _loader = new GenericErrorResponsesLoader(_logger!, _configuration);
 
         pluginEvents.Init += OnInit;

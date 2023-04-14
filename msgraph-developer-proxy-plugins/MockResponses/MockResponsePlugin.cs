@@ -29,6 +29,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
     private readonly Option<bool?> _noMocks;
     private readonly Option<string?> _mocksFile;
     public override string Name => nameof(MockResponsePlugin);
+    private IProxyConfiguration? _proxyConfiguration;
 
     public MockResponsePlugin() {
         _noMocks = new Option<bool?>("--no-mocks", "Disable loading mock requests");
@@ -51,6 +52,8 @@ public class MockResponsePlugin : BaseProxyPlugin {
         pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
         pluginEvents.BeforeRequest += OnRequest;
+
+        _proxyConfiguration = context.Configuration;
     }
 
     private void OnInit(object? sender, InitArgs e) {
@@ -76,6 +79,9 @@ public class MockResponsePlugin : BaseProxyPlugin {
         if (mocksFile is not null) {
             _configuration.MocksFile = mocksFile;
         }
+
+        _configuration.MocksFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.MocksFile), Path.GetDirectoryName(_proxyConfiguration?.ConfigFile ?? string.Empty) ?? string.Empty);
+
         // load the responses from the configured mocks file
         _loader?.InitResponsesWatcher();
     }
@@ -147,7 +153,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
                 // if we can read the file, we can immediately send the response and
                 // skip the rest of the logic in this method
                 // remove the surrounding quotes and the @-token
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), bodyString.Trim('"').Substring(1));
+                var filePath = Path.Combine(Path.GetDirectoryName(_configuration.MocksFile) ?? "", ProxyUtils.ReplacePathTokens(bodyString.Trim('"').Substring(1)));
                 if (!File.Exists(filePath)) {
                     _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
                     body = bodyString;

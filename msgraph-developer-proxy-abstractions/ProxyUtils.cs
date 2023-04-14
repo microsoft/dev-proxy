@@ -18,11 +18,11 @@ public static class ProxyUtils {
         request.RequestUri.AbsolutePath.Contains("/beta/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Utiliy to build HTTP respopnse headers consistent with Microsoft Graph
+    /// Utility to build HTTP response headers consistent with Microsoft Graph
     /// </summary>
     /// <param name="request">The http request for which response headers are being constructed</param>
     /// <param name="requestId">string a guid representing the a unique identifier for the request</param>
-    /// <param name="requestDate">string represetation of the date and time the request was made</param>
+    /// <param name="requestDate">string representation of the date and time the request was made</param>
     /// <returns>IList<HttpHeader> with defaults consistent with Microsoft Graph. Automatically adds CORS headers when the Origin header is present</returns>
     public static IList<HttpHeader> BuildGraphResponseHeaders(Request request, string requestId, string requestDate) {
         var headers = new List<HttpHeader>
@@ -39,5 +39,15 @@ public static class ProxyUtils {
             headers.Add(new HttpHeader("Access-Control-Expose-Headers", "ETag, Location, Preference-Applied, Content-Range, request-id, client-request-id, ReadWriteConsistencyToken, SdkVersion, WWW-Authenticate, x-ms-client-gcc-tenant, Retry-After"));
         }
         return headers;
+    }
+
+    public static string ReplacePathTokens(string? path) {
+        if (string.IsNullOrEmpty(path)) {
+            return path ?? string.Empty;
+        }
+
+        // doesn't end with a path separator
+        var appFolder = Path.GetDirectoryName(AppContext.BaseDirectory);
+        return path.Replace("~appFolder", appFolder, StringComparison.OrdinalIgnoreCase);
     }
 }

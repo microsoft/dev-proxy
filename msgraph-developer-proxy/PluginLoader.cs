@@ -27,12 +27,12 @@ internal class PluginLoader {
         PluginConfig config = PluginConfig;
         List<UrlToWatch> globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
         ISet<UrlToWatch> defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
-        string? rootDirectory = Path.GetDirectoryName(AppContext.BaseDirectory);
-        if (!string.IsNullOrEmpty(rootDirectory)) {
+        string? configFileDirectory = Path.GetDirectoryName(Path.GetFullPath(ProxyUtils.ReplacePathTokens(ProxyHost.ConfigFile)));
+        if (!string.IsNullOrEmpty(configFileDirectory)) {
             foreach (PluginReference h in config.Plugins) {
                 if (!h.Enabled) continue;
                 // Load Handler Assembly if enabled
-                string pluginLocation = Path.GetFullPath(Path.Combine(rootDirectory, h.PluginPath.Replace('\\', Path.DirectorySeparatorChar)));
+                string pluginLocation = Path.GetFullPath(Path.Combine(configFileDirectory, ProxyUtils.ReplacePathTokens(h.PluginPath.Replace('\\', Path.DirectorySeparatorChar))));
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
                 _logger.LogDebug($"Loading from: {pluginLocation}");
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
@@ -48,6 +48,7 @@ internal class PluginLoader {
                 plugins.Add(plugin);
             }
         }
+
         return plugins.Count > 0
             ? new PluginLoaderResult(globallyWatchedUrls.ToHashSet(), plugins)
             : throw new InvalidDataException("No plugins were loaded");

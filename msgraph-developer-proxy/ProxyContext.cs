@@ -8,7 +8,6 @@ namespace Microsoft.Graph.DeveloperProxy;
 internal class ProxyContext : IProxyContext
 {
   public ILogger Logger { get; }
-
   public IProxyConfiguration Configuration { get; }
 
   public ProxyContext(ILogger logger, IProxyConfiguration configuration)

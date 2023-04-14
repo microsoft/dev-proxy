@@ -29,7 +29,7 @@ internal class ProxyHost {
                 _configFileOption.AddAlias("-c");
                 _configFileOption.ArgumentHelpName = "configFile";
                 _configFileOption.AddValidator(input => {
-                    var filePath = input.Tokens.First().Value;
+                    var filePath = ProxyUtils.ReplacePathTokens(input.Tokens.First().Value);
                     if (String.IsNullOrEmpty(filePath)) {
                         return;
                     }
@@ -45,6 +45,8 @@ internal class ProxyHost {
             if (configFile is not null) {
                 _configFile = configFile;
             }
+
+            _configFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configFile));
 
             _configFileResolved = true;
 
@@ -84,6 +86,8 @@ internal class ProxyHost {
                 input.ErrorMessage = $"{value} is not a valid failure rate. Specify a number between 0 and 100";
             }
         });
+
+        ProxyCommandHandler.Configuration.ConfigFile = ConfigFile;
     }
 
     public RootCommand GetRootCommand() {
