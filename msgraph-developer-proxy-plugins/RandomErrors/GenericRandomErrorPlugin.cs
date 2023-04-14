@@ -118,7 +118,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
 
     public override void Register(IPluginEvents pluginEvents,
                          IProxyContext context,
-                         ISet<Regex> urlsToWatch,
+                         ISet<UrlToWatch> urlsToWatch,
                          IConfigurationSection? configSection = null) {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 

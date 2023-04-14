@@ -2,18 +2,17 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
-using System.Text.RegularExpressions;
 
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
 
 public abstract class BaseProxyPlugin: IProxyPlugin {
-  protected ISet<Regex>? _urlsToWatch;
+  protected ISet<UrlToWatch>? _urlsToWatch;
   protected ILogger? _logger;
 
   public virtual string Name => throw new NotImplementedException();
   public virtual void Register(IPluginEvents pluginEvents,
                        IProxyContext context,
-                       ISet<Regex> urlsToWatch,
+                       ISet<UrlToWatch> urlsToWatch,
                        IConfigurationSection? configSection = null) {
     if (pluginEvents is null) {
       throw new ArgumentNullException(nameof(pluginEvents));

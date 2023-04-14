@@ -9,9 +9,9 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Graph.DeveloperProxy;
 
 internal class PluginLoaderResult {
-    public ISet<Regex> UrlsToWatch { get; }
+    public ISet<UrlToWatch> UrlsToWatch { get; }
     public IEnumerable<IProxyPlugin> ProxyPlugins { get; }
-    public PluginLoaderResult(ISet<Regex> urlsToWatch, IEnumerable<IProxyPlugin> proxyPlugins) {
+    public PluginLoaderResult(ISet<UrlToWatch> urlsToWatch, IEnumerable<IProxyPlugin> proxyPlugins) {
         UrlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         ProxyPlugins = proxyPlugins ?? throw new ArgumentNullException(nameof(proxyPlugins));
     }
@@ -25,8 +25,8 @@ internal class PluginLoader {
     public PluginLoaderResult LoadPlugins(IPluginEvents pluginEvents, IProxyContext proxyContext) {
         List<IProxyPlugin> plugins = new();
         PluginConfig config = PluginConfig;
-        List<Regex> globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
-        ISet<Regex> defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
+        List<UrlToWatch> globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
+        ISet<UrlToWatch> defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
         string? rootDirectory = Path.GetDirectoryName(AppContext.BaseDirectory);
         if (!string.IsNullOrEmpty(rootDirectory)) {
             foreach (PluginReference h in config.Plugins) {
@@ -36,8 +36,8 @@ internal class PluginLoader {
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
                 _logger.LogDebug($"Loading from: {pluginLocation}");
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
-                IEnumerable<Regex>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
-                ISet<Regex>? pluginUrls = null;
+                IEnumerable<UrlToWatch>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
+                ISet<UrlToWatch>? pluginUrls = null;
                 if (pluginUrlsList is not null) {
                     pluginUrls = pluginUrlsList.ToHashSet();
                     globallyWatchedUrls.AddRange(pluginUrlsList);
@@ -69,8 +69,18 @@ internal class PluginLoader {
             $"Available types: {availableTypes}");
     }
 
-    public static Regex ConvertToRegex(string stringMatcher) =>
-        new Regex(Regex.Escape(stringMatcher).Replace("\\*", ".*"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    public static UrlToWatch ConvertToRegex(string stringMatcher) {
+        var exclude = false;
+        if (stringMatcher.StartsWith("!")) {
+            exclude = true;
+            stringMatcher = stringMatcher.Substring(1);
+        }
+
+        return new UrlToWatch(
+            new Regex($"^{Regex.Escape(stringMatcher).Replace("\\*", ".*")}$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            exclude
+        );
+    }
 
     private PluginConfig? _pluginConfig;
     private ILogger _logger;

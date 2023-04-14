@@ -3,7 +3,6 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.EventArguments;
 
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
@@ -18,8 +17,10 @@ public class ProxyHttpEventArgsBase {
 
     public SessionEventArgs Session { get; }
 
-    public bool HasRequestUrlMatch(ISet<Regex> watchedUrls) =>
-        watchedUrls.Any(r => r.IsMatch(Session.HttpClient.Request.RequestUri.AbsoluteUri));
+    public bool HasRequestUrlMatch(ISet<UrlToWatch> watchedUrls) {
+        var match = watchedUrls.FirstOrDefault(r => r.Url.IsMatch(Session.HttpClient.Request.RequestUri.AbsoluteUri));
+        return match is not null && !match.Exclude;
+    }
 }
 
 public class ProxyRequestArgs : ProxyHttpEventArgsBase {
@@ -28,7 +29,7 @@ public class ProxyRequestArgs : ProxyHttpEventArgsBase {
     }
     public ResponseState ResponseState { get; }
 
-    public bool ShouldExecute(ISet<Regex> watchedUrls) =>
+    public bool ShouldExecute(ISet<UrlToWatch> watchedUrls) =>
         !ResponseState.HasBeenSet
         && HasRequestUrlMatch(watchedUrls);
 }

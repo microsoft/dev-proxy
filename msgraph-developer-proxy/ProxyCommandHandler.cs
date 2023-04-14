@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Graph.DeveloperProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Text.RegularExpressions;
 
 namespace Microsoft.Graph.DeveloperProxy;
 
@@ -17,7 +16,7 @@ public class ProxyCommandHandler : ICommandHandler {
     public Option<IEnumerable<string>?> WatchProcessNames { get; set; }
 
     private readonly PluginEvents _pluginEvents;
-    private readonly ISet<Regex> _urlsToWatch;
+    private readonly ISet<UrlToWatch> _urlsToWatch;
     private readonly ILogger _logger;
 
     public ProxyCommandHandler(Option<int?> port,
@@ -26,7 +25,7 @@ public class ProxyCommandHandler : ICommandHandler {
                                Option<IEnumerable<int>?> watchPids,
                                Option<IEnumerable<string>?> watchProcessNames,
                                PluginEvents pluginEvents,
-                               ISet<Regex> urlsToWatch,
+                               ISet<UrlToWatch> urlsToWatch,
                                ILogger logger) {
         Port = port ?? throw new ArgumentNullException(nameof(port));
         LogLevel = logLevel ?? throw new ArgumentNullException(nameof(logLevel));
