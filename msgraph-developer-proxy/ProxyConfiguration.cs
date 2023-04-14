@@ -21,5 +21,6 @@ public class ProxyConfiguration: IProxyConfiguration {
     public IEnumerable<string> WatchProcessNames { get; set; } = new List<string>();
     [JsonPropertyName("rate")]
     public int Rate { get; set; } = 50;
+    public string ConfigFile { get; set; } = "appsettings.json";
 }
 
