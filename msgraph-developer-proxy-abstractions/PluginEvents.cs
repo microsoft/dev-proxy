@@ -9,7 +9,8 @@ using Titanium.Web.Proxy.EventArguments;
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
 
 public interface IProxyContext {
-    public ILogger Logger { get; }
+    IProxyConfiguration Configuration { get; }
+    ILogger Logger { get; }
 }
 
 public class ProxyHttpEventArgsBase {

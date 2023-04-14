@@ -14,6 +14,7 @@ internal class ProxyHost {
     private Option<IEnumerable<int>?> _watchPidsOption;
     private Option<IEnumerable<string>?> _watchProcessNamesOption;
     private static Option<string?>? _configFileOption;
+    private Option<int?> _rateOption;
 
     private static bool _configFileResolved = false;
     private static string _configFile = "appsettings.json";
@@ -73,6 +74,16 @@ internal class ProxyHost {
         _watchProcessNamesOption = new Option<IEnumerable<string>?>("--watch-process-names", "The names of processes to watch for requests");
         _watchProcessNamesOption.ArgumentHelpName = "processNames";
         _watchProcessNamesOption.AllowMultipleArgumentsPerToken = true;
+
+        _rateOption = new Option<int?>("--failure-rate", "The percentage of chance that a request will fail");
+        _rateOption.AddAlias("-f");
+        _rateOption.ArgumentHelpName = "failure rate";
+        _rateOption.AddValidator((input) => {
+            int? value = input.GetValueForOption(_rateOption);
+            if (value.HasValue && (value < 0 || value > 100)) {
+                input.ErrorMessage = $"{value} is not a valid failure rate. Specify a number between 0 and 100";
+            }
+        });
     }
 
     public RootCommand GetRootCommand() {
@@ -82,6 +93,7 @@ internal class ProxyHost {
             _recordOption,
             _watchPidsOption,
             _watchProcessNamesOption,
+            _rateOption,
             // _configFileOption is set during the call to load
             // `ProxyCommandHandler.Configuration`. As such, it's always set here
             _configFileOption!
@@ -91,6 +103,6 @@ internal class ProxyHost {
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<Regex> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _logLevelOption, _recordOption, _watchPidsOption, _watchProcessNamesOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<Regex> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _logLevelOption, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, pluginEvents, urlsToWatch, logger);
 }
 
