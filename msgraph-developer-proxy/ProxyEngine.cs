@@ -128,8 +128,13 @@ public class ProxyEngine {
             if (key == ConsoleKey.R) {
                 StartRecording();
             }
-            else if (key == ConsoleKey.S) {
+            if (key == ConsoleKey.S) {
                 StopRecording();
+            }
+            if (key == ConsoleKey.C) {
+                Console.Clear();
+                Console.WriteLine("Press CTRL+C to stop the Microsoft Graph Developer Proxy");
+                Console.WriteLine("");
             }
         } while (key != ConsoleKey.Escape);
     }
