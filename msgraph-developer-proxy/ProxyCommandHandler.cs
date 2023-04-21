@@ -14,6 +14,7 @@ public class ProxyCommandHandler : ICommandHandler {
     public Option<bool?> Record { get; set; }
     public Option<IEnumerable<int>?> WatchPids { get; set; }
     public Option<IEnumerable<string>?> WatchProcessNames { get; set; }
+    public Option<int?> Rate { get; set; }
 
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<UrlToWatch> _urlsToWatch;
@@ -24,6 +25,7 @@ public class ProxyCommandHandler : ICommandHandler {
                                Option<bool?> record,
                                Option<IEnumerable<int>?> watchPids,
                                Option<IEnumerable<string>?> watchProcessNames,
+                               Option<int?> rate,
                                PluginEvents pluginEvents,
                                ISet<UrlToWatch> urlsToWatch,
                                ILogger logger) {
@@ -32,6 +34,7 @@ public class ProxyCommandHandler : ICommandHandler {
         Record = record ?? throw new ArgumentNullException(nameof(record));
         WatchPids = watchPids ?? throw new ArgumentNullException(nameof(watchPids));
         WatchProcessNames = watchProcessNames ?? throw new ArgumentNullException(nameof(watchProcessNames));
+        Rate = rate ?? throw new ArgumentNullException(nameof(rate));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -61,6 +64,10 @@ public class ProxyCommandHandler : ICommandHandler {
         var watchProcessNames = context.ParseResult.GetValueForOption(WatchProcessNames);
         if (watchProcessNames is not null) {
             Configuration.WatchProcessNames = watchProcessNames;
+        }
+        var rate = context.ParseResult.GetValueForOption(Rate);
+        if (rate is not null) {
+            Configuration.Rate = rate.Value;
         }
 
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));

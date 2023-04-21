@@ -19,7 +19,6 @@ internal enum GenericRandomErrorFailMode {
 }
 
 public class GenericRandomErrorConfiguration {
-    public int Rate { get; set; } = 0;
     public string? ErrorsFile { get; set; }
     [JsonPropertyName("responses")]
     public IEnumerable<GenericErrorResponse> Responses { get; set; } = Array.Empty<GenericErrorResponse>();
@@ -28,6 +27,7 @@ public class GenericRandomErrorConfiguration {
 public class GenericRandomErrorPlugin : BaseProxyPlugin {
     private readonly GenericRandomErrorConfiguration _configuration = new();
     private GenericErrorResponsesLoader? _loader = null;
+    private IProxyConfiguration? _proxyConfiguration;
 
     public override string Name => nameof(GenericRandomErrorPlugin);
 
@@ -56,7 +56,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
                 _throttledRequests.Remove(key);
             }
         }
-        return _random.Next(1, 100) <= _configuration.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
+        return _random.Next(1, 100) <= _proxyConfiguration?.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
     }
 
     private void FailResponse(ProxyRequestArgs e, GenericRandomErrorFailMode failMode) {
@@ -127,6 +127,12 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
 
         pluginEvents.Init += OnInit;
         pluginEvents.BeforeRequest += OnRequest;
+        
+        // needed to get the failure rate configuration
+        // must keep reference of the whole config rather than just rate
+        // because rate is an int and can be set through command line args
+        // which is done after plugins have been registered
+        _proxyConfiguration = context.Configuration;
     }
 
     private void OnInit(object? sender, InitArgs e) {
@@ -141,7 +147,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
             && e.ShouldExecute(_urlsToWatch)) {
             var failMode = ShouldFail(e);
 
-            if (failMode == GenericRandomErrorFailMode.PassThru && _configuration.Rate != 100) {
+            if (failMode == GenericRandomErrorFailMode.PassThru && _proxyConfiguration?.Rate != 100) {
                 _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e.Session));
                 return;
             }
