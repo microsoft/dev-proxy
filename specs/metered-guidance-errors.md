@@ -58,9 +58,9 @@ In the `BeforeRequest` event, the plugin will check if the request URL is part o
 - The 'More info' is coming from the `billingInformation` property.
 
 ```shell
-[ REQUEST ]    GET hhttps://graph.microsoft.com/v1.0/teams/*/channels/getAllMessages
+[ REQUEST ]    GET hhttps://graph.microsoft.com/v1.0/teams/*/channels/getAllMessages?model=randomModel
 [   API   ]  ┌ Passed through
-             └ GET https://graph.microsoft.com/v1.0/teams/*/channels/getAllMessages
+             └ GET https://graph.microsoft.com/v1.0/teams/*/channels/getAllMessages?model=randomModel
 [ WARNING ]  ┌ You are using a metered API with an invalid a payment model parameter (`randomModel`).
              │ More info at https://learn.microsoft.com/en-us/graph/teams-licenses#payment-models
              └ GET https://graph.microsoft.com/v1.0/teams/*/channels/getAllMessages
@@ -70,7 +70,8 @@ In the `BeforeRequest` event, the plugin will check if the request URL is part o
 
 - When registered, the plugin randomly generates 3 new HTTP 402 errors.
 - The `--failure-rate` should be the same that the one provided on the `GraphRandomErrorPlugin`.
-- 402s are dependent on the HTTP Verb that is used. In the configuration file, HTTP Verbs need to be explicit.\* 402s should only be returned for the metered endpoints and only for the HTTP Verb used.
+- 402s are dependent on the HTTP Verb that is used. In the configuration file, HTTP Verbs need to be explicit.
+- 402s should only be returned for the metered endpoints and only for the HTTP Verb used.
 - The list of 402s is available [here](https://learn.microsoft.com/en-us/graph/teams-licenses#payment-related-errors):
 
 | Error code             | Scenario                                         | HTTP Verb    | Sample error message                                                                                      |
@@ -96,7 +97,8 @@ The plugin will have its own preset file. This configuration file is where meter
 
 - Each `urlToWatch` are rolled up to a single metered API. Multiple `urlToWatch` value means each endpoint behaves the same and should be treated as a metered API.
 - `supportedPaymentModels` are query string passed to the endpoint. If not present, they are considered in Evaluation Mode. If present, they need to be available in the `supportedPaymentModels` list.
-- `billingInformation` represents an URL to get more billing information on the API (if any).
+- `registrationForm` represents an URL to request access to the API (if any).
+- `httpVerbs` represents an array of HTTP Verbs that are effectively metered. If none are provided, we assume GET.
 - `registrationForm` represents an URL to request access to the API (if any).
 
 ```json
@@ -143,7 +145,6 @@ The plugin will have its own preset file. This configuration file is where meter
         "https://graph.microsoft.com/beta/*/assignSensitivityLabel"
       ],
       "httpVerbs": ["POST"],
-      "billingInformation": "",
       "registrationForm": "https://aka.ms/PreviewSPOPremiumAPI"
     }
   ]
