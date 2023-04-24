@@ -1,0 +1,66 @@
+{
+  "plugins": [
+    {
+      "name": "GraphSelectGuidancePlugin",
+      "enabled": true,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll"
+    },
+    {
+      "name": "GraphBetaSupportGuidancePlugin",
+      "enabled": true,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll",
+      "urlsToWatch": [
+        "https://graph.microsoft.com/beta/*",
+        "https://graph.microsoft.us/beta/*",
+        "https://dod-graph.microsoft.us/beta/*",
+        "https://microsoftgraph.chinacloudapi.cn/beta/*"
+      ]
+    },
+    {
+      "name": "GraphSdkGuidancePlugin",
+      "enabled": true,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll"
+    },
+    {
+      "name": "ODataPagingGuidancePlugin",
+      "enabled": true,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll"
+    },
+    {
+      "name": "GraphClientRequestIdGuidancePlugin",
+      "enabled": true,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll"
+    },
+    {
+      "name": "GraphRandomErrorPlugin",
+      "enabled": true,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll",
+      "configSection": "graphRandomErrorsPlugin"
+    },
+    {
+      "name": "ExecutionSummaryPlugin",
+      "enabled": true,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll",
+      "configSection": "executionSummaryPlugin"
+    }
+  ],
+  "urlsToWatch": [
+    "https://graph.microsoft.com/v1.0/*",
+    "https://graph.microsoft.com/beta/*",
+    "https://graph.microsoft.us/v1.0/*",
+    "https://graph.microsoft.us/beta/*",
+    "https://dod-graph.microsoft.us/v1.0/*",
+    "https://dod-graph.microsoft.us/beta/*",
+    "https://microsoftgraph.chinacloudapi.cn/v1.0/*",
+    "https://microsoftgraph.chinacloudapi.cn/beta/*"
+  ],
+  "graphRandomErrorsPlugin": {
+    "allowedErrors": [ 429, 500, 502, 503, 504, 507 ]
+  },
+  "executionSummaryPlugin": {
+    "groupBy": "url"
+  },
+  "rate": 50,
+  "labelMode": "text",
+  "logLevel": "info"
+}

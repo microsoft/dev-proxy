@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Title>Microsoft Graph Developer Proxy</Title>
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <Company>Microsoft</Company>
     <Product>Microsoft Graph Developer Proxy</Product>
     <AssemblyName>mgdp</AssemblyName>
@@ -50,6 +50,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="responses.sample.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="presets\microsoft-graph.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="presets\microsoft-graph-rate-limiting.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

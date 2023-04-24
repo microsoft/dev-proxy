@@ -3,7 +3,6 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph.DeveloperProxy.Abstractions;
-using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.Graph.DeveloperProxy.Plugins.Guidance;
@@ -14,7 +13,7 @@ public class GraphClientRequestIdGuidancePlugin : BaseProxyPlugin
 
   public override void Register(IPluginEvents pluginEvents,
                           IProxyContext context,
-                          ISet<Regex> urlsToWatch,
+                          ISet<UrlToWatch> urlsToWatch,
                           IConfigurationSection? configSection = null)
   {
     base.Register(pluginEvents, context, urlsToWatch, configSection);
@@ -22,7 +21,7 @@ public class GraphClientRequestIdGuidancePlugin : BaseProxyPlugin
     pluginEvents.BeforeRequest += BeforeRequest;
   }
 
-  private void BeforeRequest(object? sender, ProxyRequestArgs e)
+  private async Task BeforeRequest(object? sender, ProxyRequestArgs e)
   {
     Request request = e.Session.HttpClient.Request;
     if (_urlsToWatch is not null && e.HasRequestUrlMatch(_urlsToWatch) && WarnNoClientRequestId(request))

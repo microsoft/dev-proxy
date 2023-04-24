@@ -1,0 +1,82 @@
+name: Bug report
+description: Let us know about functionality that is not working as expected
+labels: ["bug", "triage"]
+title: "[BUG]: <short description>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you taking the time to report this issue.
+        
+        Please complete the below form to ensure we have the necessary details to diagnose and resolve the issue.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a short description of the issue
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: Provide a description of what you expect to happen
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Provide a description of what actually happens
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the steps so that we can reproduce the error
+    validations:
+      required: true
+  - type: input
+    id: mgdpversion
+    attributes:
+      label: Microsoft Graph Developer Proxy Version
+      description: |
+        Provide the version of the proxy you are using.
+        
+        Execute `mgdp --version` in your terminal to identify your version
+    validations:
+      required: true 
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system (environment)
+      description: Provide the operating system that you are using
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: shell
+    attributes:
+      label: Shell
+      description: Provide the shell that you are using to run the proxy
+      options:
+        - PowerShell
+        - Windows PowerShell
+        - cmd
+        - bash
+        - zsh
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: info
+    attributes:
+      label: Additional Info
+      description: |
+        Provide any additional information that may help with the identification of the root cause of this issue
+    validations:
+      required: false

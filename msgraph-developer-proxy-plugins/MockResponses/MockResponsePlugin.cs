@@ -29,6 +29,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
     private readonly Option<bool?> _noMocks;
     private readonly Option<string?> _mocksFile;
     public override string Name => nameof(MockResponsePlugin);
+    private IProxyConfiguration? _proxyConfiguration;
 
     public MockResponsePlugin() {
         _noMocks = new Option<bool?>("--no-mocks", "Disable loading mock requests");
@@ -41,7 +42,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
     public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
-                            ISet<Regex> urlsToWatch,
+                            ISet<UrlToWatch> urlsToWatch,
                             IConfigurationSection? configSection = null) {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
         
@@ -51,6 +52,8 @@ public class MockResponsePlugin : BaseProxyPlugin {
         pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
         pluginEvents.BeforeRequest += OnRequest;
+
+        _proxyConfiguration = context.Configuration;
     }
 
     private void OnInit(object? sender, InitArgs e) {
@@ -76,11 +79,14 @@ public class MockResponsePlugin : BaseProxyPlugin {
         if (mocksFile is not null) {
             _configuration.MocksFile = mocksFile;
         }
+
+        _configuration.MocksFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.MocksFile), Path.GetDirectoryName(_proxyConfiguration?.ConfigFile ?? string.Empty) ?? string.Empty);
+
         // load the responses from the configured mocks file
         _loader?.InitResponsesWatcher();
     }
 
-    private void OnRequest(object? sender, ProxyRequestArgs e) {
+    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
         if (!_configuration.NoMocks && _urlsToWatch is not null && e.ShouldExecute(_urlsToWatch)) {
@@ -113,7 +119,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
             //turn mock URL with wildcard into a regex and match against the request URL
             var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
-            return Regex.IsMatch(request.Url, mockResponseUrlRegex);
+            return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$");
         });
         return mockResponse;
     }
@@ -133,7 +139,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
                 headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
             }
         }
-        // default the content type to application/json unlesss set in the mock response
+        // default the content type to application/json unless set in the mock response
         if (!headers.Any(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase))) {
             headers.Add(new HttpHeader("content-type", "application/json"));
         }
@@ -147,7 +153,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
                 // if we can read the file, we can immediately send the response and
                 // skip the rest of the logic in this method
                 // remove the surrounding quotes and the @-token
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), bodyString.Trim('"').Substring(1));
+                var filePath = Path.Combine(Path.GetDirectoryName(_configuration.MocksFile) ?? "", ProxyUtils.ReplacePathTokens(bodyString.Trim('"').Substring(1)));
                 if (!File.Exists(filePath)) {
                     _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
                     body = bodyString;

@@ -6,7 +6,6 @@ using Microsoft.Graph.DeveloperProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
 namespace Microsoft.Graph.DeveloperProxy.Plugins.RequestLogs;
 
@@ -72,7 +71,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 
   public override void Register(IPluginEvents pluginEvents,
                           IProxyContext context,
-                          ISet<Regex> urlsToWatch,
+                          ISet<UrlToWatch> urlsToWatch,
                           IConfigurationSection? configSection = null)
   {
     base.Register(pluginEvents, context, urlsToWatch, configSection);

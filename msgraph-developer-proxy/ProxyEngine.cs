@@ -20,10 +20,10 @@ public class ProxyEngine {
     private ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
     // lists of URLs to watch, used for intercepting requests
-    private ISet<Regex> _urlsToWatch = new HashSet<Regex>();
+    private ISet<UrlToWatch> _urlsToWatch = new HashSet<UrlToWatch>();
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
-    private ISet<Regex> _hostsToWatch = new HashSet<Regex>();
+    private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
 
     private static string _productVersion = string.Empty;
     public static string ProductVersion {
@@ -41,7 +41,7 @@ public class ProxyEngine {
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();
 
-    public ProxyEngine(ProxyConfiguration config, ISet<Regex> urlsToWatch, PluginEvents pluginEvents, ILogger logger) {
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger) {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
@@ -177,25 +177,25 @@ public class ProxyEngine {
     // We need this because before we decrypt a request, we only have access
     // to the host name, not the full URL.
     private void LoadHostNamesFromUrls() {
-        foreach (var url in _urlsToWatch) {
+        foreach (var urlToWatch in _urlsToWatch) {
             // extract host from the URL
-            string urlToWatch = Regex.Unescape(url.ToString()).Replace(".*", "*");
+            string urlToWatchPatter = Regex.Unescape(urlToWatch.Url.ToString()).Replace(".*", "*");
             string hostToWatch;
-            if (urlToWatch.ToString().Contains("://")) {
+            if (urlToWatchPatter.ToString().Contains("://")) {
                 // if the URL contains a protocol, extract the host from the URL
-                hostToWatch = urlToWatch.Split("://")[1].Substring(0, urlToWatch.Split("://")[1].IndexOf("/"));
+                hostToWatch = urlToWatchPatter.Split("://")[1].Substring(0, urlToWatchPatter.Split("://")[1].IndexOf("/"));
             }
             else {
                 // if the URL doesn't contain a protocol,
                 // we assume the whole URL is a host name
-                hostToWatch = urlToWatch;
+                hostToWatch = urlToWatchPatter;
             }
 
             var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
-            Regex hostRegex = new Regex(hostToWatchRegexString, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            Regex hostRegex = new Regex($"^{hostToWatchRegexString}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             // don't add the same host twice
-            if (!_hostsToWatch.Any(h => h.ToString() == hostRegex.ToString())) {
-                _hostsToWatch.Add(hostRegex);
+            if (!_hostsToWatch.Any(h => h.Url.ToString() == hostRegex.ToString())) {
+                _hostsToWatch.Add(new UrlToWatch(hostRegex));
             }
         }
     }
@@ -342,14 +342,14 @@ public class ProxyEngine {
 
     private static void AddProxyHeader(Request r) => r.Headers?.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{ProductVersion}");
 
-    private bool IsProxiedHost(string hostName) => _hostsToWatch.Any(h => h.IsMatch(hostName));
+    private bool IsProxiedHost(string hostName) => _hostsToWatch.Any(h => h.Url.IsMatch(hostName));
 
 
     // Modify response
     async Task OnBeforeResponse(object sender, SessionEventArgs e) {
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
-            _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, new ResponseState()));
+            await _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, new ResponseState()));
         }
     }
     async Task OnAfterResponse(object sender, SessionEventArgs e) {

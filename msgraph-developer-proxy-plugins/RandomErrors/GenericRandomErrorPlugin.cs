@@ -19,7 +19,6 @@ internal enum GenericRandomErrorFailMode {
 }
 
 public class GenericRandomErrorConfiguration {
-    public int Rate { get; set; } = 0;
     public string? ErrorsFile { get; set; }
     [JsonPropertyName("responses")]
     public IEnumerable<GenericErrorResponse> Responses { get; set; } = Array.Empty<GenericErrorResponse>();
@@ -28,6 +27,7 @@ public class GenericRandomErrorConfiguration {
 public class GenericRandomErrorPlugin : BaseProxyPlugin {
     private readonly GenericRandomErrorConfiguration _configuration = new();
     private GenericErrorResponsesLoader? _loader = null;
+    private IProxyConfiguration? _proxyConfiguration;
 
     public override string Name => nameof(GenericRandomErrorPlugin);
 
@@ -54,10 +54,9 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
             else {
                 // clean up expired throttled request and ensure that this request is passed through.
                 _throttledRequests.Remove(key);
-                return GenericRandomErrorFailMode.PassThru;
             }
         }
-        return _random.Next(1, 100) <= _configuration.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
+        return _random.Next(1, 100) <= _proxyConfiguration?.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
     }
 
     private void FailResponse(ProxyRequestArgs e, GenericRandomErrorFailMode failMode) {
@@ -90,31 +89,61 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
             headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
         }
 
-        string body = error.Body is null ? string.Empty : JsonSerializer.Serialize(error.Body);
-        _logger?.LogRequest(new[] { $"{error.StatusCode} {((HttpStatusCode)error.StatusCode).ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
-        session.GenericResponse(body ?? string.Empty, (HttpStatusCode)error.StatusCode, headers);
+        var statusCode = (HttpStatusCode)error.StatusCode;
+        var body = error.Body is null ? string.Empty : JsonSerializer.Serialize(error.Body);
+        // we get a JSON string so need to start with the opening quote
+        if (body.StartsWith("\"@")) {
+            // we've got a mock body starting with @-token which means we're sending
+            // a response from a file on disk
+            // if we can read the file, we can immediately send the response and
+            // skip the rest of the logic in this method
+            // remove the surrounding quotes and the @-token
+            var filePath = Path.Combine(Path.GetDirectoryName(_configuration.ErrorsFile) ?? "", ProxyUtils.ReplacePathTokens(body.Trim('"').Substring(1)));
+            if (!File.Exists(filePath)) {
+                _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
+                session.GenericResponse(body, statusCode, headers);
+            }
+            else {
+                var bodyBytes = File.ReadAllBytes(filePath);
+                session.GenericResponse(bodyBytes, statusCode, headers);
+            }
+        }
+        else {
+            session.GenericResponse(body, statusCode, headers);
+        }
+        _logger?.LogRequest(new[] { $"{error.StatusCode} {statusCode.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
     }
 
     private string BuildThrottleKey(Request r) => $"{r.Method}-{r.Url}";
 
     public override void Register(IPluginEvents pluginEvents,
                          IProxyContext context,
-                         ISet<Regex> urlsToWatch,
+                         ISet<UrlToWatch> urlsToWatch,
                          IConfigurationSection? configSection = null) {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
+        _proxyConfiguration = context.Configuration;
+
         configSection?.Bind(_configuration);
+        _configuration.ErrorsFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.ErrorsFile ?? string.Empty), Path.GetDirectoryName(_proxyConfiguration?.ConfigFile ?? string.Empty) ?? string.Empty);
+
         _loader = new GenericErrorResponsesLoader(_logger!, _configuration);
 
         pluginEvents.Init += OnInit;
         pluginEvents.BeforeRequest += OnRequest;
+        
+        // needed to get the failure rate configuration
+        // must keep reference of the whole config rather than just rate
+        // because rate is an int and can be set through command line args
+        // which is done after plugins have been registered
+        _proxyConfiguration = context.Configuration;
     }
 
     private void OnInit(object? sender, InitArgs e) {
         _loader?.InitResponsesWatcher();
     }
 
-    private void OnRequest(object? sender, ProxyRequestArgs e) {
+    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
         var session = e.Session;
         var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet
@@ -122,7 +151,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
             && e.ShouldExecute(_urlsToWatch)) {
             var failMode = ShouldFail(e);
 
-            if (failMode == GenericRandomErrorFailMode.PassThru && _configuration.Rate != 100) {
+            if (failMode == GenericRandomErrorFailMode.PassThru && _proxyConfiguration?.Rate != 100) {
                 _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e.Session));
                 return;
             }

@@ -21,14 +21,13 @@ internal enum GraphRandomErrorFailMode {
 }
 
 public class GraphRandomErrorConfiguration {
-    public int Rate { get; set; } = 0;
     public List<int> AllowedErrors { get; set; } = new();
 }
 
 public class GraphRandomErrorPlugin : BaseProxyPlugin {
-    private readonly Option<int?> _rate;
     private readonly Option<IEnumerable<int>> _allowedErrors;
     private readonly GraphRandomErrorConfiguration _configuration = new();
+    private IProxyConfiguration? _proxyConfiguration;
 
     public override string Name => nameof(GraphRandomErrorPlugin);
 
@@ -89,15 +88,6 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
     private readonly Random _random;
 
     public GraphRandomErrorPlugin() {
-        _rate = new Option<int?>("--failure-rate", "The percentage of requests to graph to respond with failures");
-        _rate.AddAlias("-f");
-        _rate.ArgumentHelpName = "failure rate";
-        _rate.AddValidator((input) => {
-            int? value = input.GetValueForOption(_rate);
-            if (value.HasValue && (value < 0 || value > 100)) {
-                input.ErrorMessage = $"{value} is not a valid failure rate. Specify a number between 0 and 100";
-            }
-        });
         _allowedErrors = new Option<IEnumerable<int>>("--allowed-errors", "List of errors that the developer proxy may produce");
         _allowedErrors.AddAlias("-a");
         _allowedErrors.ArgumentHelpName = "allowed errors";
@@ -121,10 +111,9 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
             else {
                 // clean up expired throttled request and ensure that this request is passed through.
                 _throttledRequests.Remove(key);
-                return GraphRandomErrorFailMode.PassThru;
             }
         }
-        return _random.Next(1, 100) <= _configuration.Rate ? GraphRandomErrorFailMode.Random : GraphRandomErrorFailMode.PassThru;
+        return _random.Next(1, 100) <= _proxyConfiguration?.Rate ? GraphRandomErrorFailMode.Random : GraphRandomErrorFailMode.PassThru;
     }
 
     private void FailResponse(ProxyRequestArgs e, GraphRandomErrorFailMode failMode) {
@@ -171,7 +160,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
 
     public override void Register(IPluginEvents pluginEvents,
                          IProxyContext context,
-                         ISet<Regex> urlsToWatch,
+                         ISet<UrlToWatch> urlsToWatch,
                          IConfigurationSection? configSection = null) {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
@@ -179,19 +168,20 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
         pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
         pluginEvents.BeforeRequest += OnRequest;
+
+        // needed to get the failure rate configuration
+        // must keep reference of the whole config rather than just rate
+        // because rate is an int and can be set through command line args
+        // which is done after plugins have been registered
+        _proxyConfiguration = context.Configuration;
     }
 
     private void OnInit(object? sender, InitArgs e) {
-        e.RootCommand.AddOption(_rate);
         e.RootCommand.AddOption(_allowedErrors);
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e) {
         InvocationContext context = e.Context;
-        // configure probability of failure
-        int? rate = context.ParseResult.GetValueForOption(_rate);
-        if (rate.HasValue)
-            _configuration.Rate = rate.Value;
 
         // Configure the allowed errors
         IEnumerable<int>? allowedErrors = context.ParseResult.GetValueForOption(_allowedErrors);
@@ -205,7 +195,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
         }
     }
 
-    private void OnRequest(object? sender, ProxyRequestArgs e) {
+    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
         var session = e.Session;
         var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet
@@ -213,7 +203,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
             && e.ShouldExecute(_urlsToWatch)) {
             var failMode = ShouldFail(e);
 
-            if (failMode == GraphRandomErrorFailMode.PassThru && _configuration.Rate != 100) {
+            if (failMode == GraphRandomErrorFailMode.PassThru && _proxyConfiguration?.Rate != 100) {
                 return;
             }
             FailResponse(e, failMode);
