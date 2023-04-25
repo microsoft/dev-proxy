@@ -28,6 +28,14 @@ jobs:
         run: dotnet build ./msgraph-developer-proxy-plugins/msgraph-developer-proxy-plugins.csproj -c Release -r ${{ matrix.architecture }} --no-self-contained
       - name: Add plugins to output
         run: cp ./msgraph-developer-proxy/bin/Release/net7.0/${{ matrix.architecture }}/GraphProxyPlugins ./${{ env.release }} -r
+      - name: Remove unnecessary files
+        run: |
+          pushd
+          cd ./${{ env.release }}
+          Get-ChildItem -Filter *.pdb -Recurse | Remove-Item
+          Get-ChildItem -Filter *.deps.json -Recurse | Remove-Item
+          Get-ChildItem -Filter *.runtimeconfig.json -Recurse | Remove-Item
+          popd
       - name: Archive Release ${{ env.release }}
         uses: thedoctor0/zip-release@master
         with:
