@@ -27,15 +27,14 @@ internal class GenericErrorResponsesLoader : IDisposable {
         }
 
         try {
-            using (FileStream stream = new FileStream(_errorsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using (StreamReader reader = new StreamReader(stream))
-            {
-                var responsesString = reader.ReadToEnd();
-                var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString);
-                IEnumerable<GenericErrorResponse>? configResponses = responsesConfig?.Responses;
-                if (configResponses is not null) {
-                    _configuration.Responses = configResponses;
-                    _logger.LogInfo($"Error responses for {configResponses.Count()} url patterns loaded from from {_configuration.ErrorsFile}");
+            using (FileStream stream = new FileStream(_errorsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                using (StreamReader reader = new StreamReader(stream)) {                var responsesString = reader.ReadToEnd();
+                    var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString);
+                    IEnumerable<GenericErrorResponse>? configResponses = responsesConfig?.Responses;
+                    if (configResponses is not null) {
+                        _configuration.Responses = configResponses;
+                        _logger.LogInfo($"Error responses for {configResponses.Count()} url patterns loaded from from {_configuration.ErrorsFile}");
+                    }
                 }
             }
         }
