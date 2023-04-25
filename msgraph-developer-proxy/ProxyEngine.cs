@@ -50,7 +50,7 @@ public class ProxyEngine {
 
     public async Task Run(CancellationToken? cancellationToken) {
         if (!_urlsToWatch.Any()) {
-            _logger.LogInfo("No URLs to watch configured. Please add URLs to watch in the appsettings.json config file.");
+            _logger.LogInfo("No URLs to watch configured. Please add URLs to watch in the mgdprc.json config file.");
             return;
         }
 

@@ -17,7 +17,7 @@ internal class ProxyHost {
     private Option<int?> _rateOption;
 
     private static bool _configFileResolved = false;
-    private static string _configFile = "appsettings.json";
+    private static string _configFile = "mgdprc.json";
     public static string ConfigFile {
         get {
             if (_configFileResolved) {
@@ -44,6 +44,13 @@ internal class ProxyHost {
             var configFile = result.GetValueForOption<string?>(_configFileOption);
             if (configFile is not null) {
                 _configFile = configFile;
+            }
+            else {
+                // if there's no config file in the current working folder
+                // fall back to the default config file in the app folder
+                if (!File.Exists(_configFile)) {
+                    _configFile = "~appFolder/mgdprc.json";
+                }
             }
 
             _configFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configFile));
