@@ -4,6 +4,7 @@
 using Microsoft.Graph.DeveloperProxy.Abstractions;
 using System.Diagnostics;
 using System.Net;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
@@ -24,14 +25,27 @@ public class ProxyEngine {
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
     private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
+    private static Assembly? _assembly;
+
+    internal static Assembly GetAssembly()
+            => _assembly ??= (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
 
     private static string _productVersion = string.Empty;
     public static string ProductVersion {
         get {
-            // product version to display in the terminal and used for
-            // new version notification. Added here because .net doesn't
-            // stamp version on assemblies on non-Windows OSes
-            return "0.7.0";
+            if (_productVersion == string.Empty) {
+                var assembly = GetAssembly();
+                var assemblyVersionAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+                if (assemblyVersionAttribute is null) {
+                    _productVersion = assembly.GetName().Version?.ToString() ?? "";
+                }
+                else {
+                    _productVersion = assemblyVersionAttribute.InformationalVersion;
+                }
+            }
+
+            return _productVersion;
         }
     }
 
