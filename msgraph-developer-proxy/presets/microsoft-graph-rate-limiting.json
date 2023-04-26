@@ -3,7 +3,7 @@
     {
       "name": "RateLimitingPlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll"
+      "pluginPath": "~appFolder\\GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll"
     }
   ],
   "urlsToWatch": [
