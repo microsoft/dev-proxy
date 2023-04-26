@@ -26,9 +26,8 @@ internal class MockResponsesLoader : IDisposable {
             return;
         }
 
-        try
-        {
-            using (FileStream stream = new FileStream(_responsesFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)){
+        try {
+            using (FileStream stream = new FileStream(_responsesFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
                 using (StreamReader reader = new StreamReader(stream)) {
                     var responsesString = reader.ReadToEnd();
                     var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString);
@@ -36,8 +35,8 @@ internal class MockResponsesLoader : IDisposable {
                     if (configResponses is not null) {
                             _configuration.Responses = configResponses;
                             _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from {_configuration.MocksFile}");
-                        }
                     }
+                }
             }
         }
         catch (Exception ex) {
