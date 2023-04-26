@@ -28,13 +28,10 @@ public class ProxyEngine {
     private static string _productVersion = string.Empty;
     public static string ProductVersion {
         get {
-            if (_productVersion == string.Empty) {
-                var assemblyPath = Process.GetCurrentProcess()?.MainModule?.FileName ?? typeof(ProxyEngine).Assembly.Location;
-                var fileVersionInfo = FileVersionInfo.GetVersionInfo(assemblyPath);
-                _productVersion = fileVersionInfo?.ProductVersion!;
-            }
-
-            return _productVersion;
+            // product version to display in the terminal and used for
+            // new version notification. Added here because .net doesn't
+            // stamp version on assemblies on non-Windows OSes
+            return "0.7.0";
         }
     }
 
