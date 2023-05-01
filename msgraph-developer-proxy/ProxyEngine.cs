@@ -26,6 +26,7 @@ public class ProxyEngine {
     // used for deciding which URLs to decrypt for further inspection
     private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
     private static Assembly? _assembly;
+    private IList<ThrottlerInfo> _throttledRequests = new List<ThrottlerInfo>();
 
     internal static Assembly GetAssembly()
             => _assembly ??= (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
@@ -347,7 +348,7 @@ public class ProxyEngine {
 
     private void HandleRequest(SessionEventArgs e) {
         ResponseState responseState = new ResponseState();
-        _pluginEvents.RaiseProxyBeforeRequest(new ProxyRequestArgs(e, responseState));
+        _pluginEvents.RaiseProxyBeforeRequest(new ProxyRequestArgs(e, _throttledRequests, responseState));
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!responseState.HasBeenSet) {
@@ -365,13 +366,13 @@ public class ProxyEngine {
     async Task OnBeforeResponse(object sender, SessionEventArgs e) {
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
-            await _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, new ResponseState()));
+            await _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
     }
     async Task OnAfterResponse(object sender, SessionEventArgs e) {
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
-            _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, new ResponseState()));
+            _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
     }
 

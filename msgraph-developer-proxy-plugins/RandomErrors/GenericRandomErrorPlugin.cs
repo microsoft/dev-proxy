@@ -6,7 +6,6 @@ using Microsoft.Graph.DeveloperProxy.Abstractions;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
@@ -32,48 +31,24 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
     public override string Name => nameof(GenericRandomErrorPlugin);
 
     private const int retryAfterInSeconds = 5;
-    private readonly Dictionary<string, DateTime> _throttledRequests;
     private readonly Random _random;
 
     public GenericRandomErrorPlugin() {
         _random = new Random();
-        _throttledRequests = new Dictionary<string, DateTime>();
     }
 
     // uses config to determine if a request should be failed
-    private GenericRandomErrorFailMode ShouldFail(ProxyRequestArgs e) {
-        var r = e.Session.HttpClient.Request;
-        string key = BuildThrottleKey(r);
-        if (_throttledRequests.TryGetValue(key, out DateTime retryAfterDate)) {
-            if (retryAfterDate > DateTime.Now) {
-                _logger?.LogRequest(new[] { $"Calling {r.Url} again before waiting for the Retry-After period.", "Request will be throttled" }, MessageType.Failed, new LoggingContext(e.Session));
-                // update the retryAfterDate to extend the throttling window to ensure that brute forcing won't succeed.
-                _throttledRequests[key] = retryAfterDate.AddSeconds(retryAfterInSeconds);
-                return GenericRandomErrorFailMode.Throttled;
-            }
-            else {
-                // clean up expired throttled request and ensure that this request is passed through.
-                _throttledRequests.Remove(key);
-            }
-        }
-        return _random.Next(1, 100) <= _proxyConfiguration?.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
-    }
+    private GenericRandomErrorFailMode ShouldFail(ProxyRequestArgs e) => _random.Next(1, 100) <= _proxyConfiguration?.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
 
     private void FailResponse(ProxyRequestArgs e, GenericRandomErrorFailMode failMode) {
-        GenericErrorResponse error;
-        if (failMode == GenericRandomErrorFailMode.Throttled) {
-            error = new GenericErrorResponse {
-                StatusCode = (int)HttpStatusCode.TooManyRequests,
-                Headers = new Dictionary<string, string> {
-                    { "Retry-After", retryAfterInSeconds.ToString() }
-                }
-            };
-        }
-        else {
-            // pick a random error response for the current request
-            error = _configuration.Responses.ElementAt(_random.Next(0, _configuration.Responses.Count()));
-        }
+        // pick a random error response for the current request
+        var error = _configuration.Responses.ElementAt(_random.Next(0, _configuration.Responses.Count()));
         UpdateProxyResponse(e, error);
+    }
+
+    private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey) {
+        var throttleKeyForRequest = BuildThrottleKey(request);
+        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? retryAfterInSeconds : 0, "Retry-After");
     }
 
     private void UpdateProxyResponse(ProxyRequestArgs ev, GenericErrorResponse error) {
@@ -85,7 +60,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
         if (error.StatusCode == (int)HttpStatusCode.TooManyRequests &&
             error.AddDynamicRetryAfter.GetValueOrDefault(false)) {
             var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
-            _throttledRequests[BuildThrottleKey(request)] = retryAfterDate;
+            ev.ThrottledRequests.Add(new ThrottlerInfo(BuildThrottleKey(request), ShouldThrottle, retryAfterDate));
             headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
         }
 
@@ -114,7 +89,8 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
         _logger?.LogRequest(new[] { $"{error.StatusCode} {statusCode.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
     }
 
-    private string BuildThrottleKey(Request r) => $"{r.Method}-{r.Url}";
+    // throttle requests per host
+    private string BuildThrottleKey(Request r) => r.RequestUri.Host;
 
     public override void Register(IPluginEvents pluginEvents,
                          IProxyContext context,

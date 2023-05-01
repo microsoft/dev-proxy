@@ -1,6 +1,11 @@
 {
   "plugins": [
     {
+      "name": "RetryAfterPlugin",
+      "enabled": true,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll"
+    },
+    {
       "name": "GraphSelectGuidancePlugin",
       "enabled": true,
       "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll",
