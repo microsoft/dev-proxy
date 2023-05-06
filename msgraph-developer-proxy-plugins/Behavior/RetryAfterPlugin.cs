@@ -58,7 +58,7 @@ public class RetryAfterPlugin : BaseProxyPlugin
       {
         _logger?.LogRequest(new[] { $"Calling {request.Url} before waiting for the Retry-After period.", "Request will be throttled", $"Throttling on {throttler.ThrottlingKey}" }, MessageType.Failed, new LoggingContext(e.Session));
 
-        throttler.ResetTime = throttler.ResetTime.AddSeconds(throttleInfo.ThrottleForSeconds);
+        throttler.ResetTime = DateTime.Now.AddSeconds(throttleInfo.ThrottleForSeconds);
         UpdateProxyResponse(e, throttleInfo);
         break;
       }

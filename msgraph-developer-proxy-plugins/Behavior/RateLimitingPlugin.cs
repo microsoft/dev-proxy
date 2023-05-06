@@ -31,28 +31,9 @@ public class RateLimitingPlugin : BaseProxyPlugin {
     private int _resourcesRemaining = -1;
     private DateTime _resetTime = DateTime.MinValue;
 
-    private void ForceThrottleResponse(ProxyRequestArgs e) => UpdateProxyResponse(e, HttpStatusCode.TooManyRequests);
-
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey) {
         var throttleKeyForRequest = BuildThrottleKey(request);
         return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? _configuration.RetryAfterSeconds : 0, _configuration.HeaderRetryAfter);
-    }
-
-    private bool ShouldThrottle(ProxyRequestArgs e) {
-        if (_resourcesRemaining > 0) {
-            return false;
-        }
-
-        var request = e.Session.HttpClient.Request;
-
-        _logger?.LogRequest(new[] { $"Exceeded resource limit when calling {request.Url}.", "Request will be throttled" }, MessageType.Failed, new LoggingContext(e.Session));
-        e.ThrottledRequests.Add(new ThrottlerInfo(
-            BuildThrottleKey(request),
-            ShouldThrottle,
-            DateTime.Now.AddSeconds(_configuration.RetryAfterSeconds)
-        ));
-
-        return true;
     }
 
     private void ThrottleResponse(ProxyRequestArgs e) => UpdateProxyResponse(e, HttpStatusCode.TooManyRequests);
@@ -61,24 +42,31 @@ public class RateLimitingPlugin : BaseProxyPlugin {
         var headers = new List<HttpHeader>();
         var body = string.Empty;
         var request = e.Session.HttpClient.Request;
+        var response = e.Session.HttpClient.Response;
 
-        // override the response body and headers for the error response
-        if (errorStatus != HttpStatusCode.OK &&
-            ProxyUtils.IsGraphRequest(request)) {
-            string requestId = Guid.NewGuid().ToString();
-            string requestDate = DateTime.Now.ToString();
-            headers.AddRange(ProxyUtils.BuildGraphResponseHeaders(request, requestId, requestDate));
+        // resources exceeded
+        if (errorStatus == HttpStatusCode.TooManyRequests) {
+            if (ProxyUtils.IsGraphRequest(request)) {
+                string requestId = Guid.NewGuid().ToString();
+                string requestDate = DateTime.Now.ToString();
+                headers.AddRange(ProxyUtils.BuildGraphResponseHeaders(request, requestId, requestDate));
 
-            body = JsonSerializer.Serialize(new GraphErrorResponseBody(
-                new GraphErrorResponseError {
-                    Code = new Regex("([A-Z])").Replace(errorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
-                    Message = BuildApiErrorMessage(request),
-                    InnerError = new GraphErrorResponseInnerError {
-                        RequestId = requestId,
-                        Date = requestDate
-                    }
-                })
-            );
+                body = JsonSerializer.Serialize(new GraphErrorResponseBody(
+                    new GraphErrorResponseError {
+                        Code = new Regex("([A-Z])").Replace(errorStatus.ToString(), m => { return $" {m.Groups[1]}"; }).Trim(),
+                        Message = BuildApiErrorMessage(request),
+                        InnerError = new GraphErrorResponseInnerError {
+                            RequestId = requestId,
+                            Date = requestDate
+                        }
+                    })
+                );
+            }
+
+            headers.Add(new HttpHeader(_configuration.HeaderRetryAfter, _configuration.RetryAfterSeconds.ToString()));
+
+            e.Session.GenericResponse(body ?? string.Empty, errorStatus, headers);
+            return;
         }
 
         // add rate limiting headers if reached the threshold percentage
@@ -88,20 +76,40 @@ public class RateLimitingPlugin : BaseProxyPlugin {
                 new HttpHeader(_configuration.HeaderRemaining, _resourcesRemaining.ToString()),
                 new HttpHeader(_configuration.HeaderReset, (_resetTime - DateTime.Now).TotalSeconds.ToString("N0")) // drop decimals
             });
+
+            // make rate limiting information available for CORS requests
+            if (request.Headers.FirstOrDefault((h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
+                if (!response.Headers.HeaderExists("Access-Control-Allow-Origin")) {
+                    headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
+                }
+                var exposeHeadersHeader = response.Headers.FirstOrDefault((h) => h.Name.Equals("Access-Control-Expose-Headers", StringComparison.OrdinalIgnoreCase));
+                var headerValue = "";
+                if (exposeHeadersHeader is null) {
+                    headerValue = $"{_configuration.HeaderLimit}, {_configuration.HeaderRemaining}, {_configuration.HeaderReset}, {_configuration.HeaderRetryAfter}";
+                }
+                else {
+                    headerValue = exposeHeadersHeader.Value;
+                    if (!headerValue.Contains(_configuration.HeaderLimit)) {
+                        headerValue += $", {_configuration.HeaderLimit}";
+                    }
+                    if (!headerValue.Contains(_configuration.HeaderRemaining)) {
+                        headerValue += $", {_configuration.HeaderRemaining}";
+                    }
+                    if (!headerValue.Contains(_configuration.HeaderReset)) {
+                        headerValue += $", {_configuration.HeaderReset}";
+                    }
+                    if (!headerValue.Contains(_configuration.HeaderRetryAfter)) {
+                        headerValue += $", {_configuration.HeaderRetryAfter}";
+                    }
+                    response.Headers.RemoveHeader("Access-Control-Expose-Headers");
+                }
+
+                headers.Add(new HttpHeader("Access-Control-Expose-Headers", headerValue));
+            }
         }
 
-        // send an error response if we are (forced) throttling
-        if (errorStatus == HttpStatusCode.TooManyRequests) {
-            headers.Add(new HttpHeader(_configuration.HeaderRetryAfter, _configuration.RetryAfterSeconds.ToString()));
-
-            e.Session.GenericResponse(body ?? string.Empty, errorStatus, headers);
-            return;
-        }
-
-        if (errorStatus == HttpStatusCode.OK) {
-            // add headers to the original API response
-            e.Session.HttpClient.Response.Headers.AddHeaders(headers);
-        }
+        // add headers to the original API response
+        e.Session.HttpClient.Response.Headers.AddHeaders(headers);
     }
     private static string BuildApiErrorMessage(Request r) => $"Some error was generated by the proxy. {(ProxyUtils.IsGraphRequest(r) ? ProxyUtils.IsSdkRequest(r) ? "" : String.Join(' ', MessageUtils.BuildUseSdkForErrorsMessage(r)) : "")}";
 
@@ -127,8 +135,6 @@ public class RateLimitingPlugin : BaseProxyPlugin {
 
     // add rate limiting headers to the response from the API
     private async Task OnResponse(object? sender, ProxyResponseArgs e) {
-        var session = e.Session;
-        var state = e.ResponseState;
         if (_urlsToWatch is null ||
             !e.HasRequestUrlMatch(_urlsToWatch)) {
             return;
@@ -162,12 +168,16 @@ public class RateLimitingPlugin : BaseProxyPlugin {
 
         // subtract the cost of the request
         _resourcesRemaining -= _configuration.CostPerRequest;
-        // avoid communicating negative values
         if (_resourcesRemaining < 0) {
-            _resourcesRemaining = 0;
-        }
+            var request = e.Session.HttpClient.Request;
 
-        if (ShouldThrottle(e)) {
+            _logger?.LogRequest(new[] { $"Exceeded resource limit when calling {request.Url}.", "Request will be throttled" }, MessageType.Failed, new LoggingContext(e.Session));
+            e.ThrottledRequests.Add(new ThrottlerInfo(
+                BuildThrottleKey(request),
+                ShouldThrottle,
+                DateTime.Now.AddSeconds(_configuration.RetryAfterSeconds)
+            ));
+
             ThrottleResponse(e);
             state.HasBeenSet = true;
         }
