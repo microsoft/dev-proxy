@@ -1,15 +1,32 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
 
+class ParsedSample {
+    public string QueryVersion { get; set; }
+    public string RequestUrl { get; set; }
+    public string SampleUrl { get; set; }
+    public string Search { get; set; }
+}
+
 public static class ProxyUtils {
-    public static bool IsGraphRequest(Request request) => 
-        request.RequestUri.Host.Contains("graph.microsoft.", StringComparison.OrdinalIgnoreCase) ||
-        request.RequestUri.Host.Contains("microsoftgraph.", StringComparison.OrdinalIgnoreCase);
+    private static readonly Regex itemPathRegex = new Regex(@"(?:\/)[\w]+:[\w\/.]+(:(?=\/)|$)");
+    private static readonly Regex sanitizedItemPathRegex = new Regex("^[a-z]+:<value>$", RegexOptions.IgnoreCase);
+    private static readonly Regex entityNameRegex = new Regex("^((microsoft.graph(.[a-z]+)+)|[a-z]+)$", RegexOptions.IgnoreCase);
+    private static readonly Regex allAlphaRegex = new Regex("^[a-z]+$", RegexOptions.IgnoreCase);
+    private static readonly Regex deprecationRegex = new Regex("^[a-z]+_v2$", RegexOptions.IgnoreCase);
+    private static readonly Regex functionCallRegex = new Regex(@"^[a-z]+\(.*\)$", RegexOptions.IgnoreCase);
+
+    public static bool IsGraphRequest(Request request) => IsGraphUrl(request.RequestUri);
+
+    public static bool IsGraphUrl(Uri uri) => 
+        uri.Host.Contains("graph.microsoft.", StringComparison.OrdinalIgnoreCase) ||
+        uri.Host.Contains("microsoftgraph.", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsSdkRequest(Request request) => request.Headers.HeaderExists("SdkVersion");
 
@@ -49,5 +66,157 @@ public static class ProxyUtils {
         // doesn't end with a path separator
         var appFolder = Path.GetDirectoryName(AppContext.BaseDirectory);
         return path.Replace("~appFolder", appFolder, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // from: https://github.com/microsoftgraph/microsoft-graph-explorer-v4/blob/db86b903f36ef1b882996d46aee52cd49ed4444b/src/app/utils/query-url-sanitization.ts
+    public static string SanitizeUrl(string absoluteUrl) {
+        absoluteUrl = Uri.UnescapeDataString(absoluteUrl);
+        var uri = new Uri(absoluteUrl);
+
+        var parsedSample = ParseSampleUrl(absoluteUrl);
+        var queryString = !String.IsNullOrEmpty(parsedSample.Search) ? $"?{SanitizeQueryParameters(parsedSample.Search)}" : "";
+
+        // Sanitize item path specified in query url
+        var resourceUrl = parsedSample.RequestUrl;
+        if (!String.IsNullOrEmpty(resourceUrl)) {
+            resourceUrl = itemPathRegex.Replace(parsedSample.RequestUrl, match => {
+                return $"{match.Value.Substring(0, match.Value.IndexOf(':'))}:<value>";
+            });
+            // Split requestUrl into segments that can be sanitized individually
+            var urlSegments = resourceUrl.Split('/');
+            for (var i = 0; i < urlSegments.Length; i++) {
+                var segment = urlSegments[i];
+                var sanitizedSegment = SanitizePathSegment(i < 1 ? "" :  urlSegments[i - 1], segment);
+                resourceUrl = resourceUrl.Replace(segment, sanitizedSegment);
+            }
+        }
+        return $"{uri.GetLeftPart(UriPartial.Authority)}/{parsedSample.QueryVersion}/{resourceUrl}{queryString}";
+    }
+
+    /**
+    * Skipped segments:
+    * - Entities, entity sets and navigation properties, expected to contain alphabetic letters only
+    * - Deprecated entities in the form <entity>_v2
+    * The remaining URL segments are assumed to be variables that need to be sanitized
+    * @param segment
+    */
+    private static string SanitizePathSegment(string previousSegment, string segment) {
+        var segmentsToIgnore = new[] { "$value", "$count", "$ref", "$batch" };
+
+        if (IsAllAlpha(segment) ||
+            IsDeprecation(segment) ||
+            sanitizedItemPathRegex.IsMatch(segment) ||
+            segmentsToIgnore.Contains(segment.ToLowerInvariant()) ||
+            entityNameRegex.IsMatch(segment)) {
+            return segment;
+        }
+
+        // Check if segment is in this form: users('<some-id>|<UPN>') and transform to users(<value>)
+        if (IsFunctionCall(segment)) {
+            var openingBracketIndex = segment.IndexOf("(");
+            var textWithinBrackets = segment.Substring(
+                openingBracketIndex + 1,
+                segment.Length - 2
+            );
+            var sanitizedText = String.Join(',', textWithinBrackets
+                .Split(',')
+                .Select(text => {
+                    if (text.Contains('=')) {
+                        var key = text.Split('=')[0];
+                        key = !IsAllAlpha(key) ? "<key>" : key;
+                        return $"{key}=<value>";
+                    }
+                    return "<value>";
+                }));
+
+            return $"{segment.Substring(0, openingBracketIndex)}({sanitizedText})";
+        }
+
+        if (IsPlaceHolderSegment(segment)) {
+            return segment;
+        }
+
+        if (!IsAllAlpha(previousSegment) && !IsDeprecation(previousSegment)) {
+            previousSegment = "unknown";
+        }
+
+        return $"{{{previousSegment}-id}}";
+    }
+
+    private static string SanitizeQueryParameters(string queryString) {
+        // remove leading ? from query string and decode
+        queryString = Uri.UnescapeDataString(
+            new Regex(@"\+").Replace(queryString.Substring(1), " ")
+        );
+        return String.Join('&', queryString.Split('&').Select(s => s));
+    }
+
+    private static bool IsAllAlpha(string value) => allAlphaRegex.IsMatch(value);
+
+    private static bool IsDeprecation(string value) => deprecationRegex.IsMatch(value);
+
+    private static bool IsFunctionCall(string value) => functionCallRegex.IsMatch(value);
+
+    private static bool IsPlaceHolderSegment(string segment) {
+        return segment.StartsWith('{') && segment.EndsWith('}');
+    }
+
+    private static ParsedSample ParseSampleUrl(string url, string? version = null) {
+        var parsedSample = new ParsedSample();
+
+        if (url != "") {
+            try {
+                url = RemoveExtraSlashesFromUrl(url);
+                parsedSample.QueryVersion = version ?? GetGraphVersion(url);
+                parsedSample.RequestUrl = GetRequestUrl(url, parsedSample.QueryVersion);
+                parsedSample.Search = GenerateSearchParameters(url, "");
+                parsedSample.SampleUrl = GenerateSampleUrl(url, parsedSample.QueryVersion, parsedSample.RequestUrl, parsedSample.Search);
+            } catch (Exception) { }
+        }
+
+        return parsedSample;
+    }
+
+    private static string RemoveExtraSlashesFromUrl(string url) {
+        return new Regex(@"([^:]\/)\/+").Replace(url, "$1");
+    }
+
+    private static string GetGraphVersion(string url) {
+        var uri = new Uri(url);
+        return uri.Segments[1].Replace("/", "");
+    }
+
+    private static string GetRequestUrl(string url, string version) {
+        var uri = new Uri(url);
+        var versionToReplace = uri.AbsolutePath.StartsWith($"/{version}")
+            ? version
+            : GetGraphVersion(url);
+        var requestContent = uri.AbsolutePath.Split(versionToReplace).LastOrDefault() ?? "";
+        return Uri.UnescapeDataString(requestContent.TrimEnd('/')).TrimStart('/');
+    }
+
+    private static string GenerateSearchParameters(string url, string search) {
+        var uri = new Uri(url);
+
+        if (uri.Query != "") {
+            try {
+             search = Uri.UnescapeDataString(uri.Query);
+            } catch (Exception) {
+                search = uri.Query;
+            }
+        }
+
+        return new Regex(@"\s").Replace(search, "+");
+    }
+
+    private static string GenerateSampleUrl(
+        string url,
+        string queryVersion,
+        string requestUrl,
+        string search
+    ) {
+        var uri = new Uri(url);
+        var origin = uri.GetLeftPart(UriPartial.Authority);
+        return RemoveExtraSlashesFromUrl($"{origin}/{queryVersion}/{requestUrl + search}");
     }
 }
