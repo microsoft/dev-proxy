@@ -1,6 +1,9 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 using System.Text.Json.Serialization;
 
-namespace Microsoft.Graph.DeveloperProxy.Plugins.RandomErrors;
+namespace Microsoft.Graph.DeveloperProxy.Plugins;
 
 public class GenericErrorResponse {
     [JsonPropertyName("statusCode")]

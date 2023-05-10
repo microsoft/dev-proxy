@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using Titanium.Web.Proxy.EventArguments;
+using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
 
@@ -12,11 +13,52 @@ public interface IProxyContext {
     ILogger Logger { get; }
 }
 
+public class ThrottlerInfo {
+    /// <summary>
+    /// Throttling key used to identify which requests should be throttled.
+    /// Can be set to a hostname, full URL or a custom string value, that
+    /// represents for example a portion of the API
+    /// </summary>
+    public string ThrottlingKey { get; private set; }
+    /// <summary>
+    /// Function responsible for matching the request to the throttling key.
+    /// Takes as arguments:
+    /// - intercepted request
+    /// - the throttling key
+    /// Returns an instance of ThrottlingInfo that contains information
+    /// whether the request should be throttled or not.
+    /// </summary>
+    public Func<Request, string, ThrottlingInfo> ShouldThrottle { get; private set; }
+    /// <summary>
+    /// Time when the throttling window will be reset
+    /// </summary>
+    public DateTime ResetTime { get; set; }
+
+    public ThrottlerInfo(string throttlingKey, Func<Request, string, ThrottlingInfo> shouldThrottle, DateTime resetTime) {
+        ThrottlingKey = throttlingKey ?? throw new ArgumentNullException(nameof(throttlingKey));
+        ShouldThrottle = shouldThrottle ?? throw new ArgumentNullException(nameof(shouldThrottle));
+        ResetTime = resetTime;
+    }
+}
+
+public class ThrottlingInfo {
+    public int ThrottleForSeconds { get; set; }
+    public string RetryAfterHeaderName { get; set; }
+
+    public ThrottlingInfo(int throttleForSeconds, string retryAfterHeaderName) {
+        ThrottleForSeconds = throttleForSeconds;
+        RetryAfterHeaderName = retryAfterHeaderName ?? throw new ArgumentNullException(nameof(retryAfterHeaderName));
+    }
+}
+
 public class ProxyHttpEventArgsBase {
-    internal ProxyHttpEventArgsBase(SessionEventArgs session) =>
+    internal ProxyHttpEventArgsBase(SessionEventArgs session, IList<ThrottlerInfo> throttledRequests) {
         Session = session ?? throw new ArgumentNullException(nameof(session));
+        ThrottledRequests = throttledRequests ?? throw new ArgumentNullException(nameof(throttledRequests));
+    }
 
     public SessionEventArgs Session { get; }
+    public IList<ThrottlerInfo> ThrottledRequests { get; }
 
     public bool HasRequestUrlMatch(ISet<UrlToWatch> watchedUrls) {
         var match = watchedUrls.FirstOrDefault(r => r.Url.IsMatch(Session.HttpClient.Request.RequestUri.AbsoluteUri));
@@ -25,7 +67,7 @@ public class ProxyHttpEventArgsBase {
 }
 
 public class ProxyRequestArgs : ProxyHttpEventArgsBase {
-    public ProxyRequestArgs(SessionEventArgs session, ResponseState responseState) : base(session) {
+    public ProxyRequestArgs(SessionEventArgs session, IList<ThrottlerInfo> throttledRequests, ResponseState responseState) : base(session, throttledRequests) {
         ResponseState = responseState ?? throw new ArgumentNullException(nameof(responseState));
     }
     public ResponseState ResponseState { get; }
@@ -36,7 +78,7 @@ public class ProxyRequestArgs : ProxyHttpEventArgsBase {
 }
 
 public class ProxyResponseArgs : ProxyHttpEventArgsBase {
-    public ProxyResponseArgs(SessionEventArgs session, ResponseState responseState) : base(session) {
+    public ProxyResponseArgs(SessionEventArgs session, IList<ThrottlerInfo> throttledRequests, ResponseState responseState) : base(session, throttledRequests) {
         ResponseState = responseState ?? throw new ArgumentNullException(nameof(responseState));
     }
     public ResponseState ResponseState { get; }

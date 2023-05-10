@@ -3,7 +3,6 @@
 
 using Microsoft.Graph.DeveloperProxy.Abstractions;
 using System.Text.Json;
-using System.IO;
 
 namespace Microsoft.Graph.DeveloperProxy.Plugins.RandomErrors;
 
