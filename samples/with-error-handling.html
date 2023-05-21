@@ -1,0 +1,238 @@
+<!-- Copyright (c) Microsoft Corporation.
+     Licensed under the MIT License. -->
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microsoft Graph Developer Proxy - Microsoft Graph JavaScript SDK Sample</title>
+    <link rel="stylesheet" href="https://unpkg.com/@n8d/htwoo-core@1.2.5/dist/css/htwoo.min.css">
+    <link rel="stylesheet"
+        href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/11.0.0/css/fabric.min.css" />
+    <link rel="stylesheet" href="./style/theme.css">
+    <script src="https://alcdn.msauth.net/browser/2.28.3/js/msal-browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/microsoft-graph-client/lib/graph-js-sdk.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@microsoft/microsoft-graph-client/lib/graph-client-msalBrowserAuthProvider.js"></script>
+    <script src="env.js"></script>
+    <script src="https://unpkg.com/@n8d/htwoo-core@1.2.5/dist/js/umd/htwoo.min.js"></script>
+    <style>
+        #content {
+            display: flex;
+            flex-flow: row wrap;
+            justify-content: space-around;
+            row-gap: 2em;
+            column-gap: 2em;
+            padding: 2em;
+            align-items: stretch;
+        }
+        .hoo-avatar img {
+            background-color: var(--neutralDark);
+        }
+
+    </style>
+</head>
+
+<body class="ms-Fabric" dir="ltr">
+    <h1>Contacts portal</h1>
+    <div id="content"></div>
+    <div id="auth"></div>
+    <script>
+        ((appId, msal, MSGraphAuthCodeMSALBrowserAuthProvider) => {
+            const msalClient = new msal.PublicClientApplication({
+                auth: {
+                    clientId: appId
+                }
+            });
+
+            function render() {
+                document.querySelector('div#content').innerHTML = "";
+                document.querySelector('#auth').innerHTML = "";
+
+                const loading = `<div class="hoo-progress" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="hoo-progress-indicator"></div>
+                                </div>`;
+
+                const accounts = msalClient.getAllAccounts();
+
+                if (accounts.length === 0) {
+                    const element = `<div class="hoo-splashscr">
+                                        <div class="hoo-splashscr-content">
+                                            <article class="hoo-splashcard">
+                                            <header class="hoo-splashcard-header" role="presentation">
+                                                <img src="img/graph.png" class="hoo-splashcard-img">
+                                            </header>
+                                            <h1 class="hoo-splashcard-title">
+                                                Microsoft Graph Developer Proxy
+                                            </h1>
+                                            <p class="hoo-splashcard-desc">
+                                                Microsoft Graph JavaScript SDK Sample
+                                            </p>
+                                            <footer class="hoo-splashcard-footer">
+                                                <button id="login" class="hoo-button-primary">
+                                                    <span class="hoo-button-label">Login</span>
+                                                </button>
+                                                <button id="back" class="hoo-button">
+                                                    <span class="hoo-button-label">Back</span>
+                                                </button>
+                                            </article>
+                                        </div>
+                                    </div>`;
+
+                    document.querySelector('#auth').innerHTML = element;
+
+                    document.querySelector('button#login').addEventListener('click', login);
+                    document.querySelector('button#back').addEventListener('click', (e) => { e.preventDefault(); window.location.href = "index.html"; });
+                }
+                else {
+                    document.querySelector('#content').innerHTML = loading;
+                    document.querySelector('#auth').innerHTML = `
+                                                                <div style="display:flex;column-gap:2em;padding:2em;">
+                                                                    <button id="logout" class="hoo-button">
+                                                                        <span class="hoo-button-label">Logout</span>
+                                                                    </button>
+                                                                    <button id="back" class="hoo-button">
+                                                                        <span class="hoo-button-label">Back</span>
+                                                                    </button>
+                                                                </div>`;
+                    document.querySelector('button#logout').addEventListener('click', logout);
+                    document.querySelector('button#back').addEventListener('click', (e) => { e.preventDefault(); window.location.href = "index.html"; });
+
+                    const graphClient = getGraphClient(accounts[0]);
+                    callGraph(graphClient);
+                }
+            }
+
+            function login(e) {
+                e.preventDefault();
+                msalClient
+                    .loginPopup()
+                    .then(response => render());
+            }
+
+            function logout(e) {
+                e.preventDefault();
+
+                msalClient
+                    .logoutPopup()
+                    .then(response => render());
+            }
+
+            function getGraphClient(account) {
+                const authProvider = new MSGraphAuthCodeMSALBrowserAuthProvider.AuthCodeMSALBrowserAuthenticationProvider(msalClient, {
+                    account,
+                    scopes: [
+                        'https://graph.microsoft.com/User.Read.All',
+                        'https://graph.microsoft.com/Presence.Read.All'
+                    ],
+                    interactionType: msal.InteractionType.Popup,
+                });
+
+                return MicrosoftGraph.Client.initWithMiddleware({ authProvider });
+            }
+
+            function callGraph(graphClient) {
+                graphClient.api('/users').get()
+                    .then((users) => {
+                        const usersWithPresence =
+                            users.value.map(
+                                profile =>
+                                    graphClient.api(`/users/${profile.id}/presence`).get()
+                                        .then(presence => ({ profile, presence }))
+                            );
+                        return Promise.all(usersWithPresence)
+                    }
+                    // , (error) => {
+                    //     const errorContent = `<div class="error">
+                    //                                 <div class="error-content">
+                    //                                     <div class="error-title"><h2>Loading error</h2></div>
+                    //                                     <div class="error-description">There was a problem loading the data we need to show your application, if this problem persists please contact support.</div>
+                    //                                     <div style="display:flex;column-gap:2em;padding:2em;align-itemes:baseline">
+                    //                                         <button id="refreh" class="hoo-button">
+                    //                                             <span class="hoo-button-label" onclick="location.reload();">Reload page</span>
+                    //                                         </button>
+                    //                                         <a href="mailto:support@no.net">Contact support</a>
+                    //                                     </div>
+                    //                                     <pre style=display:none;>${JSON.stringify(error)}</pre>
+                    //                                 </div>
+                    //                             </div>`;
+                    //     document.querySelector('div#content').innerHTML = errorContent;
+                    //     throw error;
+                    // }
+                    )
+                    .then((usersWithPresence) => {
+                        const usersWithPresenceAndPhoto =
+                            usersWithPresence.map(
+                                ({ profile, presence }) =>
+                                    graphClient.api(`/users/${profile.id}/photo/$value`).get()
+                                        // .then(
+                                        //     photo => ({ profile, presence, photo })
+                                        //     , (e => ({
+                                        //         profile,
+                                        //         presence,
+                                        //         photo: null 
+                                        //     }))
+                            ));
+                        return Promise.all(usersWithPresenceAndPhoto);
+                        // return Promise.allSettled(usersWithPresenceAndPhoto);
+                    })
+                    // .then(settled =>  settled.map(r => r.value || null).filter(r => r))
+                    .then((usersWithPresenceAndPhoto) => {
+                            document.querySelector('div#content').innerHTML = "";
+                        usersWithPresenceAndPhoto.map((user) => {
+                            const element = `<div class="hoo-persona-72">
+                                                <div class="hoo-avatar-pres">
+                                                    <div class="hoo-avatar">
+                                                        <img src="${user.photo ? getImageUrl(user.photo) : `data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' stroke='%23fff'%3E%3Cg class='mectrl_stroke' fill='none'%3E%3Ccircle cx='32' cy='32' r='30.25' stroke-width='1.5'/%3E%3Cg transform='matrix(.9 0 0 .9 10.431 10.431)' stroke-width='2'%3E%3Ccircle cx='24.25' cy='18' r='9'/%3E%3Cpath d='M11.2 40a1 1 0 1126.1 0'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E`}" alt="${user.profile.displayName}" class="hoo-avatar-img" loading="lazy">
+                                                    </div>
+                                                    <div class="hoo-presence ${getHooClassFromAvailability(user.presence.availability)}" title="${user.presence.availability}"></div>
+                                                </div>
+                                                <div class="hoo-persona-data">
+                                                    <div class="hoo-persona-name">${user.profile.displayName}</div>
+                                                    <div class="hoo-persona-function">${user.profile.jobTitle ? user.profile.jobTitle : 'Chief Executive Officer'}</span></div>
+                                                    <div class="hoo-persona-statustext"><span>${user.presence.activity}</span></div>
+                                                    <div class="hoo-persona-available"><span>${user.presence.availability}</span></div>
+                                                </div>
+                                            </div>`;
+                            document.querySelector('div#content').innerHTML += element;
+                        })})
+                    .catch(e => {
+                        // In the real world you'll log this and detect it in your APM solution with appropriate alerting
+                        console.error(e);
+                    })
+            }
+
+            function getImageUrl(data) {
+                const url = window.URL || window.webkitURL;
+                return url.createObjectURL(data);
+            }
+
+            function getHooClassFromAvailability(status) {
+                switch (status) {
+                    case 'Available':
+                    case 'AvailableIdle':
+                        return 'is-online';
+                    case 'Away':
+                    case 'BeRightBack':
+                    case 'PresenceIdle':
+                        return 'is-away';
+                    case 'Busy':
+                    case 'BusyIdle':
+                    case 'DoNotDisturb':
+                        return 'is-dnd';
+                    case 'Offline':
+                    case 'PresenceUnknown':
+                        return 'is-invisible';
+                    default:
+                        return 'is-invisible';
+                }
+            }
+
+            render();
+        })(appId, msal, MSGraphAuthCodeMSALBrowserAuthProvider)
+
+    </script>
+</body>
+
+</html>

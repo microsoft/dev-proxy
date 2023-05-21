@@ -35,6 +35,12 @@
                     <button id="nosdk" class="hoo-button">
                         <span class="hoo-button-label">Without SDK</span>
                     </button>
+                    <button id="errorhandling" class="hoo-button">
+                        <span class="hoo-button-label">With error handling</span>
+                    </button>
+                    <button id="caching" class="hoo-button">
+                        <span class="hoo-button-label">With caching</span>
+                    </button>
             </article>
         </div>
     </div>
@@ -47,6 +53,16 @@
         document.querySelector('button#nosdk').addEventListener('click', (e) => {
             e.preventDefault();
             window.location.href = 'nosdk.html';
+        });
+
+        document.querySelector('button#errorhandling').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = 'with-error-handling.html';
+        });
+
+        document.querySelector('button#caching').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = 'with-caching.html';
         });
     </script>
 </body>

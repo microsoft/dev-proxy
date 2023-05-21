@@ -1,0 +1,85 @@
+<!-- Copyright (c) Microsoft Corporation.
+     Licensed under the MIT License. -->
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Microsoft Graph Developer Proxy - Microsoft Graph Caching Example
+    </title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@n8d/htwoo-core@1.2.5/dist/css/htwoo.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/11.0.0/css/fabric.min.css"
+    />
+    <link rel="stylesheet" href="./style/theme.css" />
+    <script src="https://alcdn.msauth.net/browser/2.28.3/js/msal-browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/microsoft-graph-client/lib/graph-js-sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/microsoft-graph-client/lib/graph-client-msalBrowserAuthProvider.js"></script>
+    <script src="env.js"></script>
+    <script src="https://unpkg.com/@n8d/htwoo-core@1.2.5/dist/js/umd/htwoo.min.js"></script>
+    <script src="https://unpkg.com/@microsoft/mgt@2/dist/bundle/mgt-loader.js"></script>
+    <style>
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 0 24px;
+      }
+      h1 {
+        display: inline-block;
+      }
+      #content {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .list-container {
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: flex-start;
+        row-gap: 2em;
+        column-gap: 2em;
+        padding: 2em;
+      }
+    </style>
+  </head>
+
+  <body class="ms-Fabric" dir="ltr">
+    <mgt-msal2-provider
+      client-id="cb691fcc-e0fd-4ccc-a9de-7ce388cb2650"
+      scopes="user.read,presence.read.all"
+    ></mgt-msal2-provider>
+    <header>
+      <h1>Contacts portal</h1>
+      <mgt-login></mgt-login>
+    </header>
+    <div id="content">
+      <mgt-get resource="/users?$count=true" cache-enabled="true">
+        <template>
+          <div class="list-container">
+            <div data-for="user in value" class="hoo-persona-72">
+              <!-- <mgt-person
+                person-details="{{user}}"
+                view="twolines"
+                person-card="click"
+              > -->
+              <mgt-person
+                person-query="{{user.mail}}"
+                view="twolines"
+                person-card="click"
+              >
+              </mgt-person>
+            </div>
+          </div>
+        </template>
+        <template data-type="loading"> loading </template>
+        <template data-type="error"> {{ this }} </template>
+      </mgt-get>
+    </div>
+    <div id="auth"></div>
+  </body>
+</html>
