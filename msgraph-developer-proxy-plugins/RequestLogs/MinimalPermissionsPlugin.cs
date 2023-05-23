@@ -31,7 +31,8 @@ internal class RequestInfo
   public string Method { get; set; }
 }
 
-internal class PermissionInfo {
+internal class PermissionInfo
+{
   [JsonPropertyName("value")]
   public string Value { get; set; }
   [JsonPropertyName("scopeType")]
@@ -48,18 +49,20 @@ internal class PermissionInfo {
   public bool IsHidden { get; set; }
 }
 
-internal class PermissionError {
-  [JsonPropertyName("url")]
+internal class PermissionError
+{
+  [JsonPropertyName("requestUrl")]
   public string Url { get; set; }
   [JsonPropertyName("message")]
   public string Message { get; set; }
 }
 
-internal class ResultsAndErrors {
+internal class ResultsAndErrors
+{
   [JsonPropertyName("results")]
-  public PermissionInfo[] Results { get; set; }
+  public PermissionInfo[]? Results { get; set; }
   [JsonPropertyName("errors")]
-  public PermissionError[] Errors { get; set; }
+  public PermissionError[]? Errors { get; set; }
 }
 
 internal class MethodAndUrlComparer : IEqualityComparer<Tuple<string, string>>
@@ -119,15 +122,18 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
     var methodAndUrlComparer = new MethodAndUrlComparer();
     var endpoints = new List<Tuple<string, string>>();
 
-    foreach (var request in e.RequestLogs) {
-      if (request.MessageType != MessageType.InterceptedRequest) {
+    foreach (var request in e.RequestLogs)
+    {
+      if (request.MessageType != MessageType.InterceptedRequest)
+      {
         continue;
       }
 
       var methodAndUrlString = request.Message.First();
       var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
 
-      if (!ProxyUtils.IsGraphUrl(new Uri(methodAndUrl.Item2))) {
+      if (!ProxyUtils.IsGraphUrl(new Uri(methodAndUrl.Item2)))
+      {
         continue;
       }
 
@@ -146,12 +152,15 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
     await DetermineMinimalScopes(endpoints);
   }
 
-  private async Task DetermineMinimalScopes(IEnumerable<Tuple<string, string>> endpoints) {
+  private async Task DetermineMinimalScopes(IEnumerable<Tuple<string, string>> endpoints)
+  {
     var payload = endpoints.Select(e => new RequestInfo { Method = e.Item1, Url = e.Item2 });
 
-    try {
+    try
+    {
       var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={_configuration.Type.ToString()}";
-      using (var client = new HttpClient()) {
+      using (var client = new HttpClient())
+      {
         var stringPayload = JsonSerializer.Serialize(payload);
         _logger?.LogDebug($"Calling {url} with payload{Environment.NewLine}{stringPayload}");
 
@@ -160,31 +169,24 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
 
         _logger?.LogDebug($"Response:{Environment.NewLine}{content}");
 
-        try {
-          // try a regular result first
-          var permissions = JsonSerializer.Deserialize<PermissionInfo[]>(content);
-          var minimalScopes = permissions?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
+        var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content);
+        var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
+        var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
+        if (minimalScopes.Any())
+        {
+          _logger?.LogInfo("Minimal permissions:");
           _logger?.LogInfo(string.Join(", ", minimalScopes));
+          _logger?.LogInfo("");
         }
-        catch (Exception ex) {
-          try {
-            // if that fails, try to deserialize a mixed collection
-            var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content);
-            var minimalScopes = resultsAndErrors?.Results.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
-            _logger?.LogInfo("Minimal permissions:");
-            _logger?.LogInfo(string.Join(", ", minimalScopes));
-            _logger?.LogInfo("");
-            _logger?.LogError("Couldn't determine minimal permissions for the following URLs:");
-            _logger?.LogError(string.Join(Environment.NewLine, resultsAndErrors?.Errors.Select(e => $"- {e.Url}") ?? Array.Empty<string>()));
-          }
-          catch (Exception ex1) {
-            // something else failed
-            _logger?.LogError($"Couldn't determine minimal permissions for the recorded URLs.");
-          }
+        if (errors.Any())
+        {
+          _logger?.LogError("Couldn't determine minimal permissions for the following URLs:");
+          _logger?.LogError(string.Join(Environment.NewLine, errors));
         }
       }
     }
-    catch (Exception ex) {
+    catch (Exception ex)
+    {
       _logger?.LogError($"An error has occurred while retrieving minimal permissions: {ex.Message}");
     }
   }
