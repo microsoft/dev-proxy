@@ -26,21 +26,21 @@ internal class MinimalPermissionsPluginConfiguration
 internal class RequestInfo
 {
   [JsonPropertyName("requestUrl")]
-  public string Url { get; set; }
+  public string Url { get; set; } = string.Empty;
   [JsonPropertyName("method")]
-  public string Method { get; set; }
+  public string Method { get; set; } = string.Empty;
 }
 
 internal class PermissionInfo
 {
   [JsonPropertyName("value")]
-  public string Value { get; set; }
+  public string Value { get; set; } = string.Empty;
   [JsonPropertyName("scopeType")]
-  public string ScopeType { get; set; }
+  public string ScopeType { get; set; } = string.Empty;
   [JsonPropertyName("consentDisplayName")]
-  public string ConsentDisplayName { get; set; }
+  public string ConsentDisplayName { get; set; } = string.Empty;
   [JsonPropertyName("consentDescription")]
-  public string ConsentDescription { get; set; }
+  public string ConsentDescription { get; set; } = string.Empty;
   [JsonPropertyName("isAdmin")]
   public bool IsAdmin { get; set; }
   [JsonPropertyName("isLeastPrivilege")]
@@ -52,9 +52,9 @@ internal class PermissionInfo
 internal class PermissionError
 {
   [JsonPropertyName("requestUrl")]
-  public string Url { get; set; }
+  public string Url { get; set; } = string.Empty;
   [JsonPropertyName("message")]
-  public string Message { get; set; }
+  public string Message { get; set; } = string.Empty;
 }
 
 internal class ResultsAndErrors

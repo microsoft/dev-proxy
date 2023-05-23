@@ -8,10 +8,10 @@ using Titanium.Web.Proxy.Models;
 namespace Microsoft.Graph.DeveloperProxy.Abstractions;
 
 class ParsedSample {
-    public string QueryVersion { get; set; }
-    public string RequestUrl { get; set; }
-    public string SampleUrl { get; set; }
-    public string Search { get; set; }
+    public string QueryVersion { get; set; } = string.Empty;
+    public string RequestUrl { get; set; } = string.Empty;
+    public string SampleUrl { get; set; } = string.Empty;
+    public string Search { get; set; } = string.Empty;
 }
 
 public static class ProxyUtils {
@@ -25,8 +25,8 @@ public static class ProxyUtils {
     public static bool IsGraphRequest(Request request) => IsGraphUrl(request.RequestUri);
 
     public static bool IsGraphUrl(Uri uri) => 
-        uri.Host.Contains("graph.microsoft.", StringComparison.OrdinalIgnoreCase) ||
-        uri.Host.Contains("microsoftgraph.", StringComparison.OrdinalIgnoreCase);
+        uri.Host.StartsWith("graph.microsoft.", StringComparison.OrdinalIgnoreCase) ||
+        uri.Host.StartsWith("microsoftgraph.", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsSdkRequest(Request request) => request.Headers.HeaderExists("SdkVersion");
 

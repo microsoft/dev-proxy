@@ -126,6 +126,9 @@
   "executionSummaryPlugin": {
     "groupBy": "url"
   },
+  "minimalPermissionsPlugin": {
+    "type": "delegated"
+  },
   "cachingGuidance": {
     "cacheThresholdSeconds": 5
   },
