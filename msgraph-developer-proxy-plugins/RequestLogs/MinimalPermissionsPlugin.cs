@@ -149,6 +149,11 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
     _logger?.LogInfo(string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.Item1} {e.Item2}")));
     _logger?.LogInfo("");
 
+    _logger?.LogWarn("This plugin is in preview and may not return the correct results.");
+    _logger?.LogWarn("Please review the permissions and test your app before using them in production.");
+    _logger?.LogWarn("If you have any feedback, please open an issue at https://aka.ms/graph/proxy/issue.");
+    _logger?.LogInfo("");
+
     await DetermineMinimalScopes(endpoints);
   }
 
