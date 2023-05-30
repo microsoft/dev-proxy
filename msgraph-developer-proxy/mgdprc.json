@@ -92,13 +92,13 @@
     },
     {
       "name": "ExecutionSummaryPlugin",
-      "enabled": true,
+      "enabled": false,
       "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll",
       "configSection": "executionSummaryPlugin"
     },
     {
       "name": "MinimalPermissionsPlugin",
-      "enabled": false,
+      "enabled": true,
       "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll",
       "configSection": "minimalPermissionsPlugin"
     }
