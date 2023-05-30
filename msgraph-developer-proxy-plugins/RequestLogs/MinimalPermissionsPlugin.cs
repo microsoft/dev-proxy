@@ -12,15 +12,14 @@ namespace Microsoft.Graph.DeveloperProxy.Plugins.RequestLogs;
 
 internal enum PermissionsType
 {
-  [JsonPropertyName("application")]
   Application,
-  [JsonPropertyName("delegated")]
-  DelegatedWork
+  Delegated
 }
 
 internal class MinimalPermissionsPluginConfiguration
 {
-  public PermissionsType Type { get; set; } = PermissionsType.DelegatedWork;
+  [JsonPropertyName("type")]
+  public PermissionsType Type { get; set; } = PermissionsType.Delegated;
 }
 
 internal class RequestInfo
@@ -157,13 +156,23 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
     await DetermineMinimalScopes(endpoints);
   }
 
+  private string GetScopeTypeString()
+  {
+    return _configuration.Type switch
+    {
+      PermissionsType.Application => "Application",
+      PermissionsType.Delegated => "DelegatedWork",
+      _ => throw new InvalidOperationException($"Unknown scope type: {_configuration.Type}")
+    };
+  }
+
   private async Task DetermineMinimalScopes(IEnumerable<Tuple<string, string>> endpoints)
   {
     var payload = endpoints.Select(e => new RequestInfo { Method = e.Item1, Url = e.Item2 });
 
     try
     {
-      var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={_configuration.Type.ToString()}";
+      var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString()}";
       using (var client = new HttpClient())
       {
         var stringPayload = JsonSerializer.Serialize(payload);
