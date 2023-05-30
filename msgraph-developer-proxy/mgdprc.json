@@ -95,6 +95,12 @@
       "enabled": true,
       "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll",
       "configSection": "executionSummaryPlugin"
+    },
+    {
+      "name": "MinimalPermissionsPlugin",
+      "enabled": false,
+      "pluginPath": "GraphProxyPlugins\\msgraph-developer-proxy-plugins.dll",
+      "configSection": "minimalPermissionsPlugin"
     }
   ],
   "urlsToWatch": [
@@ -119,6 +125,9 @@
   },
   "executionSummaryPlugin": {
     "groupBy": "url"
+  },
+  "minimalPermissionsPlugin": {
+    "type": "delegated"
   },
   "cachingGuidance": {
     "cacheThresholdSeconds": 5
