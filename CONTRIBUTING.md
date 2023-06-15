@@ -1,14 +1,14 @@
-# Contributing to the Microsoft Developer Proxy
+# Contributing to the Microsoft 365 Developer Proxy
 
-The best way to contribute initially is to download and try the Microsoft Graph Developer Proxy and then give us your feedback, both positive and negative, this will help us shape the future direction of this tool. At present we are not accepting community code contributions but will be opening up to accept pull requests in the future.
+The best way to contribute initially is to download and try the Microsoft 365 Developer Proxy and then give us your feedback, both positive and negative, this will help us shape the future direction of this tool. At present we are not accepting community code contributions but will be opening up to accept pull requests in the future.
 
 ## Our foundation
 
-The Microsoft Graph Developer Proxy is built with .NET 6 and uses the [Titanium.Web.Proxy](https://github.com/justcoding121/titanium-web-proxy).
+The Microsoft 365 Developer Proxy is built with .NET 6 and uses the [Titanium.Web.Proxy](https://github.com/justcoding121/titanium-web-proxy).
 
 ## Reporting issues and suggesting new features
 
-Please use [GitHub Issues](https://github.com/microsoftgraph/msgraph-developer-proxy/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc) for bug reports and feature request.
+Please use [GitHub Issues](https://github.com/microsoft/m365-developer-proxy/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc) for bug reports and feature request.
 
 We highly recommend you browse existing issues first.
 

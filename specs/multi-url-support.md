@@ -1,6 +1,6 @@
-# Support for any URLs via the Microsoft Graph Developer Proxy
+# Support for any URLs via the Microsoft 365 Developer Proxy
 
-Some applications are using an hybrid approach when it comes to consuming APIs. Some APIs are available on Microsoft Graph while some are not. To enable developers to fully test their scenarios with the Microsoft Graph Developer Proxy, the proxy should support acting as a reverse proxy for more than just one URL at a time, and include URLs that are outside of the Microsoft Graph. This can also be used by internal teams to test their APIs on internal endpoints.
+Some applications are using an hybrid approach when it comes to consuming APIs. Some APIs are available on Microsoft Graph while some are not. To enable developers to fully test their scenarios with the Microsoft 365 Developer Proxy, the proxy should support acting as a reverse proxy for more than just one URL at a time, and include URLs that are outside of the Microsoft Graph. This can also be used by internal teams to test their APIs on internal endpoints.
 
 ## History
 
