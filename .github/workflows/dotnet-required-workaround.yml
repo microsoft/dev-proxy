@@ -12,6 +12,6 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, 1ES.Pool=1es-graphdevx-ubuntu-github-latest] 
+    runs-on: ubuntu-latest
     steps:
       - run: 'echo "No build required"'

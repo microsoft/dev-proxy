@@ -13,6 +13,6 @@ on:
 jobs:
   analyze: #names must match the original workflow
     name: Analyze (csharp)
-    runs-on: [self-hosted, 1ES.Pool=1es-graphdevx-ubuntu-github-latest]
+    runs-on: ubuntu-latest
     steps:
       - run: 'echo "No CodeQL Analysis required"'
