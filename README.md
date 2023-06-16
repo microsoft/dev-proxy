@@ -1,21 +1,21 @@
 <h1 align="center">
-    <img alt="Microsoft Graph Developer Proxy" src="./samples/img/graph.png" height="78" />
-  <br>Microsoft Graph Developer Proxy<br>
+    <img alt="Microsoft 365 Developer Proxy" src="./samples/img/microsoft.png" height="78" />
+  <br>Microsoft 365 Developer Proxy<br>
 </h1>
 
 <h4 align="center">
-  Build with Microsoft Graph. Reliably 
+  Build with Microsoft Graph. Reliably
 </h4>
  
 <p align="center">
-    <a href="https://github.com/microsoftgraph/msgraph-developer-proxy/releases/latest">
+    <a href="https://github.com/microsoft/m365-developer-proxy/releases/latest">
         <img alt="Download Now" src="https://img.shields.io/badge/download-now-green?style=for-the-badge">
     </a>
 </p>
 
 <p align="center">
   <a href="#get-started">Get started</a> |
-  <a href="https://github.com/microsoftgraph/msgraph-developer-proxy/wiki/">Documentation</a>
+  <a href="https://github.com/microsoft/m365-developer-proxy/wiki/">Documentation</a>
 </p>
 
 <p align="center">
@@ -41,7 +41,7 @@
 </details>
 </p>
 
-Microsoft Graph Developer Proxy is a command line tool for testing Microsoft Graph and other APIs.
+Microsoft 365 Developer Proxy is a command line tool for testing Microsoft Graph and other APIs.
 
 It aims to provide a better way to test applications.
 
@@ -55,14 +55,14 @@ Identify and fix issues in your code before they reach production.
 
 ## Get started
 
-Begin with our [tutorial](https://github.com/microsoftgraph/msgraph-developer-proxy/wiki/Get-started). It will guide you through the installation process and running the proxy for the first time.
+Begin with our [tutorial](https://github.com/microsoft/m365-developer-proxy/wiki/Get-started). It will guide you through the installation process and running the proxy for the first time.
 
 ## Example
 
 Fail requests (with a 50% chance) and respond with `429 Too Many Requests` or `503 Service Unavailable`:
 
 ```
-mgdp --failure-rate 50 --no-mocks --allowed-errors 429 503
+m365proxy --failure-rate 50 --no-mocks --allowed-errors 429 503
 ```
 
 ## Features
@@ -99,7 +99,7 @@ This project may contain trademarks or logos for projects, products, or services
 
 ## Community Preview
 
-We are working on getting the General Availability (GA) version published within the calendar year 2023. The current state of the Microsoft Graph Developer Proxy enables our team to be transparent and provide more insights on the upcoming features and to provide our worldwide ecosystem an option to directly influence the future of our capabilities. [Your feedback is more than welcome](https://github.com/microsoftgraph/msgraph-developer-proxy/issues)! You can expect many more new features within the upcoming months before a version that is officially ready for production use and fully supported.
+We are working on getting the General Availability (GA) version published within the calendar year 2023. The current state of the Microsoft 365 Developer Proxy enables our team to be transparent and provide more insights on the upcoming features and to provide our worldwide ecosystem an option to directly influence the future of our capabilities. [Your feedback is more than welcome](https://github.com/microsoft/m365-developer-proxy/issues)! You can expect many more new features within the upcoming months before a version that is officially ready for production use and fully supported.
 
 ## A Microsoft Hackathon 2022 Project
 

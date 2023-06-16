@@ -47,7 +47,7 @@ Execution summary contains the following information:
 #### Grouped by URL
 
 ```md
-# Microsoft Graph Developer Proxy execution summary
+# Microsoft 365 Developer Proxy execution summary
 
 Date: 2023-02-06 12:00:00
 
@@ -113,7 +113,7 @@ Failures|5
 #### Grouped by message type
 
 ```md
-# Microsoft Graph Developer Proxy execution summary
+# Microsoft 365 Developer Proxy execution summary
 
 Date: 2023-02-06 12:00:00
 

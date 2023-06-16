@@ -12,7 +12,7 @@ on:
 jobs:
   build:
 
-    runs-on: [self-hosted, 1ES.Pool=1es-graphdevx-ubuntu-github-latest] 
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -23,12 +23,12 @@ jobs:
     - name: Restore workloads
       run: dotnet workload restore
     - name: Restore dependencies
-      run: dotnet restore msgraph-developer-proxy.sln
+      run: dotnet restore m365-developer-proxy.sln
     - name: Build
-      run: dotnet build msgraph-developer-proxy.sln --no-restore
+      run: dotnet build m365-developer-proxy.sln --no-restore
     # We really should have tests, putting these steps here for when we have a build process
     # - name: Test
-    #   run: dotnet test msgraph-developer-proxy.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
+    #   run: dotnet test m365-developer-proxy.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
     # - name: Install report generator
     #   run: dotnet tool install --global dotnet-reportgenerator-globaltool
     # - name: Generate coverage report

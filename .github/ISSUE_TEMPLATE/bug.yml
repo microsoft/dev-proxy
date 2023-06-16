@@ -38,13 +38,13 @@ body:
     validations:
       required: true
   - type: input
-    id: mgdpversion
+    id: m365proxyversion
     attributes:
-      label: Microsoft Graph Developer Proxy Version
+      label: Microsoft 365 Developer Proxy Version
       description: |
         Provide the version of the proxy you are using.
         
-        Execute `mgdp --version` in your terminal to identify your version
+        Execute `m365proxy --version` in your terminal to identify your version
     validations:
       required: true 
   - type: dropdown

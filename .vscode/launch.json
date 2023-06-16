@@ -10,9 +10,9 @@
       "request": "launch",
       "preLaunchTask": "build",
       // If you have changed target frameworks, make sure to update the program path.
-      "program": "${workspaceFolder}/msgraph-developer-proxy/bin/Debug/net7.0/mgdp.dll",
+      "program": "${workspaceFolder}/m365-developer-proxy/bin/Debug/net7.0/m365proxy.dll",
       "args": [],
-      "cwd": "${workspaceFolder}/msgraph-developer-proxy/bin/Debug/net7.0",
+      "cwd": "${workspaceFolder}/m365-developer-proxy/bin/Debug/net7.0",
       // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
       "console": "integratedTerminal",
       "stopAtEntry": false,

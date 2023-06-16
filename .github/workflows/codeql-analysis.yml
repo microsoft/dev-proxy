@@ -25,7 +25,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: [self-hosted, 1ES.Pool=1es-graphdevx-ubuntu-github-latest] 
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
