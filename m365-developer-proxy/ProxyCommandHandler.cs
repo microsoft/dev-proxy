@@ -77,7 +77,7 @@ public class ProxyCommandHandler : ICommandHandler {
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion();
         if (newReleaseInfo != null) {
             _logger.LogError($"New version {newReleaseInfo.Version} of the Graph Developer Proxy is available.");
-            _logger.LogError($"See {newReleaseInfo.Url} for more information.");
+            _logger.LogError($"See https://aka.ms/m365/proxy/upgrade for more information.");
             _logger.LogError(string.Empty);
         }
 

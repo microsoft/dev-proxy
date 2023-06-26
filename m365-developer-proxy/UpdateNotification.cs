@@ -18,7 +18,7 @@ internal class ReleaseInfo {
 }
 
 internal static class UpdateNotification {
-    private static readonly string releasesUrl = "https://api.github.com/repos/microsoft/m365-developer-proxy/releases";
+    private static readonly string releasesUrl = "https://aka.ms/m365/proxy/releases";
 
     /// <summary>
     /// Checks if a new version of the proxy is available.
