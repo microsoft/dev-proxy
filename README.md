@@ -4,7 +4,7 @@
 </h1>
 
 <h4 align="center">
-  Build with Microsoft Graph. Reliably
+  Build reliable Microsoft 365 apps
 </h4>
  
 <p align="center">
