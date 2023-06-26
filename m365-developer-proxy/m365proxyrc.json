@@ -101,6 +101,11 @@
       "enabled": true,
       "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
       "configSection": "minimalPermissionsPlugin"
+    },
+    {
+      "name": "MinimalPermissionsGuidancePlugin",
+      "enabled": false,
+      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
     }
   ],
   "urlsToWatch": [

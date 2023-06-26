@@ -17,6 +17,7 @@
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.31.0" />
     <PackageReference Include="Titanium.Web.Proxy" Version="3.2.0">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>

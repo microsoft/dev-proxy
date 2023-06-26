@@ -3,96 +3,17 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft365.DeveloperProxy.Abstractions;
-using System.Diagnostics.CodeAnalysis;
+using Microsoft365.DeveloperProxy.Plugins.RequestLogs.MinimalPermissions;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Microsoft365.DeveloperProxy.Plugins.RequestLogs;
 
-internal enum PermissionsType
-{
-  Application,
-  Delegated
-}
-
 internal class MinimalPermissionsPluginConfiguration
 {
   [JsonPropertyName("type")]
   public PermissionsType Type { get; set; } = PermissionsType.Delegated;
-}
-
-internal class RequestInfo
-{
-  [JsonPropertyName("requestUrl")]
-  public string Url { get; set; } = string.Empty;
-  [JsonPropertyName("method")]
-  public string Method { get; set; } = string.Empty;
-}
-
-internal class PermissionInfo
-{
-  [JsonPropertyName("value")]
-  public string Value { get; set; } = string.Empty;
-  [JsonPropertyName("scopeType")]
-  public string ScopeType { get; set; } = string.Empty;
-  [JsonPropertyName("consentDisplayName")]
-  public string ConsentDisplayName { get; set; } = string.Empty;
-  [JsonPropertyName("consentDescription")]
-  public string ConsentDescription { get; set; } = string.Empty;
-  [JsonPropertyName("isAdmin")]
-  public bool IsAdmin { get; set; }
-  [JsonPropertyName("isLeastPrivilege")]
-  public bool IsLeastPrivilege { get; set; }
-  [JsonPropertyName("isHidden")]
-  public bool IsHidden { get; set; }
-}
-
-internal class PermissionError
-{
-  [JsonPropertyName("requestUrl")]
-  public string Url { get; set; } = string.Empty;
-  [JsonPropertyName("message")]
-  public string Message { get; set; } = string.Empty;
-}
-
-internal class ResultsAndErrors
-{
-  [JsonPropertyName("results")]
-  public PermissionInfo[]? Results { get; set; }
-  [JsonPropertyName("errors")]
-  public PermissionError[]? Errors { get; set; }
-}
-
-internal class MethodAndUrlComparer : IEqualityComparer<Tuple<string, string>>
-{
-  public bool Equals(Tuple<string, string>? x, Tuple<string, string>? y)
-  {
-    if (object.ReferenceEquals(x, y))
-    {
-      return true;
-    }
-
-    if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null))
-    {
-      return false;
-    }
-
-    return x.Item1 == y.Item1 && x.Item2 == y.Item2;
-  }
-
-  public int GetHashCode([DisallowNull] Tuple<string, string> obj)
-  {
-    if (obj == null)
-    {
-      return 0;
-    }
-
-    int methodHashCode = obj.Item1.GetHashCode();
-    int urlHashCode = obj.Item2.GetHashCode();
-
-    return methodHashCode ^ urlHashCode;
-  }
 }
 
 public class MinimalPermissionsPlugin : BaseProxyPlugin
