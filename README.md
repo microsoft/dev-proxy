@@ -41,7 +41,7 @@
 </details>
 </p>
 
-Microsoft 365 Developer Proxy is a command line tool for testing Microsoft Graph, SharePoint Online and any other APIs.
+Microsoft 365 Developer Proxy is a command line tool for testing Microsoft Graph, SharePoint Online and any other HTTP APIs.
 
 It aims to provide a better way to test applications.
 
