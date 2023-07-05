@@ -28,6 +28,7 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin {
     private static bool WarnNoSelect(Request request) =>
         ProxyUtils.IsGraphRequest(request) &&
         request.Method == "GET" &&
+        !request.RequestUri.AbsolutePath.EndsWith("/$value", StringComparison.OrdinalIgnoreCase) &&
         !request.Url.Contains("$select", StringComparison.OrdinalIgnoreCase) &&
         !request.Url.Contains("%24select", StringComparison.OrdinalIgnoreCase);
 
