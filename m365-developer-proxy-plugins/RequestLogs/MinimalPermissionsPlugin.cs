@@ -65,6 +65,11 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
     // Remove duplicates
     endpoints = endpoints.Distinct(methodAndUrlComparer).ToList();
 
+    if (!endpoints.Any()) {
+      _logger?.LogInfo("No requests to Microsoft Graph endpoints recorded. Will not retrieve minimal permissions.");
+      return;
+    }
+
     _logger?.LogInfo("Retrieving minimal permissions for:");
     _logger?.LogInfo(string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.Item1} {e.Item2}")));
     _logger?.LogInfo("");
