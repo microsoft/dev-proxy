@@ -242,7 +242,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
       var message = GetRequestMessage(log);
       if (log.MessageType == MessageType.InterceptedRequest)
       {
-        var request = message;
+        var request = GetMethodAndUrl(log);
         if (!data.ContainsKey(request))
         {
           data.Add(request, new Dictionary<string, Dictionary<string, int>>());
@@ -341,20 +341,13 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 
   private string GetMethodAndUrl(RequestLog requestLog)
   {
-    if (requestLog.MessageType == MessageType.InterceptedRequest)
+    if (requestLog.Context is not null)
     {
-      return requestLog.Message.First();
+      return $"{requestLog.Context.Session.HttpClient.Request.Method} {requestLog.Context.Session.HttpClient.Request.RequestUri}";
     }
     else
     {
-      if (requestLog.Context is not null)
-      {
-        return $"{requestLog.Context.Session.HttpClient.Request.Method} {requestLog.Context.Session.HttpClient.Request.RequestUri}";
-      }
-      else
-      {
-        return "Undefined";
-      }
+      return "Undefined";
     }
   }
 
