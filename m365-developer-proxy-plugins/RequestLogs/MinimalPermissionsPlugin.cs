@@ -52,14 +52,21 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
       var methodAndUrlString = request.Message.First();
       var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
 
-      if (!ProxyUtils.IsGraphUrl(new Uri(methodAndUrl.Item2)))
+      var uri = new Uri(methodAndUrl.Item2);
+      if (!ProxyUtils.IsGraphUrl(uri))
       {
         continue;
       }
 
-      methodAndUrl = new Tuple<string, string>(methodAndUrl.Item1, GetTokenizedUrl(methodAndUrl.Item2));
-
-      endpoints.Add(methodAndUrl);
+      if (ProxyUtils.IsGraphBatchUrl(uri)) {
+        var graphVersion = ProxyUtils.IsGraphBetaUrl(uri) ? "beta" : "v1.0";
+        var requestsFromBatch = GetRequestsFromBatch(request.Context?.Session.HttpClient.Request.BodyString!, graphVersion, uri.Host);
+        endpoints.AddRange(requestsFromBatch);
+      }
+      else {
+        methodAndUrl = new Tuple<string, string>(methodAndUrl.Item1, GetTokenizedUrl(methodAndUrl.Item2));
+        endpoints.Add(methodAndUrl);
+      }
     }
 
     // Remove duplicates
@@ -75,6 +82,38 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
     _logger?.LogInfo("");
 
     await DetermineMinimalScopes(endpoints);
+  }
+
+  private Tuple<string, string>[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
+  {
+    var requests = new List<Tuple<string, string>>();
+
+    if (String.IsNullOrEmpty(batchBody))
+    {
+      return requests.ToArray();
+    }
+
+    try {
+      var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody);
+      if (batch == null)
+      {
+        return requests.ToArray();
+      }
+
+      foreach (var request in batch.Requests)
+      {
+        try {
+          var method = request.Method;
+          var url = request.Url;
+          var absoluteUrl = $"https://{graphHostName}/{graphVersion}{url}";
+          requests.Add(new Tuple<string, string>(method, GetTokenizedUrl(absoluteUrl)));
+        }
+        catch {}
+      }
+    }
+    catch {}
+
+    return requests.ToArray();
   }
 
   private string GetScopeTypeString()
