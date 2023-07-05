@@ -109,7 +109,7 @@ internal class ProxyHost {
             // `ProxyCommandHandler.Configuration`. As such, it's always set here
             _configFileOption!
         };
-        command.Description = "Microsoft 365 Developer Proxy is a command line tool that simulates real world behaviors of Microsoft Graph and other APIs, locally.";
+        command.Description = "Microsoft 365 Developer Proxy is a command line tool for testing Microsoft Graph, SharePoint Online and any other HTTP APIs.";
 
         return command;
     }
