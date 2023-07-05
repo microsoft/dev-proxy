@@ -48,13 +48,21 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
       var methodAndUrlString = request.Message.First();
       var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
+      var requestsFromBatch = Array.Empty<Tuple<string, string>>();
 
-      if (!ProxyUtils.IsGraphUrl(new Uri(methodAndUrl.Item2)))
+      var uri = new Uri(methodAndUrl.Item2);
+      if (!ProxyUtils.IsGraphUrl(uri))
       {
         continue;
       }
 
-      methodAndUrl = new Tuple<string, string>(methodAndUrl.Item1, GetTokenizedUrl(methodAndUrl.Item2));
+      if (ProxyUtils.IsGraphBatchUrl(uri)) {
+        var graphVersion = ProxyUtils.IsGraphBetaUrl(uri) ? "beta" : "v1.0";
+        requestsFromBatch = GetRequestsFromBatch(request.Context?.Session.HttpClient.Request.BodyString!, graphVersion, uri.Host);
+      }
+      else {
+        methodAndUrl = new Tuple<string, string>(methodAndUrl.Item1, GetTokenizedUrl(methodAndUrl.Item2));
+      }
 
       var scopesAndType = GetPermissionsAndType(request);
       if (scopesAndType.Item1 == PermissionsType.Delegated)
@@ -62,7 +70,12 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
         // use the scopes from the last request in case the app is using incremental consent
         scopesToEvaluate = scopesAndType.Item2;
 
-        delegatedEndpoints.Add(methodAndUrl);
+        if (ProxyUtils.IsGraphBatchUrl(uri)) {
+          delegatedEndpoints.AddRange(requestsFromBatch);
+        }
+        else {
+          delegatedEndpoints.Add(methodAndUrl);
+        }
       }
       else
       {
@@ -74,7 +87,12 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
           rolesToEvaluate.Length == 0) {
           rolesToEvaluate = scopesAndType.Item2;
 
-          applicationEndpoints.Add(methodAndUrl);
+          if (ProxyUtils.IsGraphBatchUrl(uri)) {
+            applicationEndpoints.AddRange(requestsFromBatch);
+          }
+          else {
+            applicationEndpoints.Add(methodAndUrl);
+          }
         }
       }
     }
@@ -110,6 +128,38 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
       
       await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application);
     }
+  }
+
+  private Tuple<string, string>[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
+  {
+    var requests = new List<Tuple<string, string>>();
+
+    if (String.IsNullOrEmpty(batchBody))
+    {
+      return requests.ToArray();
+    }
+
+    try {
+      var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody);
+      if (batch == null)
+      {
+        return requests.ToArray();
+      }
+
+      foreach (var request in batch.Requests)
+      {
+        try {
+          var method = request.Method;
+          var url = request.Url;
+          var absoluteUrl = $"https://{graphHostName}/{graphVersion}{url}";
+          requests.Add(new Tuple<string, string>(method, GetTokenizedUrl(absoluteUrl)));
+        }
+        catch {}
+      }
+    }
+    catch {}
+
+    return requests.ToArray();
   }
 
   /// <summary>

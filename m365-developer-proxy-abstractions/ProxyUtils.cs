@@ -28,11 +28,17 @@ public static class ProxyUtils {
         uri.Host.StartsWith("graph.microsoft.", StringComparison.OrdinalIgnoreCase) ||
         uri.Host.StartsWith("microsoftgraph.", StringComparison.OrdinalIgnoreCase);
 
+    public static bool IsGraphBatchUrl(Uri uri) => 
+        uri.AbsoluteUri.EndsWith("/$batch", StringComparison.OrdinalIgnoreCase);
+
     public static bool IsSdkRequest(Request request) => request.Headers.HeaderExists("SdkVersion");
 
     public static bool IsGraphBetaRequest(Request request) => 
         IsGraphRequest(request) &&
-        request.RequestUri.AbsolutePath.Contains("/beta/", StringComparison.OrdinalIgnoreCase);
+        IsGraphBetaUrl(request.RequestUri);
+
+    public static bool IsGraphBetaUrl(Uri uri) => 
+        uri.AbsolutePath.Contains("/beta/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Utility to build HTTP response headers consistent with Microsoft Graph
