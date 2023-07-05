@@ -340,6 +340,13 @@ public class ProxyEngine {
         var method = e.HttpClient.Request.Method.ToUpper();
         // The proxy does not intercept or alter OPTIONS requests
         if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+            // // we need to keep the request body for further processing
+            // // by plugins
+            e.HttpClient.Request.KeepBody = true;
+            if (e.HttpClient.Request.HasBody) {
+                await e.GetRequestBodyAsString();
+            }
+            
             e.UserData = e.HttpClient.Request;
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
             HandleRequest(e);
