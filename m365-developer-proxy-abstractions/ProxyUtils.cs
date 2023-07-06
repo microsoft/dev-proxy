@@ -31,6 +31,13 @@ public static class ProxyUtils {
     public static bool IsGraphBatchUrl(Uri uri) => 
         uri.AbsoluteUri.EndsWith("/$batch", StringComparison.OrdinalIgnoreCase);
 
+    public static Uri GetAbsoluteRequestUrlFromBatch(Uri batchRequestUri, string relativeRequestUrl) {
+        var hostName = batchRequestUri.Host;
+        var graphVersion = batchRequestUri.Segments[1].TrimEnd('/');
+        var absoluteRequestUrl = new Uri($"https://{hostName}/{graphVersion}{relativeRequestUrl}");
+        return absoluteRequestUrl;
+    }
+
     public static bool IsSdkRequest(Request request) => request.Headers.HeaderExists("SdkVersion");
 
     public static bool IsGraphBetaRequest(Request request) => 
