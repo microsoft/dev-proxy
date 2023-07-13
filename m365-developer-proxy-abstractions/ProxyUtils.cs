@@ -187,7 +187,7 @@ public static class ProxyUtils {
         return new Regex(@"([^:]\/)\/+").Replace(url, "$1");
     }
 
-    private static string GetGraphVersion(string url) {
+    public static string GetGraphVersion(string url) {
         var uri = new Uri(url);
         return uri.Segments[1].Replace("/", "");
     }
