@@ -8,18 +8,20 @@ namespace Microsoft365.DeveloperProxy.Plugins;
 public class GraphUtils
 {
   // throttle requests per workload
-  public static string BuildThrottleKey(Request r)
+  public static string BuildThrottleKey(Request r) => BuildThrottleKey(r.RequestUri);
+
+  public static string BuildThrottleKey(Uri uri)
   {
-    if (r.RequestUri.Segments.Length < 3)
+    if (uri.Segments.Length < 3)
     {
-      return r.RequestUri.Host;
+      return uri.Host;
     }
 
     // first segment is /
     // second segment is Graph version (v1.0, beta)
     // third segment is the workload (users, groups, etc.)
     // segment can end with / if there are other segments following
-    var workload = r.RequestUri.Segments[2].Trim('/');
+    var workload = uri.Segments[2].Trim('/');
 
     // TODO: handle 'me' which is a proxy to other resources
 
