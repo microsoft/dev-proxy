@@ -27,7 +27,7 @@ jobs:
       - name: Build plugins
         run: dotnet build ./m365-developer-proxy-plugins/m365-developer-proxy-plugins.csproj -c Release -r ${{ matrix.architecture }} --no-self-contained
       - name: Add plugins to output
-        run: cp ./m365-developer-proxy/bin/Release/net7.0/${{ matrix.architecture }}/GraphProxyPlugins ./${{ env.release }} -r
+        run: cp ./m365-developer-proxy/bin/Release/net7.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
       - name: Remove unnecessary files
         run: |
           pushd

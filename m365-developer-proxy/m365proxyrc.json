@@ -3,12 +3,12 @@
     {
       "name": "RetryAfterPlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll"
     },
     {
       "name": "GraphSelectGuidancePlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "urlsToWatch": [
         "https://graph.microsoft.com/v1.0/*",
         "https://graph.microsoft.com/beta/*",
@@ -23,7 +23,7 @@
     {
       "name": "GraphBetaSupportGuidancePlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "urlsToWatch": [
         "https://graph.microsoft.com/beta/*",
         "https://graph.microsoft.us/beta/*",
@@ -34,7 +34,7 @@
     {
       "name": "GraphSdkGuidancePlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "urlsToWatch": [
         "https://graph.microsoft.com/v1.0/*",
         "https://graph.microsoft.com/beta/*",
@@ -49,12 +49,12 @@
     {
       "name": "ODataPagingGuidancePlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll"
     },
     {
       "name": "GraphClientRequestIdGuidancePlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "urlsToWatch": [
         "https://graph.microsoft.com/v1.0/*",
         "https://graph.microsoft.com/beta/*",
@@ -69,43 +69,43 @@
     {
       "name": "CachingGuidancePlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "cachingGuidance"
     },
     {
       "name": "RateLimitingPlugin",
       "enabled": false,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "rateLimiting"
     },
     {
       "name": "MockResponsePlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "mocksPlugin"
     },
     {
       "name": "GraphRandomErrorPlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "graphRandomErrorsPlugin"
     },
     {
       "name": "ExecutionSummaryPlugin",
       "enabled": false,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "executionSummaryPlugin"
     },
     {
       "name": "MinimalPermissionsPlugin",
       "enabled": true,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "minimalPermissionsPlugin"
     },
     {
       "name": "MinimalPermissionsGuidancePlugin",
       "enabled": false,
-      "pluginPath": "GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll"
     }
   ],
   "urlsToWatch": [
