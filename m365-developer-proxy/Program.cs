@@ -17,14 +17,20 @@ pluginEvents.RaiseInit(new InitArgs(rootCommand));
 
 rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, loaderResults.UrlsToWatch, logger);
 
+// store the global options that are created automatically for us
+string[] globalOptions = { "--version", "-?", "-h", "--help" };
+
 // filter args to retrieve short (-n) and long (--name) option aliases
 var incomingOptions = args.Where(arg => arg.StartsWith("-") || arg.StartsWith("--")).ToArray();
+
+// remove the global options from the incoming options
+incomingOptions = incomingOptions.Except(globalOptions).ToArray();
 
 // compare the incoming options against the root command options
 foreach (var option in rootCommand.Options)
 {
     // get the option aliases
-    string[] aliases = option.Aliases.ToArray();
+    var aliases = option.Aliases.ToArray();
 
     // iterate over aliases
     foreach (string alias in aliases)
@@ -42,6 +48,7 @@ foreach (var option in rootCommand.Options)
 if (incomingOptions.Length > 0)
 {
     logger.LogInfo($"Unknown option(s): {string.Join(" ", incomingOptions)}");
+    logger.LogInfo($"TIP: Use -?, -h or --help to view available options");
     logger.LogInfo($"TIP: Are you missing a plugin? See: https://aka.ms/m365/proxy/plugins");
 }
 else
