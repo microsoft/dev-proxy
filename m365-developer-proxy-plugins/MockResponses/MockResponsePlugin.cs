@@ -77,7 +77,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
         // update the name of the mocks file to load from if supplied
         string? mocksFile = context.ParseResult.GetValueForOption(_mocksFile);
         if (mocksFile is not null) {
-            _configuration.MocksFile = mocksFile;
+            _configuration.MocksFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(mocksFile));
         }
 
         _configuration.MocksFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.MocksFile), Path.GetDirectoryName(_proxyConfiguration?.ConfigFile ?? string.Empty) ?? string.Empty);
