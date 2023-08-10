@@ -18,10 +18,10 @@ pluginEvents.RaiseInit(new InitArgs(rootCommand));
 rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, loaderResults.UrlsToWatch, logger);
 
 // filter args to retrieve short (-n) and long (--name) option aliases
-string[] incomingOptions = args.Where(arg => arg.StartsWith("-") || arg.StartsWith("--")).ToArray();
+var incomingOptions = args.Where(arg => arg.StartsWith("-") || arg.StartsWith("--")).ToArray();
 
 // compare the incoming options against the root command options
-foreach (Option option in rootCommand.Options)
+foreach (var option in rootCommand.Options)
 {
     // get the option aliases
     string[] aliases = option.Aliases.ToArray();
@@ -44,5 +44,7 @@ if (incomingOptions.Length > 0)
     logger.LogInfo($"Unknown option(s): {string.Join(" ", incomingOptions)}");
     logger.LogInfo($"TIP: Are you missing a plugin? See: https://aka.ms/m365/proxy/plugins");
 }
-
-await rootCommand.InvokeAsync(args);
+else
+{
+    await rootCommand.InvokeAsync(args);
+}
