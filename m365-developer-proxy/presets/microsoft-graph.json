@@ -3,12 +3,12 @@
     {
       "name": "GraphSelectGuidancePlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
+      "pluginPath": "~appFolder\\plugins\\m365-developer-proxy-plugins.dll"
     },
     {
       "name": "GraphBetaSupportGuidancePlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "~appFolder\\plugins\\m365-developer-proxy-plugins.dll",
       "urlsToWatch": [
         "https://graph.microsoft.com/beta/*",
         "https://graph.microsoft.us/beta/*",
@@ -19,28 +19,28 @@
     {
       "name": "GraphSdkGuidancePlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
+      "pluginPath": "~appFolder\\plugins\\m365-developer-proxy-plugins.dll"
     },
     {
       "name": "ODataPagingGuidancePlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
+      "pluginPath": "~appFolder\\plugins\\m365-developer-proxy-plugins.dll"
     },
     {
       "name": "GraphClientRequestIdGuidancePlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
+      "pluginPath": "~appFolder\\plugins\\m365-developer-proxy-plugins.dll"
     },
     {
       "name": "GraphRandomErrorPlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "~appFolder\\plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "graphRandomErrorsPlugin"
     },
     {
       "name": "ExecutionSummaryPlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\GraphProxyPlugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "~appFolder\\plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "executionSummaryPlugin"
     }
   ],

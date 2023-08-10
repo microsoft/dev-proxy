@@ -3,7 +3,7 @@
     {
       "name": "RateLimitingPlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\GraphProxyPlugins\\m365-developer-proxy-plugins.dll"
+      "pluginPath": "~appFolder\\plugins\\m365-developer-proxy-plugins.dll"
     }
   ],
   "urlsToWatch": [

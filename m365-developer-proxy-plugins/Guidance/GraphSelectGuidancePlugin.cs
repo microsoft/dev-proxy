@@ -40,7 +40,7 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
         {
             try
             {
-                var file = new FileInfo(Path.Combine(proxyFolder, "GraphProxyPlugins", $"graph-{version.Replace(".", "_")}-openapi.yaml"));
+                var file = new FileInfo(Path.Combine(proxyFolder, "plugins", $"graph-{version.Replace(".", "_")}-openapi.yaml"));
                 if (file.LastWriteTime.Date == DateTime.Now.Date)
                 {
                     // file already updated today
@@ -70,7 +70,7 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
         var versions = new[] { "v1.0", "beta" };
         foreach (var version in versions)
         {
-            var file = new FileInfo(Path.Combine(proxyFolder, "GraphProxyPlugins", $"graph-{version.Replace(".", "_")}-openapi.yaml"));
+            var file = new FileInfo(Path.Combine(proxyFolder, "plugins", $"graph-{version.Replace(".", "_")}-openapi.yaml"));
             if (!file.Exists)
             {
                 continue;

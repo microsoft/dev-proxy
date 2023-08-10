@@ -46,7 +46,7 @@
         the build starts, which may miss files created during the build. -->
       <MySourceFiles Include="$(OutDir)\**\*.*" />
     </ItemGroup>
-    <Copy SourceFiles="@(MySourceFiles)" DestinationFiles="$(ProjectDir)..\m365-developer-proxy\$(OutDir)\GraphProxyPlugins\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Copy SourceFiles="@(MySourceFiles)" DestinationFiles="$(ProjectDir)..\m365-developer-proxy\$(OutDir)\plugins\%(RecursiveDir)%(Filename)%(Extension)" />
   </Target>
 
 </Project>
