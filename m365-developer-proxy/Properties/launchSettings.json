@@ -33,6 +33,10 @@
     "Default": {
       "commandName": "Project",
       "hotReloadEnabled": true
+    },
+    "Missing arg": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 8080 --summary-file-path report.md"
     }
   }
 }
