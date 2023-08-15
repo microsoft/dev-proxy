@@ -12,6 +12,11 @@
         <img alt="Download Now" src="https://img.shields.io/badge/download-now-green?style=for-the-badge">
     </a>
 </p>
+<p align="center">
+    <a href="https://discord.gg/EGsBZH9v">
+        <img alt="Discord" src="https://img.shields.io/badge/discord-chat-green?style=for-the-badge&logo=discord">
+    </a>
+</p>
 
 <p align="center">
   <a href="#get-started">Get started</a> |
