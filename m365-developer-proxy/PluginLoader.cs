@@ -34,7 +34,7 @@ internal class PluginLoader {
                 // Load Handler Assembly if enabled
                 string pluginLocation = Path.GetFullPath(Path.Combine(configFileDirectory, ProxyUtils.ReplacePathTokens(h.PluginPath.Replace('\\', Path.DirectorySeparatorChar))));
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
-                _logger.LogDebug($"Loading from: {pluginLocation}");
+                _logger.LogDebug($"Loading plugin {h.Name} from: {pluginLocation}");
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
                 IEnumerable<UrlToWatch>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
                 ISet<UrlToWatch>? pluginUrls = null;

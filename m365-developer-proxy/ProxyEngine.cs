@@ -68,6 +68,13 @@ public class ProxyEngine {
 
         LoadHostNamesFromUrls();
 
+        // for background db refresh, let's use a separate logger
+        // that only logs warnings and errors
+        var _logger2 = (ILogger)_logger.Clone();
+        _logger2.LogLevel = LogLevel.Warn;
+        // let's not await so that it doesn't block the proxy startup
+        MSGraphDbCommandHandler.GenerateMsGraphDb(_logger2, true);
+
         _proxyServer = new ProxyServer();
 
         _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
@@ -340,8 +347,8 @@ public class ProxyEngine {
         var method = e.HttpClient.Request.Method.ToUpper();
         // The proxy does not intercept or alter OPTIONS requests
         if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
-            // // we need to keep the request body for further processing
-            // // by plugins
+            // we need to keep the request body for further processing
+            // by plugins
             e.HttpClient.Request.KeepBody = true;
             if (e.HttpClient.Request.HasBody) {
                 await e.GetRequestBodyAsString();

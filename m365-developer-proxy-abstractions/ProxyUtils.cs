@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.RegularExpressions;
+using Microsoft.Data.Sqlite;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
@@ -21,6 +22,23 @@ public static class ProxyUtils {
     private static readonly Regex allAlphaRegex = new Regex("^[a-z]+$", RegexOptions.IgnoreCase);
     private static readonly Regex deprecationRegex = new Regex("^[a-z]+_v2$", RegexOptions.IgnoreCase);
     private static readonly Regex functionCallRegex = new Regex(@"^[a-z]+\(.*\)$", RegexOptions.IgnoreCase);
+
+    public static string MsGraphDbFilePath => Path.Combine(AppFolder!, "msgraph-openapi-v1.db");
+    private static SqliteConnection? _msGraphDbConnection;
+    public static SqliteConnection MsGraphDbConnection {
+        get {
+            if (_msGraphDbConnection is null) {
+                // v1 refers to v1 of the db schema, not the graph version
+                _msGraphDbConnection = new SqliteConnection($"Data Source={MsGraphDbFilePath}");
+                _msGraphDbConnection.Open();
+            }
+
+            return _msGraphDbConnection;
+        }
+    }
+
+    // doesn't end with a path separator
+    public static string? AppFolder => Path.GetDirectoryName(AppContext.BaseDirectory);
 
     public static bool IsGraphRequest(Request request) => IsGraphUrl(request.RequestUri);
 
@@ -76,9 +94,7 @@ public static class ProxyUtils {
             return path ?? string.Empty;
         }
 
-        // doesn't end with a path separator
-        var appFolder = Path.GetDirectoryName(AppContext.BaseDirectory);
-        return path.Replace("~appFolder", appFolder, StringComparison.OrdinalIgnoreCase);
+        return path.Replace("~appFolder", AppFolder, StringComparison.OrdinalIgnoreCase);
     }
 
     // from: https://github.com/microsoftgraph/microsoft-graph-explorer-v4/blob/db86b903f36ef1b882996d46aee52cd49ed4444b/src/app/utils/query-url-sanitization.ts

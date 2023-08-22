@@ -36,7 +36,7 @@ public enum LogLevel {
     Error
 }
 
-public interface ILogger {
+public interface ILogger: ICloneable {
     public LogLevel LogLevel { get; set; }
 
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null);

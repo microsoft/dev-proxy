@@ -9,7 +9,7 @@ PluginEvents pluginEvents = new PluginEvents();
 ILogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration, pluginEvents);
 IProxyContext context = new ProxyContext(logger, ProxyCommandHandler.Configuration);
 ProxyHost proxyHost = new();
-RootCommand rootCommand = proxyHost.GetRootCommand();
+RootCommand rootCommand = proxyHost.GetRootCommand(logger);
 
 PluginLoaderResult loaderResults = new PluginLoader(logger).LoadPlugins(pluginEvents, context);
 
