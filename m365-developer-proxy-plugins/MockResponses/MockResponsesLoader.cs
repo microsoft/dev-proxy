@@ -51,6 +51,12 @@ internal class MockResponsesLoader : IDisposable {
         }
 
         string path = Path.GetDirectoryName(_responsesFilePath) ?? throw new InvalidOperationException($"{_responsesFilePath} is an invalid path");
+        if (!File.Exists(_responsesFilePath)) {
+            _logger.LogWarn($"File {_configuration.MocksFile} not found. No mocks will be provided");
+            _configuration.Responses = Array.Empty<MockResponse>();
+            return;
+        }
+
         _watcher = new FileSystemWatcher(Path.GetFullPath(path));
         _watcher.NotifyFilter = NotifyFilters.CreationTime
                              | NotifyFilters.FileName
