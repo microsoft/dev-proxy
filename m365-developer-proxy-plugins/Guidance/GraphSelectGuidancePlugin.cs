@@ -34,6 +34,8 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
 
     private async Task UpdateOpenAPIGraphFilesIfNecessary(string proxyFolder)
     {
+        _logger?.LogDebug("Checking for updated OpenAPI files...");
+
         var modified = false;
         var versions = new[] { "v1.0", "beta" };
         foreach (var version in versions)
@@ -41,16 +43,22 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
             try
             {
                 var file = new FileInfo(Path.Combine(proxyFolder, "plugins", $"graph-{version.Replace(".", "_")}-openapi.yaml"));
+                _logger?.LogDebug($"Checking for updated OpenAPI file for {file}...");
                 if (file.LastWriteTime.Date == DateTime.Now.Date)
                 {
+                    _logger?.LogDebug($"File {file} already updated today");
                     // file already updated today
                     continue;
                 }
 
                 var url = $"https://raw.githubusercontent.com/microsoftgraph/msgraph-metadata/master/openapi/{version}/openapi.yaml";
+                _logger?.LogDebug($"Downloading OpenAPI file from {url}...");
+
                 var client = new HttpClient();
                 var response = await client.GetStringAsync(url);
                 File.WriteAllText(file.FullName, response);
+
+                _logger?.LogDebug($"Downloaded OpenAPI file from {url} to {file}");
                 modified = true;
             }
             catch (Exception ex)
@@ -67,17 +75,29 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
 
     private async void LoadOpenAPIFiles(string proxyFolder)
     {
+        _logger?.LogDebug("Loading OpenAPI files...");
+
         var versions = new[] { "v1.0", "beta" };
         foreach (var version in versions)
         {
             var file = new FileInfo(Path.Combine(proxyFolder, "plugins", $"graph-{version.Replace(".", "_")}-openapi.yaml"));
+            _logger?.LogDebug($"Loading OpenAPI file for {file}...");
+
             if (!file.Exists)
             {
+                _logger?.LogDebug($"File {file} does not exist");
                 continue;
             }
 
-            var openApiDocument = await new OpenApiStreamReader().ReadAsync(file.OpenRead());
-            _openApiDocuments[version] = openApiDocument.OpenApiDocument;
+            try {
+                var openApiDocument = await new OpenApiStreamReader().ReadAsync(file.OpenRead());
+                _openApiDocuments[version] = openApiDocument.OpenApiDocument;
+                
+                _logger?.LogDebug($"Added OpenAPI file {file} for {version}");
+            }
+            catch (Exception ex) {
+                _logger?.LogDebug($"Error loading OpenAPI file {file}: {ex.Message}");
+            }
         }
     }
 
