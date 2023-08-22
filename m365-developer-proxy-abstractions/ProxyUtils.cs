@@ -23,12 +23,12 @@ public static class ProxyUtils {
     private static readonly Regex deprecationRegex = new Regex("^[a-z]+_v2$", RegexOptions.IgnoreCase);
     private static readonly Regex functionCallRegex = new Regex(@"^[a-z]+\(.*\)$", RegexOptions.IgnoreCase);
 
+    // v1 refers to v1 of the db schema, not the graph version
     public static string MsGraphDbFilePath => Path.Combine(AppFolder!, "msgraph-openapi-v1.db");
     private static SqliteConnection? _msGraphDbConnection;
     public static SqliteConnection MsGraphDbConnection {
         get {
             if (_msGraphDbConnection is null) {
-                // v1 refers to v1 of the db schema, not the graph version
                 _msGraphDbConnection = new SqliteConnection($"Data Source={MsGraphDbFilePath}");
                 _msGraphDbConnection.Open();
             }
