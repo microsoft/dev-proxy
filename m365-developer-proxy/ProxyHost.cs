@@ -3,7 +3,6 @@
 
 using Microsoft365.DeveloperProxy.Abstractions;
 using System.CommandLine;
-using System.Text.RegularExpressions;
 
 namespace Microsoft365.DeveloperProxy;
 
@@ -97,7 +96,7 @@ internal class ProxyHost {
         ProxyCommandHandler.Configuration.ConfigFile = ConfigFile;
     }
 
-    public RootCommand GetRootCommand() {
+    public RootCommand GetRootCommand(ILogger logger) {
         var command = new RootCommand {
             _portOption,
             _logLevelOption,
@@ -110,6 +109,12 @@ internal class ProxyHost {
             _configFileOption!
         };
         command.Description = "Microsoft 365 Developer Proxy is a command line tool for testing Microsoft Graph, SharePoint Online and any other HTTP APIs.";
+
+        var msGraphDbCommand = new Command("msgraphdb", "Generate a local SQLite database with Microsoft Graph API metadata")
+        {
+            Handler = new MSGraphDbCommandHandler(logger)
+        };
+        command.Add(msGraphDbCommand);
 
         return command;
     }

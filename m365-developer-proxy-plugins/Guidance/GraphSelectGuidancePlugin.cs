@@ -1,10 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
-using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi.Readers;
 using Microsoft365.DeveloperProxy.Abstractions;
 using Titanium.Web.Proxy.Http;
 
@@ -13,92 +10,15 @@ namespace Microsoft365.DeveloperProxy.Plugins.Guidance;
 public class GraphSelectGuidancePlugin : BaseProxyPlugin
 {
     public override string Name => nameof(GraphSelectGuidancePlugin);
-    private readonly Dictionary<string, OpenApiDocument> _openApiDocuments = new();
 
     public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
                             ISet<UrlToWatch> urlsToWatch,
                             IConfigurationSection? configSection = null)
     {
-        var proxyFolder = Path.GetDirectoryName(context.Configuration.ConfigFile);
-        var stopwatch = new System.Diagnostics.Stopwatch();
-        stopwatch.Start();
-        LoadOpenAPIFiles(proxyFolder!);
-        stopwatch.Stop();
-        UpdateOpenAPIGraphFilesIfNecessary(proxyFolder!);
-
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         pluginEvents.AfterResponse += AfterResponse;
-    }
-
-    private async Task UpdateOpenAPIGraphFilesIfNecessary(string proxyFolder)
-    {
-        _logger?.LogDebug("Checking for updated OpenAPI files...");
-
-        var modified = false;
-        var versions = new[] { "v1.0", "beta" };
-        foreach (var version in versions)
-        {
-            try
-            {
-                var file = new FileInfo(Path.Combine(proxyFolder, "plugins", $"graph-{version.Replace(".", "_")}-openapi.yaml"));
-                _logger?.LogDebug($"Checking for updated OpenAPI file for {file}...");
-                if (file.LastWriteTime.Date == DateTime.Now.Date)
-                {
-                    _logger?.LogDebug($"File {file} already updated today");
-                    // file already updated today
-                    continue;
-                }
-
-                var url = $"https://raw.githubusercontent.com/microsoftgraph/msgraph-metadata/master/openapi/{version}/openapi.yaml";
-                _logger?.LogDebug($"Downloading OpenAPI file from {url}...");
-
-                var client = new HttpClient();
-                var response = await client.GetStringAsync(url);
-                File.WriteAllText(file.FullName, response);
-
-                _logger?.LogDebug($"Downloaded OpenAPI file from {url} to {file}");
-                modified = true;
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex.Message);
-            }
-        }
-
-        if (modified)
-        {
-            LoadOpenAPIFiles(proxyFolder);
-        }
-    }
-
-    private async void LoadOpenAPIFiles(string proxyFolder)
-    {
-        _logger?.LogDebug("Loading OpenAPI files...");
-
-        var versions = new[] { "v1.0", "beta" };
-        foreach (var version in versions)
-        {
-            var file = new FileInfo(Path.Combine(proxyFolder, "plugins", $"graph-{version.Replace(".", "_")}-openapi.yaml"));
-            _logger?.LogDebug($"Loading OpenAPI file for {file}...");
-
-            if (!file.Exists)
-            {
-                _logger?.LogDebug($"File {file} does not exist");
-                continue;
-            }
-
-            try {
-                var openApiDocument = await new OpenApiStreamReader().ReadAsync(file.OpenRead());
-                _openApiDocuments[version] = openApiDocument.OpenApiDocument;
-                
-                _logger?.LogDebug($"Added OpenAPI file {file} for {version}");
-            }
-            catch (Exception ex) {
-                _logger?.LogDebug($"Error loading OpenAPI file {file}: {ex.Message}");
-            }
-        }
     }
 
     private async Task AfterResponse(object? sender, ProxyResponseArgs e)
@@ -134,25 +54,23 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
     {
         var fallback = relativeUrl.Contains("$value", StringComparison.OrdinalIgnoreCase);
 
-        if (!_openApiDocuments.ContainsKey(graphVersion))
+        try
         {
+            var dbConnection = ProxyUtils.MsGraphDbConnection;
+            // lookup information from the database
+            var selectEndpoint = dbConnection.CreateCommand();
+            selectEndpoint.CommandText = "SELECT hasSelect FROM endpoints WHERE path = @path AND graphVersion = @graphVersion";
+            selectEndpoint.Parameters.AddWithValue("@path", relativeUrl);
+            selectEndpoint.Parameters.AddWithValue("@graphVersion", graphVersion);
+            var result = selectEndpoint.ExecuteScalar();
+            var hasSelect = result != null && Convert.ToInt32(result) == 1;
+            return hasSelect;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex.Message);
             return fallback;
         }
-
-        var relativeUrlPattern = Regex.Replace(relativeUrl, @"{[^}]+}", @"{[a-zA-Z-]+}");
-        var relativeUrlRegex = new Regex($"^{relativeUrlPattern}$");
-
-        var openApiDocument = _openApiDocuments[graphVersion];
-        var pathString = openApiDocument.Paths.Keys.FirstOrDefault(k => relativeUrlRegex.IsMatch(k));
-        if (pathString is null ||
-            !openApiDocument.Paths[pathString].Operations.ContainsKey(OperationType.Get))
-        {
-            return fallback;
-        }
-
-        var operation = openApiDocument.Paths[pathString].Operations[OperationType.Get];
-        var parameters = operation.Parameters;
-        return parameters.Any(p => p.Name == "$select");
     }
 
     private static string GetSelectParameterGuidanceUrl() => "https://aka.ms/m365/proxy/guidance/select";

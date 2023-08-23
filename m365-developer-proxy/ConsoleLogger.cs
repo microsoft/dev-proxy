@@ -333,4 +333,12 @@ public class ConsoleLogger : ILogger {
 
         Console.ResetColor();
     }
+
+    public object Clone()
+    {
+        return new ConsoleLogger(new ProxyConfiguration {
+            LabelMode = _labelMode,
+            LogLevel = LogLevel
+        }, _pluginEvents);
+    }
 }
