@@ -70,24 +70,27 @@ public class ConsoleLogger : ILogger {
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null) {
         var messageLines = new List<string>(message);
 
-        // add request context information to the message for messages
-        // that are not intercepted requests and have a context
-        if (messageType != MessageType.InterceptedRequest &&
-            context is not null) {
-            messageLines.Add($"{context.Session.HttpClient.Request.Method} {context.Session.HttpClient.Request.Url}");
-        }
+        // don't log intercepted response to console
+        if (messageType != MessageType.InterceptedResponse) {
+            // add request context information to the message for messages
+            // that are not intercepted requests and have a context
+            if (messageType != MessageType.InterceptedRequest &&
+                context is not null) {
+                messageLines.Add($"{context.Session.HttpClient.Request.Method} {context.Session.HttpClient.Request.Url}");
+            }
 
-        lock (ConsoleLock) {
-            switch (_labelMode) {
-                case LabelMode.Text:
-                    WriteBoxedWithInvertedLabels(messageLines.ToArray(), messageType);
-                    break;
-                case LabelMode.Icon:
-                    WriteBoxedWithAsciiIcons(messageLines.ToArray(), messageType);
-                    break;
-                case LabelMode.NerdFont:
-                    WriteBoxedWithNerdFontIcons(messageLines.ToArray(), messageType);
-                    break;
+            lock (ConsoleLock) {
+                switch (_labelMode) {
+                    case LabelMode.Text:
+                        WriteBoxedWithInvertedLabels(messageLines.ToArray(), messageType);
+                        break;
+                    case LabelMode.Icon:
+                        WriteBoxedWithAsciiIcons(messageLines.ToArray(), messageType);
+                        break;
+                    case LabelMode.NerdFont:
+                        WriteBoxedWithNerdFontIcons(messageLines.ToArray(), messageType);
+                        break;
+                }
             }
         }
 

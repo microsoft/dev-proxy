@@ -106,6 +106,11 @@
       "name": "MinimalPermissionsGuidancePlugin",
       "enabled": false,
       "pluginPath": "plugins\\m365-developer-proxy-plugins.dll"
+    },
+    {
+      "name": "MockGeneratorPlugin",
+      "enabled": false,
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll"
     }
   ],
   "urlsToWatch": [
