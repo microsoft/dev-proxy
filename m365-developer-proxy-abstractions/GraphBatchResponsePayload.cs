@@ -16,7 +16,7 @@ public class GraphBatchResponsePayloadResponse {
     [JsonPropertyName("status")]
     public int Status { get; set; } = 200;
     [JsonPropertyName("body")]
-    public GraphBatchResponsePayloadResponseBody? Body { get; set; }
+    public dynamic? Body { get; set; }
     [JsonPropertyName("headers")]
     public Dictionary<string, string>? Headers { get; set; }
 }
