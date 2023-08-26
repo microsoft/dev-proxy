@@ -18,6 +18,7 @@ namespace Microsoft365.DeveloperProxy.Plugins.MocksResponses;
 internal class MockResponseConfiguration {
     public bool NoMocks { get; set; } = false;
     public string MocksFile { get; set; } = "responses.json";
+    public bool BlockUnmockedRequests { get; set; } = false;
 
     [JsonPropertyName("responses")]
     public IEnumerable<MockResponse> Responses { get; set; } = Array.Empty<MockResponse>();
@@ -93,6 +94,18 @@ public class MockResponsePlugin : BaseProxyPlugin {
             var matchingResponse = GetMatchingMockResponse(request);
             if (matchingResponse is not null) {
                 ProcessMockResponse(e.Session, matchingResponse);
+                state.HasBeenSet = true;
+            }
+            else if (_configuration.BlockUnmockedRequests) {
+                ProcessMockResponse(e.Session, new MockResponse {
+                    Method = request.Method,
+                    Url = request.Url,
+                    ResponseCode = 502,
+                    ResponseBody = new GraphErrorResponseBody(new GraphErrorResponseError {
+                        Code = "Bad Gateway",
+                        Message = $"No mock response found for {request.Method} {request.Url}"
+                    })
+                });
                 state.HasBeenSet = true;
             }
         }
