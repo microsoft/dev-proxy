@@ -160,13 +160,13 @@ public class MSGraphDbCommandHandler : ICommandHandler
                 }
 
                 var url = $"https://raw.githubusercontent.com/microsoftgraph/msgraph-metadata/master/openapi/{version}/openapi.yaml";
-                logger.LogDebug($"Downloading OpenAPI file from {url}...");
+                logger.LogInfo($"Downloading OpenAPI file from {url}...");
 
                 var client = new HttpClient();
                 var response = await client.GetStringAsync(url);
                 File.WriteAllText(file.FullName, response);
 
-                logger.LogInfo($"Downloaded OpenAPI file from {url} to {file}");
+                logger.LogDebug($"Downloaded OpenAPI file from {url} to {file}");
             }
             catch (Exception ex)
             {
