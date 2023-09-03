@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft365.DeveloperProxy.Abstractions;
+using Microsoft365.DeveloperProxy.Plugins.MocksResponses;
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -10,6 +11,11 @@ using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
 namespace Microsoft365.DeveloperProxy.Plugins.Behavior;
+
+public enum RateLimitResponseWhenLimitExceeded {
+    Throttle,
+    Custom
+}
 
 public class RateLimitConfiguration {
     public string HeaderLimit { get; set; } = "RateLimit-Limit";
@@ -21,6 +27,9 @@ public class RateLimitConfiguration {
     public int WarningThresholdPercent { get; set; } = 80;
     public int RateLimit { get; set; } = 120;
     public int RetryAfterSeconds { get; set; } = 5;
+    public RateLimitResponseWhenLimitExceeded WhenLimitExceeded { get; set; } = RateLimitResponseWhenLimitExceeded.Throttle;
+    public string CustomResponseFile { get; set; } = "rate-limit-response.json";
+    public MockResponse? CustomResponse { get; set; }
 }
 
 public class RateLimitingPlugin : BaseProxyPlugin {
@@ -30,6 +39,7 @@ public class RateLimitingPlugin : BaseProxyPlugin {
     // first request and can set the initial values
     private int _resourcesRemaining = -1;
     private DateTime _resetTime = DateTime.MinValue;
+    private RateLimitingCustomResponseLoader? _loader = null;
 
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey) {
         var throttleKeyForRequest = BuildThrottleKey(request);
@@ -129,6 +139,10 @@ public class RateLimitingPlugin : BaseProxyPlugin {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         configSection?.Bind(_configuration);
+        _loader = new RateLimitingCustomResponseLoader(_logger!, _configuration);
+        // load the responses from the configured mocks file
+        _loader.InitResponsesWatcher();
+
         pluginEvents.BeforeRequest += OnRequest;
         pluginEvents.BeforeResponse += OnResponse;
     }
@@ -169,17 +183,34 @@ public class RateLimitingPlugin : BaseProxyPlugin {
         // subtract the cost of the request
         _resourcesRemaining -= _configuration.CostPerRequest;
         if (_resourcesRemaining < 0) {
+            _resourcesRemaining = 0;
             var request = e.Session.HttpClient.Request;
 
             _logger?.LogRequest(new[] { $"Exceeded resource limit when calling {request.Url}.", "Request will be throttled" }, MessageType.Failed, new LoggingContext(e.Session));
-            e.ThrottledRequests.Add(new ThrottlerInfo(
-                BuildThrottleKey(request),
-                ShouldThrottle,
-                DateTime.Now.AddSeconds(_configuration.RetryAfterSeconds)
-            ));
-
-            ThrottleResponse(e);
-            state.HasBeenSet = true;
+            if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Throttle) {
+                e.ThrottledRequests.Add(new ThrottlerInfo(
+                    BuildThrottleKey(request),
+                    ShouldThrottle,
+                    DateTime.Now.AddSeconds(_configuration.RetryAfterSeconds)
+                ));
+                ThrottleResponse(e);
+                state.HasBeenSet = true;
+            }
+            else {
+                if (_configuration.CustomResponse is not null) {
+                    var headers = _configuration.CustomResponse.ResponseHeaders is not null ?
+                        _configuration.CustomResponse.ResponseHeaders.Select(h => new HttpHeader(h.Key, h.Value)) :
+                        Array.Empty<HttpHeader>();
+                    string body = _configuration.CustomResponse.ResponseBody is not null ?
+                        JsonSerializer.Serialize(_configuration.CustomResponse.ResponseBody, new JsonSerializerOptions { WriteIndented = true }) :
+                        "";
+                    e.Session.GenericResponse(body, (HttpStatusCode)(_configuration.CustomResponse.ResponseCode ?? 200), headers);
+                    state.HasBeenSet = true;
+                }
+                else {
+                    _logger?.LogRequest(new[] { $"Custom behavior not set {_configuration.CustomResponseFile} not found." }, MessageType.Failed, new LoggingContext(e.Session));
+                }
+            }
         }
     }
 }
