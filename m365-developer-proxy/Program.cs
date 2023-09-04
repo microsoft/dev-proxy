@@ -23,7 +23,7 @@ rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, loaderResults.Ur
 string[] globalOptions = { "--version", "--help", "-h", "/h", "-?", "/?" };
 
 // filter args to retrieve options
-var incomingOptions = args.Where(arg => arg.StartsWith("-") || arg.StartsWith("/")).ToArray();
+var incomingOptions = args.Where(arg => arg.StartsWith("-")).ToArray();
 
 // remove the global options from the incoming options
 incomingOptions = incomingOptions.Except(globalOptions).ToArray();
