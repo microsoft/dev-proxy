@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Microsoft365.DeveloperProxy.Plugins.MocksResponses;
+namespace Microsoft365.DeveloperProxy.Plugins.MockResponses;
 
 public class MockResponse {
     [JsonPropertyName("url")]

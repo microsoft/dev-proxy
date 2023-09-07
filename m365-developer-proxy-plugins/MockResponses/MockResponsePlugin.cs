@@ -13,9 +13,9 @@ using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
-namespace Microsoft365.DeveloperProxy.Plugins.MocksResponses;
+namespace Microsoft365.DeveloperProxy.Plugins.MockResponses;
 
-internal class MockResponseConfiguration {
+public class MockResponseConfiguration {
     public bool NoMocks { get; set; } = false;
     public string MocksFile { get; set; } = "responses.json";
 
@@ -24,7 +24,7 @@ internal class MockResponseConfiguration {
 }
 
 public class MockResponsePlugin : BaseProxyPlugin {
-    private MockResponseConfiguration _configuration = new();
+    protected MockResponseConfiguration _configuration = new();
     private MockResponsesLoader? _loader = null;
     private readonly Option<bool?> _noMocks;
     private readonly Option<string?> _mocksFile;
@@ -89,7 +89,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
         _loader?.InitResponsesWatcher();
     }
 
-    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
+    protected virtual async Task OnRequest(object? sender, ProxyRequestArgs e) {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
         if (!_configuration.NoMocks && _urlsToWatch is not null && e.ShouldExecute(_urlsToWatch)) {
@@ -114,7 +114,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
                 return true;
             }
 
-            //check if the URL contains a wildcard
+            // check if the URL contains a wildcard
             // if it doesn't, it's not a match for the current request for sure
             if (!mockResponse.Url.Contains('*')) {
                 return false;

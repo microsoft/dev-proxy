@@ -86,6 +86,12 @@
     },
     {
       "name": "MockResponsePlugin",
+      "enabled": false,
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
+      "configSection": "mocksPlugin"
+    },
+    {
+      "name": "GraphMockResponsePlugin",
       "enabled": true,
       "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "mocksPlugin"

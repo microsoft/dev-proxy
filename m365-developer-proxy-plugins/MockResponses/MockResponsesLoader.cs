@@ -4,7 +4,7 @@
 using Microsoft365.DeveloperProxy.Abstractions;
 using System.Text.Json;
 
-namespace Microsoft365.DeveloperProxy.Plugins.MocksResponses;
+namespace Microsoft365.DeveloperProxy.Plugins.MockResponses;
 
 internal class MockResponsesLoader : IDisposable {
     private readonly ILogger _logger;
