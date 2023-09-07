@@ -1,6 +1,12 @@
 {
   "plugins": [
     {
+      "name": "LatencyPlugin",
+      "enabled": false,
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
+      "configSection": "latencyPlugin"
+    },
+    {
       "name": "RetryAfterPlugin",
       "enabled": true,
       "pluginPath": "plugins\\m365-developer-proxy-plugins.dll"
@@ -80,6 +86,12 @@
     },
     {
       "name": "MockResponsePlugin",
+      "enabled": false,
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
+      "configSection": "mocksPlugin"
+    },
+    {
+      "name": "GraphMockResponsePlugin",
       "enabled": true,
       "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
       "configSection": "mocksPlugin"
@@ -136,6 +148,10 @@
   },
   "cachingGuidance": {
     "cacheThresholdSeconds": 5
+  },
+  "latencyPlugin": {
+    "minMs": 200,
+    "maxMs": 10000
   },
   "rate": 50,
   "labelMode": "text",

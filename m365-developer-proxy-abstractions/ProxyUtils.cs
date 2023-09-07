@@ -73,6 +73,10 @@ public static class ProxyUtils {
     /// <param name="requestDate">string representation of the date and time the request was made</param>
     /// <returns>IList<HttpHeader> with defaults consistent with Microsoft Graph. Automatically adds CORS headers when the Origin header is present</returns>
     public static IList<HttpHeader> BuildGraphResponseHeaders(Request request, string requestId, string requestDate) {
+        if (!IsGraphRequest(request)) {
+            return new List<HttpHeader>();
+        }
+
         var headers = new List<HttpHeader>
             {
                 new HttpHeader("Cache-Control", "no-store"),
