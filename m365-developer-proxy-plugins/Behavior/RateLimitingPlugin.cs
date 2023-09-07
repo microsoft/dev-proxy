@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft365.DeveloperProxy.Abstractions;
-using Microsoft365.DeveloperProxy.Plugins.MocksResponses;
+using Microsoft365.DeveloperProxy.Plugins.MockResponses;
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;

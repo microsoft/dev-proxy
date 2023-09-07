@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft365.DeveloperProxy.Abstractions;
-using Microsoft365.DeveloperProxy.Plugins.MocksResponses;
+using Microsoft365.DeveloperProxy.Plugins.MockResponses;
 using System.Text.Json;
 
 namespace Microsoft365.DeveloperProxy.Plugins.Behavior;
