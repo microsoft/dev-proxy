@@ -194,8 +194,8 @@ public class PluginEvents : IPluginEvents {
         await BeforeResponse?.InvokeAsync(this, args, null);
     }
 
-    public void RaiseProxyAfterResponse(ProxyResponseArgs args) {
-        AfterResponse?.Invoke(this, args);
+    public async Task RaiseProxyAfterResponse(ProxyResponseArgs args) {
+        await AfterResponse?.Invoke(this, args);
     }
 
     public void RaiseRequestLogged(RequestLogArgs args) {

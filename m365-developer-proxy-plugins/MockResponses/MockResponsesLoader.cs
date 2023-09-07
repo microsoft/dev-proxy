@@ -3,7 +3,6 @@
 
 using Microsoft365.DeveloperProxy.Abstractions;
 using System.Text.Json;
-using System.IO;
 
 namespace Microsoft365.DeveloperProxy.Plugins.MocksResponses;
 
@@ -33,8 +32,8 @@ internal class MockResponsesLoader : IDisposable {
                     var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString);
                     IEnumerable<MockResponse>? configResponses = responsesConfig?.Responses;
                     if (configResponses is not null) {
-                            _configuration.Responses = configResponses;
-                            _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from {_configuration.MocksFile}");
+                        _configuration.Responses = configResponses;
+                        _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from {_configuration.MocksFile}");
                     }
                 }
             }
