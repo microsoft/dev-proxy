@@ -30,6 +30,9 @@ public class MockResponsePlugin : BaseProxyPlugin {
     private readonly Option<string?> _mocksFile;
     public override string Name => nameof(MockResponsePlugin);
     private IProxyConfiguration? _proxyConfiguration;
+    // tracks the number of times a mock has been applied
+    // used in combination with mocks that have an Nth property
+    private Dictionary<string, int> _appliedMocks = new();
 
     public MockResponsePlugin() {
         _noMocks = new Option<bool?>("--no-mocks", "Disable loading mock requests");
@@ -107,7 +110,7 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
         var mockResponse = _configuration.Responses.FirstOrDefault(mockResponse => {
             if (mockResponse.Method != request.Method) return false;
-            if (mockResponse.Url == request.Url) {
+            if (mockResponse.Url == request.Url && IsNthRequest(mockResponse)) {
                 return true;
             }
 
@@ -119,9 +122,34 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
             //turn mock URL with wildcard into a regex and match against the request URL
             var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
-            return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$");
+            return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$") && IsNthRequest(mockResponse);
         });
+        
+        if (mockResponse is not null)
+        {
+            if (!_appliedMocks.ContainsKey(mockResponse.Url))
+            {
+                _appliedMocks.Add(mockResponse.Url, 0);
+            }
+            _appliedMocks[mockResponse.Url]++;
+        }
+
         return mockResponse;
+    }
+
+    private bool IsNthRequest(MockResponse mockResponse)
+    {
+        if (mockResponse.Nth is null)
+        {
+            // mock doesn't define an Nth property so it always qualifies
+            return true;
+        }
+
+        var nth = 0;
+        _appliedMocks.TryGetValue(mockResponse.Url, out nth);
+        nth++;
+
+        return mockResponse.Nth == nth;
     }
 
     private void ProcessMockResponse(SessionEventArgs e, MockResponse matchingResponse) {

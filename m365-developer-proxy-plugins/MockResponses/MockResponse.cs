@@ -10,6 +10,8 @@ public class MockResponse {
     public string Url { get; set; } = string.Empty;
     [JsonPropertyName("method")]
     public string Method { get; set; } = "GET";
+    [JsonPropertyName("nth")]
+    public int? Nth { get; set; }
     [JsonPropertyName("responseCode")]
     public int? ResponseCode { get; set; } = 200;
     [JsonPropertyName("responseBody")]
