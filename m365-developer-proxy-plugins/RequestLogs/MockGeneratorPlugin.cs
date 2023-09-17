@@ -4,7 +4,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft365.DeveloperProxy.Abstractions;
-using Microsoft365.DeveloperProxy.Plugins.MocksResponses;
+using Microsoft365.DeveloperProxy.Plugins.MockResponses;
 using Titanium.Web.Proxy.EventArguments;
 
 namespace Microsoft365.DeveloperProxy.Plugins.RequestLogs;
