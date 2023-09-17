@@ -356,13 +356,13 @@ public class ProxyEngine {
             
             e.UserData = e.HttpClient.Request;
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
-            HandleRequest(e);
+            await HandleRequest(e);
         }
     }
 
-    private void HandleRequest(SessionEventArgs e) {
+    private async Task HandleRequest(SessionEventArgs e) {
         ResponseState responseState = new ResponseState();
-        _pluginEvents.RaiseProxyBeforeRequest(new ProxyRequestArgs(e, _throttledRequests, responseState));
+        await _pluginEvents.RaiseProxyBeforeRequest(new ProxyRequestArgs(e, _throttledRequests, responseState));
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!responseState.HasBeenSet) {

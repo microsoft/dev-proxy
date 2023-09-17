@@ -13,25 +13,29 @@ using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
-namespace Microsoft365.DeveloperProxy.Plugins.MocksResponses;
+namespace Microsoft365.DeveloperProxy.Plugins.MockResponses;
 
-internal class MockResponseConfiguration {
+public class MockResponseConfiguration {
     [JsonIgnore]
     public bool NoMocks { get; set; } = false;
     [JsonIgnore]
     public string MocksFile { get; set; } = "responses.json";
+    public bool BlockUnmockedRequests { get; set; } = false;
 
     [JsonPropertyName("responses")]
     public IEnumerable<MockResponse> Responses { get; set; } = Array.Empty<MockResponse>();
 }
 
 public class MockResponsePlugin : BaseProxyPlugin {
-    private MockResponseConfiguration _configuration = new();
+    protected MockResponseConfiguration _configuration = new();
     private MockResponsesLoader? _loader = null;
     private readonly Option<bool?> _noMocks;
     private readonly Option<string?> _mocksFile;
     public override string Name => nameof(MockResponsePlugin);
     private IProxyConfiguration? _proxyConfiguration;
+    // tracks the number of times a mock has been applied
+    // used in combination with mocks that have an Nth property
+    private Dictionary<string, int> _appliedMocks = new();
 
     public MockResponsePlugin() {
         _noMocks = new Option<bool?>("--no-mocks", "Disable loading mock requests");
@@ -88,13 +92,25 @@ public class MockResponsePlugin : BaseProxyPlugin {
         _loader?.InitResponsesWatcher();
     }
 
-    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
+    protected virtual async Task OnRequest(object? sender, ProxyRequestArgs e) {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
         if (!_configuration.NoMocks && _urlsToWatch is not null && e.ShouldExecute(_urlsToWatch)) {
             var matchingResponse = GetMatchingMockResponse(request);
             if (matchingResponse is not null) {
                 ProcessMockResponse(e.Session, matchingResponse);
+                state.HasBeenSet = true;
+            }
+            else if (_configuration.BlockUnmockedRequests) {
+                ProcessMockResponse(e.Session, new MockResponse {
+                    Method = request.Method,
+                    Url = request.Url,
+                    ResponseCode = 502,
+                    ResponseBody = new GraphErrorResponseBody(new GraphErrorResponseError {
+                        Code = "Bad Gateway",
+                        Message = $"No mock response found for {request.Method} {request.Url}"
+                    })
+                });
                 state.HasBeenSet = true;
             }
         }
@@ -109,11 +125,11 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
         var mockResponse = _configuration.Responses.FirstOrDefault(mockResponse => {
             if (mockResponse.Method != request.Method) return false;
-            if (mockResponse.Url == request.Url) {
+            if (mockResponse.Url == request.Url && IsNthRequest(mockResponse)) {
                 return true;
             }
 
-            //check if the URL contains a wildcard
+            // check if the URL contains a wildcard
             // if it doesn't, it's not a match for the current request for sure
             if (!mockResponse.Url.Contains('*')) {
                 return false;
@@ -121,9 +137,34 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
             //turn mock URL with wildcard into a regex and match against the request URL
             var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
-            return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$");
+            return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$") && IsNthRequest(mockResponse);
         });
+        
+        if (mockResponse is not null)
+        {
+            if (!_appliedMocks.ContainsKey(mockResponse.Url))
+            {
+                _appliedMocks.Add(mockResponse.Url, 0);
+            }
+            _appliedMocks[mockResponse.Url]++;
+        }
+
         return mockResponse;
+    }
+
+    private bool IsNthRequest(MockResponse mockResponse)
+    {
+        if (mockResponse.Nth is null)
+        {
+            // mock doesn't define an Nth property so it always qualifies
+            return true;
+        }
+
+        var nth = 0;
+        _appliedMocks.TryGetValue(mockResponse.Url, out nth);
+        nth++;
+
+        return mockResponse.Nth == nth;
     }
 
     private void ProcessMockResponse(SessionEventArgs e, MockResponse matchingResponse) {
