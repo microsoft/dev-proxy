@@ -154,9 +154,9 @@
     "maxMs": 10000
   },
   "rateLimiting": {
-    "costPerRequest": 1,
-    "rateLimit": 40,
-    "retryAfterSeconds": 20
+    "costPerRequest": 2,
+    "rateLimit": 120,
+    "retryAfterSeconds": 5
   },
   "rate": 50,
   "labelMode": "text",
