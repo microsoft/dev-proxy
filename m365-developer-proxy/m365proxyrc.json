@@ -153,6 +153,11 @@
     "minMs": 200,
     "maxMs": 10000
   },
+  "rateLimiting": {
+    "costPerRequest": 2,
+    "rateLimit": 120,
+    "retryAfterSeconds": 5
+  },
   "rate": 50,
   "labelMode": "text",
   "logLevel": "info"
