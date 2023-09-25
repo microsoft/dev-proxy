@@ -244,10 +244,21 @@ public class RateLimitingPlugin : BaseProxyPlugin
                     var headers = _configuration.CustomResponse.ResponseHeaders is not null ?
                         _configuration.CustomResponse.ResponseHeaders.Select(h => new HttpHeader(h.Key, h.Value)) :
                         Array.Empty<HttpHeader>();
+
+                    // allow custom throttling response
+                    var responseCode = (HttpStatusCode)(_configuration.CustomResponse.ResponseCode ?? 200);
+                    if (responseCode == HttpStatusCode.TooManyRequests) {
+                        e.ThrottledRequests.Add(new ThrottlerInfo(
+                            BuildThrottleKey(request),
+                            ShouldThrottle,
+                            DateTime.Now.AddSeconds(_configuration.RetryAfterSeconds)
+                        ));
+                    }
+
                     string body = _configuration.CustomResponse.ResponseBody is not null ?
                         JsonSerializer.Serialize(_configuration.CustomResponse.ResponseBody, new JsonSerializerOptions { WriteIndented = true }) :
                         "";
-                    e.Session.GenericResponse(body, (HttpStatusCode)(_configuration.CustomResponse.ResponseCode ?? 200), headers);
+                    e.Session.GenericResponse(body, responseCode, headers);
                     state.HasBeenSet = true;
                 }
                 else
