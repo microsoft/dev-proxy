@@ -13,7 +13,8 @@ public enum MessageType {
     Tip,
     Failed,
     Chaos,
-    Mocked
+    Mocked,
+    InterceptedResponse
 }
 
 public class LoggingContext {

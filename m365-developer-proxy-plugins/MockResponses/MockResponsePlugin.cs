@@ -16,7 +16,9 @@ using Titanium.Web.Proxy.Models;
 namespace Microsoft365.DeveloperProxy.Plugins.MockResponses;
 
 public class MockResponseConfiguration {
+    [JsonIgnore]
     public bool NoMocks { get; set; } = false;
+    [JsonIgnore]
     public string MocksFile { get; set; } = "responses.json";
     public bool BlockUnmockedRequests { get; set; } = false;
 
