@@ -20,6 +20,7 @@ public class MockResponseConfiguration {
     public bool NoMocks { get; set; } = false;
     [JsonIgnore]
     public string MocksFile { get; set; } = "responses.json";
+    [JsonIgnore]
     public bool BlockUnmockedRequests { get; set; } = false;
 
     [JsonPropertyName("responses")]
