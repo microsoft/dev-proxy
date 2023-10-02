@@ -187,15 +187,21 @@ public class PluginEvents : IPluginEvents {
     }
 
     public async Task RaiseProxyBeforeRequest(ProxyRequestArgs args) {
-        await BeforeRequest?.InvokeAsync(this, args, null);
+        if (BeforeRequest is not null) {
+            await BeforeRequest.InvokeAsync(this, args, null);
+        }
     }
 
     public async Task RaiseProxyBeforeResponse(ProxyResponseArgs args) {
-        await BeforeResponse?.InvokeAsync(this, args, null);
+        if (BeforeResponse is not null) {
+            await BeforeResponse.InvokeAsync(this, args, null);
+        }
     }
 
     public async Task RaiseProxyAfterResponse(ProxyResponseArgs args) {
-        await AfterResponse?.Invoke(this, args);
+        if (AfterResponse is not null) {
+            await AfterResponse.InvokeAsync(this, args, null);
+        }
     }
 
     public void RaiseRequestLogged(RequestLogArgs args) {

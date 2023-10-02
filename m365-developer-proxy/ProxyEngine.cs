@@ -59,8 +59,9 @@ public class ProxyEngine {
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-
+#pragma warning disable CS1998
     public async Task Run(CancellationToken? cancellationToken) {
+#pragma warning restore CS1998
         if (!_urlsToWatch.Any()) {
             _logger.LogInfo("No URLs to watch configured. Please add URLs to watch in the m365proxyrc.json config file.");
             return;
@@ -73,7 +74,9 @@ public class ProxyEngine {
         var _logger2 = (ILogger)_logger.Clone();
         _logger2.LogLevel = LogLevel.Warn;
         // let's not await so that it doesn't block the proxy startup
+        #pragma warning disable CS4014
         MSGraphDbCommandHandler.GenerateMsGraphDb(_logger2, true);
+        #pragma warning restore CS4014
 
         _proxyServer = new ProxyServer();
 
@@ -391,7 +394,7 @@ public class ProxyEngine {
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedResponse, new LoggingContext(e));
-            _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
+            await _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
     }
 
