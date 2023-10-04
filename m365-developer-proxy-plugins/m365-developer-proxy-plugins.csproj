@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
-    <Version>0.12.0</Version>
+    <Version>0.12.1</Version>
     <NoWarn>CS1998</NoWarn>
   </PropertyGroup>
   <ItemGroup>
@@ -22,7 +22,7 @@
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.31.0">
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.2">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>

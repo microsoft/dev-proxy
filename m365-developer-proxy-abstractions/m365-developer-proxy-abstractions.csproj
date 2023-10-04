@@ -5,7 +5,7 @@
     <RootNamespace>Microsoft365.DeveloperProxy.Abstractions</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.12.0</Version>
+    <Version>0.12.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
