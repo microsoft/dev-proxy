@@ -117,14 +117,19 @@ public class DevToolsPlugin : BaseProxyPlugin
             if (message?.Method == "Network.getResponseBody")
             {
                 var requestId = message.Params?.RequestId;
-                if (requestId is null || !responseBody.ContainsKey(requestId))
+                if (requestId is null ||
+                    !responseBody.ContainsKey(requestId) ||
+                    // should never happen because the message is sent from devtools
+                    // and Id is required on all socket messages but theoretically
+                    // it is possible
+                    message.Id is null)
                 {
                     return;
                 }
 
                 var result = new GetResponseBodyResult
                 {
-                    Id = (int)message.Id!,
+                    Id = (int)message.Id,
                     Result = new()
                     {
                         Body = responseBody[requestId].Body,
@@ -286,7 +291,7 @@ public class DevToolsPlugin : BaseProxyPlugin
                 Entry = new()
                 {
                     Source = "network",
-                    Text = string.Join(" ", e.RequestLog.Message),
+                    Text = string.Join(" ", e.RequestLog.MessageLines),
                     Level = Entry.GetLevel(e.RequestLog.MessageType),
                     Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                     Url = e.RequestLog.Context?.Session.HttpClient.Request.Url,
