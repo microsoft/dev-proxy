@@ -159,7 +159,7 @@ public interface IPluginEvents {
     /// <summary>
     /// Raised after recording request logs has stopped.
     /// </summary>
-    event EventHandler<RecordingArgs>? AfterRecordingStop;
+    event AsyncEventHandler<RecordingArgs>? AfterRecordingStop;
 }
 
 public class PluginEvents : IPluginEvents {
@@ -176,7 +176,7 @@ public class PluginEvents : IPluginEvents {
     /// <inheritdoc />
     public event EventHandler<RequestLogArgs>? AfterRequestLog;
     /// <inheritdoc />
-    public event EventHandler<RecordingArgs>? AfterRecordingStop;
+    public event AsyncEventHandler<RecordingArgs>? AfterRecordingStop;
 
     public void RaiseInit(InitArgs args) {
         Init?.Invoke(this, args);
@@ -202,7 +202,7 @@ public class PluginEvents : IPluginEvents {
         AfterRequestLog?.Invoke(this, args);
     }
 
-    public void RaiseRecordingStopped(RecordingArgs args) {
-        AfterRecordingStop?.Invoke(this, args);
+    public async Task RaiseRecordingStopped(RecordingArgs args) {
+        await AfterRecordingStop?.Invoke(this, args);
     }
 }

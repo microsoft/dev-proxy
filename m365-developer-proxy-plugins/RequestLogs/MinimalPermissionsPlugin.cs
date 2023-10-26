@@ -32,7 +32,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
 
     pluginEvents.AfterRecordingStop += AfterRecordingStop;
   }
-  private async void AfterRecordingStop(object? sender, RecordingArgs e)
+  private async Task AfterRecordingStop(object? sender, RecordingArgs e)
   {
     if (!e.RequestLogs.Any())
     {
