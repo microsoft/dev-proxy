@@ -100,13 +100,13 @@ public class OptionsLoadedArgs {
 }
 
 public class RequestLog {
-    public string[] Message { get; set; }
+    public string[] MessageLines { get; set; }
     public MessageType MessageType { get; set; }
     public LoggingContext? Context { get; set; }
 
-    public RequestLog(string[] message, MessageType messageType, LoggingContext? context)
+    public RequestLog(string[] messageLines, MessageType messageType, LoggingContext? context)
     {
-        Message = message ?? throw new ArgumentNullException(nameof(message));
+        MessageLines = messageLines ?? throw new ArgumentNullException(nameof(messageLines));
         MessageType = messageType;
         Context = context;
     }
