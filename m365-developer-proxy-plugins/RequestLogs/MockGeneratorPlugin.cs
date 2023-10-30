@@ -33,7 +33,6 @@ public class MockGeneratorPlugin : BaseProxyPlugin
       return;
     }
 
-    var methodAndUrlComparer = new MethodAndUrlComparer();
     var mocks = new List<MockResponse>();
 
     foreach (var request in e.RequestLogs)
@@ -58,6 +57,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         ResponseCode = response.StatusCode,
         ResponseHeaders = response.Headers
           .Select(h => new KeyValuePair<string, string>(h.Name, h.Value))
+          .DistinctBy(d=> d.Key)
           .ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
         ResponseBody = GetResponseBody(request.Context.Session).Result
       };
