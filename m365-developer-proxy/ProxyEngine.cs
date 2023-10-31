@@ -167,7 +167,7 @@ public class ProxyEngine {
         PrintRecordingIndicator();
     }
 
-    private void StopRecording() {
+    private async Task StopRecording() {
         if (!_isRecording) {
             return;
         }
@@ -179,7 +179,7 @@ public class ProxyEngine {
         // we let plugins handle previously recorded requests
         var clonedLogs = _requestLogs.ToArray();
         _requestLogs.Clear();
-        _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs));
+        await _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs));
     }
 
     private void PrintRecordingIndicator() {
@@ -224,9 +224,15 @@ public class ProxyEngine {
         }
     }
 
-    private void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
-        StopRecording();
+    private async void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
+        // Prevent the process from terminating immediately
+        e.Cancel = true;
+
+        await StopRecording();
         StopProxy();
+
+        // Close the process
+        Environment.Exit(0);
     }
 
     private void StopProxy() {
