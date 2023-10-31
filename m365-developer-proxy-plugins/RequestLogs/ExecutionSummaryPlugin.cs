@@ -336,7 +336,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 
   private string GetRequestMessage(RequestLog requestLog)
   {
-    return String.Join(' ', requestLog.Message);
+    return String.Join(' ', requestLog.MessageLines);
   }
 
   private string GetMethodAndUrl(RequestLog requestLog)

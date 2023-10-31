@@ -49,7 +49,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         continue;
       }
 
-      var methodAndUrlString = request.Message.First();
+      var methodAndUrlString = request.MessageLines.First();
       var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
 
       var uri = new Uri(methodAndUrl.Item2);
