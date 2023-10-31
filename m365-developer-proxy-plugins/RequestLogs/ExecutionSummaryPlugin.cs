@@ -106,7 +106,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
     }
   }
 
-  private void AfterRecordingStop(object? sender, RecordingArgs e)
+  private async Task AfterRecordingStop(object? sender, RecordingArgs e)
   {
     if (!e.RequestLogs.Any())
     {

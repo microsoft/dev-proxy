@@ -23,7 +23,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
     pluginEvents.AfterRecordingStop += AfterRecordingStop;
   }
 
-  private void AfterRecordingStop(object? sender, RecordingArgs e)
+  private async Task AfterRecordingStop(object? sender, RecordingArgs e)
   {
     _logger?.LogInfo("Creating mocks from recorded requests...");
 
