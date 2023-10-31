@@ -384,8 +384,9 @@ public class ProxyEngine {
 
     // Modify response
     async Task OnBeforeResponse(object sender, SessionEventArgs e) {
+        var method = e.HttpClient.Request.Method.ToUpper();
         // read response headers
-        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+        if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             // necessary to make the response body available to plugins
             e.HttpClient.Response.KeepBody = true;
             await e.GetResponseBody();
@@ -394,8 +395,9 @@ public class ProxyEngine {
         }
     }
     async Task OnAfterResponse(object sender, SessionEventArgs e) {
+        var method = e.HttpClient.Request.Method.ToUpper();
         // read response headers
-        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+        if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedResponse, new LoggingContext(e));
             _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
