@@ -180,6 +180,12 @@ public class MockResponsePlugin : BaseProxyPlugin {
 
         if (matchingResponse.ResponseHeaders is not null) {
             foreach (var key in matchingResponse.ResponseHeaders.Keys) {
+                // remove duplicate headers
+                var existingHeader = headers.FirstOrDefault(h => h.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
+                if (existingHeader is not null) {
+                    headers.Remove(existingHeader);
+                }
+
                 headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
             }
         }
@@ -205,6 +211,8 @@ public class MockResponsePlugin : BaseProxyPlugin {
                 else {
                     var bodyBytes = File.ReadAllBytes(filePath);
                     e.GenericResponse(bodyBytes, statusCode, headers);
+                    _logger?.LogRequest(new[] { $"{matchingResponse.ResponseCode ?? 200} {matchingResponse.Url}" }, MessageType.Mocked, new LoggingContext(e));
+                    return;
                 }
             }
             else {
