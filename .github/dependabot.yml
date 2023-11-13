@@ -1,7 +1,7 @@
 version: 2
 updates:
 - package-ecosystem: nuget
-  directory: "/m365-developer-proxy"
+  directory: "/dev-proxy"
   schedule:
     interval: daily
   open-pull-requests-limit: 5
