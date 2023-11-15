@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Microsoft.DevProxy.Plugins</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -9,11 +9,11 @@
     <Version>0.13.0</Version>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.13">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0">
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
