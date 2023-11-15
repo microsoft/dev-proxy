@@ -21,13 +21,13 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
       - name: Publish ${{ matrix.architecture }}
         run: dotnet publish ./dev-proxy/dev-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} --self-contained -o ./${{ env.release }}
       - name: Build plugins
         run: dotnet build ./dev-proxy-plugins/dev-proxy-plugins.csproj -c Release -r ${{ matrix.architecture }} --no-self-contained
       - name: Add plugins to output
-        run: cp ./dev-proxy/bin/Release/net7.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
+        run: cp ./dev-proxy/bin/Release/net8.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
       - name: Remove unnecessary files
         run: |
           pushd
