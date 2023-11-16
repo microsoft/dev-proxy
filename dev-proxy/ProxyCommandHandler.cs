@@ -10,6 +10,7 @@ namespace Microsoft.DevProxy;
 
 public class ProxyCommandHandler : ICommandHandler {
     public Option<int?> Port { get; set; }
+    public Option<string?> IPAddress { get; set; }
     public Option<LogLevel?> LogLevel { get; set; }
     public Option<bool?> Record { get; set; }
     public Option<IEnumerable<int>?> WatchPids { get; set; }
@@ -21,6 +22,7 @@ public class ProxyCommandHandler : ICommandHandler {
     private readonly ILogger _logger;
 
     public ProxyCommandHandler(Option<int?> port,
+                               Option<string?> ipAddress,
                                Option<LogLevel?> logLevel,
                                Option<bool?> record,
                                Option<IEnumerable<int>?> watchPids,
@@ -30,6 +32,7 @@ public class ProxyCommandHandler : ICommandHandler {
                                ISet<UrlToWatch> urlsToWatch,
                                ILogger logger) {
         Port = port ?? throw new ArgumentNullException(nameof(port));
+        IPAddress = ipAddress ?? throw new ArgumentNullException(nameof(ipAddress));
         LogLevel = logLevel ?? throw new ArgumentNullException(nameof(logLevel));
         Record = record ?? throw new ArgumentNullException(nameof(record));
         WatchPids = watchPids ?? throw new ArgumentNullException(nameof(watchPids));
@@ -48,6 +51,10 @@ public class ProxyCommandHandler : ICommandHandler {
         var port = context.ParseResult.GetValueForOption(Port);
         if (port is not null) {
             Configuration.Port = port.Value;
+        }
+        var ipAddress = context.ParseResult.GetValueForOption(IPAddress);
+        if (ipAddress is not null) {
+            Configuration.IPAddress = ipAddress;
         }
         var logLevel = context.ParseResult.GetValueForOption(LogLevel);
         if (logLevel is not null) {
