@@ -361,12 +361,12 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
       using (var client = new HttpClient())
       {
         var stringPayload = JsonSerializer.Serialize(payload);
-        _logger?.LogDebug($"Calling {url} with payload{Environment.NewLine}{stringPayload}");
+        _logger?.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
 
         var response = await client.PostAsJsonAsync(url, payload);
         var content = await response.Content.ReadAsStringAsync();
 
-        _logger?.LogDebug($"Response:{Environment.NewLine}{content}");
+        _logger?.LogDebug(string.Format("Response:{0}{1}", Environment.NewLine, content));
 
         var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content);
         var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
@@ -411,7 +411,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
     }
     catch (Exception ex)
     {
-      _logger?.LogError($"An error has occurred while retrieving minimal permissions: {ex.Message}");
+      _logger?.LogError(string.Format("An error has occurred while retrieving minimal permissions: {0}", ex.Message));
     }
   }
 
@@ -420,7 +420,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
     var info = message.Split(" ");
     if (info.Length > 2)
     {
-      info = new[] { info[0], String.Join(" ", info.Skip(1)) };
+      info = [info[0], string.Join(" ", info.Skip(1))];
     }
     return new Tuple<string, string>(info[0], info[1]);
   }
@@ -428,6 +428,6 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
   private string GetTokenizedUrl(string absoluteUrl)
   {
     var sanitizedUrl = ProxyUtils.SanitizeUrl(absoluteUrl);
-    return "/" + String.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(s => Uri.UnescapeDataString(s)));
+    return "/" + string.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(Uri.UnescapeDataString));
   }
 }

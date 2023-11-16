@@ -3,11 +3,13 @@
 
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
+using System.Net;
 
 namespace Microsoft.DevProxy;
 
 internal class ProxyHost {
     private Option<int?> _portOption;
+    private Option<string?> _ipAddressOption;
     private Option<LogLevel?> _logLevelOption;
     private Option<bool?> _recordOption;
     private Option<IEnumerable<int>?> _watchPidsOption;
@@ -61,10 +63,20 @@ internal class ProxyHost {
     }
 
     public ProxyHost() {
-        _portOption = new Option<int?>("--port", "The port for the proxy server to listen on");
+        _portOption = new Option<int?>("--port", "The port for the proxy to listen on");
         _portOption.AddAlias("-p");
         _portOption.ArgumentHelpName = "port";
-        
+
+        _ipAddressOption = new Option<string?>("--ip-address", "The IP address for the proxy to bind to")
+        {
+            ArgumentHelpName = "ipAddress"
+        };
+        _ipAddressOption.AddValidator(input => {
+            if (!IPAddress.TryParse(input.Tokens.First().Value, out var ipAddress)) {
+                input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid IP address";
+            }
+        });
+
         _logLevelOption = new Option<LogLevel?>("--log-level", $"Level of messages to log. Allowed values: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}");
         _logLevelOption.ArgumentHelpName = "logLevel";
         _logLevelOption.AddValidator(input => {
@@ -99,6 +111,7 @@ internal class ProxyHost {
     public RootCommand GetRootCommand(ILogger logger) {
         var command = new RootCommand {
             _portOption,
+            _ipAddressOption,
             _logLevelOption,
             _recordOption,
             _watchPidsOption,
@@ -119,6 +132,6 @@ internal class ProxyHost {
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _logLevelOption, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, pluginEvents, urlsToWatch, logger);
 }
 

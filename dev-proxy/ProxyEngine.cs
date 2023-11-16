@@ -73,7 +73,7 @@ public class ProxyEngine {
         var _logger2 = (ILogger)_logger.Clone();
         _logger2.LogLevel = LogLevel.Warn;
         // let's not await so that it doesn't block the proxy startup
-        MSGraphDbCommandHandler.GenerateMsGraphDb(_logger2, true);
+        _ = MSGraphDbCommandHandler.GenerateMsGraphDb(_logger2, true);
 
         _proxyServer = new ProxyServer();
 
@@ -85,7 +85,8 @@ public class ProxyEngine {
         _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelection;
         cancellationToken?.Register(OnCancellation);
 
-        _explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Any, _config.Port, true);
+        var ipAddress = string.IsNullOrEmpty(_config.IPAddress) ? IPAddress.Any : IPAddress.Parse(_config.IPAddress);
+        _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
         if (!RunTime.IsWindows) {
             // we need to change this to a value lower than 397
             // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge

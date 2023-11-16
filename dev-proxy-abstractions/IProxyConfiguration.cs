@@ -16,6 +16,7 @@ public enum LabelMode {
 
 public interface IProxyConfiguration {
     int Port { get; }
+    string? IPAddress { get; }
     LabelMode LabelMode { get; }
     bool Record { get; }
     LogLevel LogLevel { get; }
