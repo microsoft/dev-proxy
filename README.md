@@ -26,7 +26,7 @@
 <p align="center">
   <a href="#example">Example</a> |
   <a href="#features">Features</a> |
-  <a href="#trademarks">Trademarks</a> |
+  <a href="#trademarks">Trademarks</a>
 </p>
 
 <p align="center">
