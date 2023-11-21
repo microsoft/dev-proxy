@@ -4,11 +4,11 @@
 </h1>
 
 <h4 align="center">
-  Build reliable Microsoft 365 apps
+  Test the untestable
 </h4>
  
 <p align="center">
-    <a href="https://github.com/microsoft/dev-proxy/releases/latest">
+    <a href="https://aka.ms/devproxy/download">
         <img alt="Download Now" src="https://img.shields.io/badge/download-now-green?style=for-the-badge">
     </a>
 </p>
@@ -20,14 +20,13 @@
 
 <p align="center">
   <a href="#get-started">Get started</a> |
-  <a href="https://github.com/microsoft/dev-proxy/wiki/">Documentation</a>
+  <a href="https://aka.ms/devproxy/docs">Documentation</a>
 </p>
 
 <p align="center">
   <a href="#example">Example</a> |
   <a href="#features">Features</a> |
   <a href="#trademarks">Trademarks</a> |
-  <a href="#community-preview">Community Preview</a>
 </p>
 
 <p align="center">
@@ -46,7 +45,7 @@
 </details>
 </p>
 
-Dev Proxy is a command line tool for testing Microsoft Graph, SharePoint Online and any other HTTP APIs.
+Dev Proxy is a command line tool for simulating APIs for testing apps.
 
 It aims to provide a better way to test applications.
 
@@ -60,7 +59,7 @@ Identify and fix issues in your code before they reach production.
 
 ## Get started
 
-Begin with our [tutorial](https://github.com/microsoft/dev-proxy/wiki/Get-started). It will guide you through the installation process and running the proxy for the first time.
+Begin with our [tutorial](https://learn.microsoft.com/microsoft-cloud/dev/dev-proxy/get-started/). It will guide you through the installation process and running the proxy for the first time.
 
 ## Example
 
@@ -102,10 +101,6 @@ devproxy --failure-rate 50 --no-mocks --allowed-errors 429 503
 ## Trademarks
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow [Microsoft’s Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general). Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos are subject to those third-party’s policies.
-
-## Community Preview
-
-We are working on getting the General Availability (GA) version published within the calendar year 2023. The current state of Dev Proxy enables our team to be transparent and provide more insights on the upcoming features and to provide our worldwide ecosystem an option to directly influence the future of our capabilities. [Your feedback is more than welcome](https://github.com/microsoft/dev-proxy/issues)! You can expect many more new features within the upcoming months before a version that is officially ready for production use and fully supported.
 
 ## A Microsoft Hackathon 2022 Project
 
