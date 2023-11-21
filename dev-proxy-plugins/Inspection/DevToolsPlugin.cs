@@ -85,7 +85,7 @@ public class DevToolsPlugin : BaseProxyPlugin
 
         var processName = GetChromiumProcessName(_configuration);
         var inspectionUrl = $"http://localhost:9222/devtools/inspector.html?ws=localhost:{port}";
-        var args = $"{inspectionUrl} --remote-debugging-port=9222";
+        var args = $"{inspectionUrl} --remote-debugging-port=9222 --profile-directory=devproxy";
 
         _logger?.LogInfo($"DevTools available at {inspectionUrl}");
 
