@@ -10,7 +10,7 @@ public class ProxyConfiguration: IProxyConfiguration {
     [JsonPropertyName("port")]
     public int Port { get; set; } = 8000;
     [JsonPropertyName("ipAddress")]
-    public string? IPAddress { get; set; }
+    public string? IPAddress { get; set; } = "127.0.0.1";
     [JsonPropertyName("labelMode")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public LabelMode LabelMode { get; set; } = LabelMode.Text;
