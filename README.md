@@ -78,7 +78,7 @@ devproxy --failure-rate 50 --no-mocks --allowed-errors 429 503
 - intercept requests from Microsoft Graph and other APIs
 - simulate errors
 - simulate throttling
-- simulare rate-limiting
+- simulate rate-limiting
 - mock responses
 - mock error responses
 - define wildcard paths to serve mocked responses
