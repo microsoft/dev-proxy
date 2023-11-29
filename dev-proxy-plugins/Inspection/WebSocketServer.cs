@@ -16,6 +16,7 @@ public class WebSocketServer
     private HttpListener? listener;
     private int port;
     private WebSocket? webSocket;
+    static SemaphoreSlim webSocketSemaphore = new SemaphoreSlim(1, 1);
 
     public bool IsConnected => webSocket is not null;
     public event Action<string>? MessageReceived;
@@ -88,7 +89,13 @@ public class WebSocketServer
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         });
 
+        // we need a semaphore to avoid multiple simultaneous writes
+        // which aren't allowed
+        await webSocketSemaphore.WaitAsync();
+
         byte[] messageBytes = Encoding.UTF8.GetBytes(messageString);
         await webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+
+        webSocketSemaphore.Release();
     }
 }
