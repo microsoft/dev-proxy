@@ -209,6 +209,8 @@ public class PluginEvents : IPluginEvents {
     }
 
     public async Task RaiseRecordingStopped(RecordingArgs args) {
-        await AfterRecordingStop?.Invoke(this, args);
+        if (AfterRecordingStop is not null) {
+            await AfterRecordingStop.InvokeAsync(this, args, null);
+        }
     }
 }

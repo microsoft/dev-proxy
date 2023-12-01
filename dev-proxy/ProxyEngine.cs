@@ -129,7 +129,7 @@ public class ProxyEngine {
         if (!Console.IsInputRedirected) {
             ReadKeys();
         }
-        while (_proxyServer.ProxyRunning) { Thread.Sleep(10); }
+        while (_proxyServer.ProxyRunning) { await Task.Delay(10); }
     }
 
     private void AfterRequestLog(object? sender, RequestLogArgs e) {
@@ -149,7 +149,8 @@ public class ProxyEngine {
                 StartRecording();
             }
             if (key == ConsoleKey.S) {
-                StopRecording();
+                // we need to use GetAwaiter().GetResult() because we're in a sync method
+                StopRecording().GetAwaiter().GetResult();
             }
             if (key == ConsoleKey.C) {
                 Console.Clear();
@@ -400,7 +401,7 @@ public class ProxyEngine {
         // read response headers
         if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedResponse, new LoggingContext(e));
-            _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
+            await _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
     }
 
