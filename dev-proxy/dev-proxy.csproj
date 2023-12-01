@@ -13,6 +13,7 @@
     <Product>Dev Proxy</Product>
     <AssemblyName>devproxy</AssemblyName>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
