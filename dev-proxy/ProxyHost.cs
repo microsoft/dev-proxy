@@ -50,6 +50,9 @@ internal class ProxyHost
             }
 
             var result = _configFileOption.Parse(Environment.GetCommandLineArgs());
+            // since we're parsing all args, and other options are not instantiated yet
+            // we're getting here a bunch of other errors, so we only need to look for
+            // errors related to the config file option
             var error = result.Errors.Where(e => e.SymbolResult?.Symbol == _configFileOption).FirstOrDefault();
             if (error is not null)
             {
