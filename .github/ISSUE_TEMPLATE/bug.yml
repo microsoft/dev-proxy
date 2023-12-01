@@ -38,13 +38,13 @@ body:
     validations:
       required: true
   - type: input
-    id: m365proxyversion
+    id: devproxyversion
     attributes:
-      label: Microsoft 365 Developer Proxy Version
+      label: Dev Proxy Version
       description: |
         Provide the version of the proxy you are using.
         
-        Execute `m365proxy --version` in your terminal to identify your version
+        Execute `devproxy --version` in your terminal to identify your version
     validations:
       required: true 
   - type: dropdown

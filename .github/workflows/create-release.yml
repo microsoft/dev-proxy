@@ -15,19 +15,19 @@ jobs:
           - linux-x64
           - osx-x64
     env:
-      release: 'm365-developer-proxy-${{ matrix.architecture }}-${{  github.ref_name }}'
+      release: 'dev-proxy-${{ matrix.architecture }}-${{  github.ref_name }}'
     steps:
       - uses: actions/checkout@v3
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
       - name: Publish ${{ matrix.architecture }}
-        run: dotnet publish ./m365-developer-proxy/m365-developer-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} --self-contained -o ./${{ env.release }}
+        run: dotnet publish ./dev-proxy/dev-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} --self-contained -o ./${{ env.release }}
       - name: Build plugins
-        run: dotnet build ./m365-developer-proxy-plugins/m365-developer-proxy-plugins.csproj -c Release -r ${{ matrix.architecture }} --no-self-contained
+        run: dotnet build ./dev-proxy-plugins/dev-proxy-plugins.csproj -c Release -r ${{ matrix.architecture }} --no-self-contained
       - name: Add plugins to output
-        run: cp ./m365-developer-proxy/bin/Release/net7.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
+        run: cp ./dev-proxy/bin/Release/net8.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
       - name: Remove unnecessary files
         run: |
           pushd

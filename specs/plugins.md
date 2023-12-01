@@ -1,6 +1,6 @@
 # Support a "plug-in" model to provide extensibility
 
-To allow developers to provide unique handling behaviors for different APIs the Microsoft 365 Developer Proxy will have a plug-in model provide an extension point for developer. This will provide separation of concerns between the software components intercepting network request and those providing behaviors.
+To allow developers to provide unique handling behaviors for different APIs Dev Proxy will have a plug-in model provide an extension point for developer. This will provide separation of concerns between the software components intercepting network request and those providing behaviors.
 To enable developers building plugins an abstractions library will be distributed on NuGet.
 
 ## History
