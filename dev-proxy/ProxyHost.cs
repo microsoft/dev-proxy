@@ -7,7 +7,8 @@ using System.Net;
 
 namespace Microsoft.DevProxy;
 
-internal class ProxyHost {
+internal class ProxyHost
+{
     private Option<int?> _portOption;
     private Option<string?> _ipAddressOption;
     private Option<LogLevel?> _logLevelOption;
@@ -19,37 +20,61 @@ internal class ProxyHost {
 
     private static bool _configFileResolved = false;
     private static string _configFile = "devproxyrc.json";
-    public static string ConfigFile {
-        get {
-            if (_configFileResolved) {
+    public static string ConfigFile
+    {
+        get
+        {
+            if (_configFileResolved)
+            {
                 return _configFile;
             }
-            
-            if (_configFileOption is null) {
+
+            if (_configFileOption is null)
+            {
                 _configFileOption = new Option<string?>("--config-file", "The path to the configuration file");
                 _configFileOption.AddAlias("-c");
                 _configFileOption.ArgumentHelpName = "configFile";
-                _configFileOption.AddValidator(input => {
+                _configFileOption.AddValidator(input =>
+                {
                     var filePath = ProxyUtils.ReplacePathTokens(input.Tokens.First().Value);
-                    if (String.IsNullOrEmpty(filePath)) {
+                    if (string.IsNullOrEmpty(filePath))
+                    {
                         return;
                     }
 
-                    if (!File.Exists(filePath)) {
-                        input.ErrorMessage = $"File {filePath} does not exist";
+                    if (!File.Exists(filePath))
+                    {
+                        input.ErrorMessage = $"Configuration file {filePath} does not exist";
                     }
                 });
             }
 
             var result = _configFileOption.Parse(Environment.GetCommandLineArgs());
-            var configFile = result.GetValueForOption<string?>(_configFileOption);
-            if (configFile is not null) {
+            // since we're parsing all args, and other options are not instantiated yet
+            // we're getting here a bunch of other errors, so we only need to look for
+            // errors related to the config file option
+            var error = result.Errors.Where(e => e.SymbolResult?.Symbol == _configFileOption).FirstOrDefault();
+            if (error is not null)
+            {
+                // Logger is not available here yet so we need to fallback to Console
+                var color = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine(error.Message);
+                Console.ForegroundColor = color;
+                Environment.Exit(1);
+            }
+
+            var configFile = result.GetValueForOption(_configFileOption);
+            if (configFile is not null)
+            {
                 _configFile = configFile;
             }
-            else {
+            else
+            {
                 // if there's no config file in the current working folder
                 // fall back to the default config file in the app folder
-                if (!File.Exists(_configFile)) {
+                if (!File.Exists(_configFile))
+                {
                     _configFile = "~appFolder/devproxyrc.json";
                 }
             }
@@ -62,7 +87,8 @@ internal class ProxyHost {
         }
     }
 
-    public ProxyHost() {
+    public ProxyHost()
+    {
         _portOption = new Option<int?>("--port", "The port for the proxy to listen on");
         _portOption.AddAlias("-p");
         _portOption.ArgumentHelpName = "port";
@@ -71,16 +97,20 @@ internal class ProxyHost {
         {
             ArgumentHelpName = "ipAddress"
         };
-        _ipAddressOption.AddValidator(input => {
-            if (!IPAddress.TryParse(input.Tokens.First().Value, out var ipAddress)) {
+        _ipAddressOption.AddValidator(input =>
+        {
+            if (!IPAddress.TryParse(input.Tokens.First().Value, out var ipAddress))
+            {
                 input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid IP address";
             }
         });
 
         _logLevelOption = new Option<LogLevel?>("--log-level", $"Level of messages to log. Allowed values: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}");
         _logLevelOption.ArgumentHelpName = "logLevel";
-        _logLevelOption.AddValidator(input => {
-            if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel)) {
+        _logLevelOption.AddValidator(input =>
+        {
+            if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel))
+            {
                 input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid log level. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}";
             }
         });
@@ -98,9 +128,11 @@ internal class ProxyHost {
         _rateOption = new Option<int?>("--failure-rate", "The percentage of chance that a request will fail");
         _rateOption.AddAlias("-f");
         _rateOption.ArgumentHelpName = "failure rate";
-        _rateOption.AddValidator((input) => {
+        _rateOption.AddValidator((input) =>
+        {
             int? value = input.GetValueForOption(_rateOption);
-            if (value.HasValue && (value < 0 || value > 100)) {
+            if (value.HasValue && (value < 0 || value > 100))
+            {
                 input.ErrorMessage = $"{value} is not a valid failure rate. Specify a number between 0 and 100";
             }
         });
@@ -108,7 +140,8 @@ internal class ProxyHost {
         ProxyCommandHandler.Configuration.ConfigFile = ConfigFile;
     }
 
-    public RootCommand GetRootCommand(ILogger logger) {
+    public RootCommand GetRootCommand(ILogger logger)
+    {
         var command = new RootCommand {
             _portOption,
             _ipAddressOption,

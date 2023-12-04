@@ -83,7 +83,7 @@ public class ProxyCommandHandler : ICommandHandler {
 
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion();
         if (newReleaseInfo != null) {
-            _logger.LogError($"New version {newReleaseInfo.Version} of the Graph Developer Proxy is available.");
+            _logger.LogError($"New Dev Proxy version {newReleaseInfo.Version} is available.");
             _logger.LogError($"See https://aka.ms/devproxy/upgrade for more information.");
             _logger.LogError(string.Empty);
         }
@@ -93,7 +93,7 @@ public class ProxyCommandHandler : ICommandHandler {
             return 0;
         }
         catch (Exception ex) {
-            _logger.LogError("An error occurred while running the Developer Proxy");
+            _logger.LogError("An error occurred while running Dev Proxy");
             _logger.LogError(ex.Message.ToString());
             _logger.LogError(ex.StackTrace?.ToString() ?? string.Empty);
             var inner = ex.InnerException;
