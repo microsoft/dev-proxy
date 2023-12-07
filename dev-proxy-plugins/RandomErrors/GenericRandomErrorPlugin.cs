@@ -119,8 +119,8 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
         _loader?.InitResponsesWatcher();
     }
 
-    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
-        var session = e.Session;
+    private Task OnRequest(object? sender, ProxyRequestArgs e)
+    {
         var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet
             && _urlsToWatch is not null
@@ -129,10 +129,12 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin {
 
             if (failMode == GenericRandomErrorFailMode.PassThru && _proxyConfiguration?.Rate != 100) {
                 _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e.Session));
-                return;
+                return Task.CompletedTask;
             }
             FailResponse(e, failMode);
             state.HasBeenSet = true;
         }
+
+        return Task.CompletedTask;
     }
 }

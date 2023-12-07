@@ -19,12 +19,14 @@ public class GraphBetaSupportGuidancePlugin : BaseProxyPlugin {
         pluginEvents.AfterResponse += AfterResponse;
     }
 
-    private async Task AfterResponse(object? sender, ProxyResponseArgs e) {
+    private Task AfterResponse(object? sender, ProxyResponseArgs e)
+    {
         Request request = e.Session.HttpClient.Request;
         if (_urlsToWatch is not null &&
             e.HasRequestUrlMatch(_urlsToWatch) &&
             ProxyUtils.IsGraphBetaRequest(request))
             _logger?.LogRequest(BuildBetaSupportMessage(request), MessageType.Warning, new LoggingContext(e.Session));
+        return Task.CompletedTask;
     }
 
     private static string GetBetaSupportGuidanceUrl() => "https://aka.ms/devproxy/guidance/beta-support";

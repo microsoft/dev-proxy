@@ -19,7 +19,8 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin {
         pluginEvents.AfterResponse += OnAfterResponse;
     }
 
-    private async Task OnAfterResponse(object? sender, ProxyResponseArgs e) {
+    private Task OnAfterResponse(object? sender, ProxyResponseArgs e)
+    {
         Request request = e.Session.HttpClient.Request;
         // only show the message if there is an error.
         if (e.Session.HttpClient.Response.StatusCode >= 400 
@@ -28,6 +29,8 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin {
             && WarnNoSdk(request)) {
             _logger?.LogRequest(MessageUtils.BuildUseSdkForErrorsMessage(request), MessageType.Tip, new LoggingContext(e.Session));
         }
+
+        return Task.CompletedTask;
     }
 
     private static bool WarnNoSdk(Request request) => ProxyUtils.IsGraphRequest(request) && !ProxyUtils.IsSdkRequest(request);

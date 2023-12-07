@@ -21,11 +21,13 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
         pluginEvents.AfterResponse += AfterResponse;
     }
 
-    private async Task AfterResponse(object? sender, ProxyResponseArgs e)
+    private Task AfterResponse(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         if (_urlsToWatch is not null && e.HasRequestUrlMatch(_urlsToWatch) && WarnNoSelect(request))
             _logger?.LogRequest(BuildUseSelectMessage(request), MessageType.Warning, new LoggingContext(e.Session));
+            
+        return Task.CompletedTask;
     }
 
     private bool WarnNoSelect(Request request)

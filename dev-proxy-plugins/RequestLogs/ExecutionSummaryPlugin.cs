@@ -106,11 +106,11 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
     }
   }
 
-  private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+  private Task AfterRecordingStop(object? sender, RecordingArgs e)
   {
     if (!e.RequestLogs.Any())
     {
-      return;
+      return Task.CompletedTask;
     }
 
     var report = _configuration.GroupBy switch
@@ -128,6 +128,8 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
     {
       File.WriteAllLines(_configuration.FilePath, report);
     }
+
+    return Task.CompletedTask;
   }
 
   private string[] GetGroupedByUrlReport(IEnumerable<RequestLog> requestLogs)

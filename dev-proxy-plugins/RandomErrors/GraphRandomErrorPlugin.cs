@@ -237,8 +237,8 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
         }
     }
 
-    private async Task OnRequest(object? sender, ProxyRequestArgs e) {
-        var session = e.Session;
+    private Task OnRequest(object? sender, ProxyRequestArgs e)
+    {
         var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet
             && _urlsToWatch is not null
@@ -246,7 +246,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
             var failMode = ShouldFail(e);
 
             if (failMode == GraphRandomErrorFailMode.PassThru && _proxyConfiguration?.Rate != 100) {
-                return;
+                return Task.CompletedTask;
             }
             if (ProxyUtils.IsGraphBatchUrl(e.Session.HttpClient.Request.RequestUri)) {
                 FailBatch(e);
@@ -256,5 +256,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin {
             }
             state.HasBeenSet = true;
         }
+
+        return Task.CompletedTask;
     }
 }

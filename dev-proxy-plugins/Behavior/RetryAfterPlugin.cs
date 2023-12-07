@@ -25,16 +25,17 @@ public class RetryAfterPlugin : BaseProxyPlugin
     pluginEvents.BeforeRequest += OnRequest;
   }
 
-  private async Task OnRequest(object? sender, ProxyRequestArgs e)
+  private Task OnRequest(object? sender, ProxyRequestArgs e)
   {
     if (e.ResponseState.HasBeenSet ||
         _urlsToWatch is null ||
         !e.ShouldExecute(_urlsToWatch))
     {
-      return;
+      return Task.CompletedTask;
     }
 
     ThrottleIfNecessary(e);
+    return Task.CompletedTask;
   }
 
   private void ThrottleIfNecessary(ProxyRequestArgs e)

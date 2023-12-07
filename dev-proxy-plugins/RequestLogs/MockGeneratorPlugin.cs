@@ -23,14 +23,14 @@ public class MockGeneratorPlugin : BaseProxyPlugin
     pluginEvents.AfterRecordingStop += AfterRecordingStop;
   }
 
-  private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+  private Task AfterRecordingStop(object? sender, RecordingArgs e)
   {
     _logger?.LogInfo("Creating mocks from recorded requests...");
 
     if (!e.RequestLogs.Any())
     {
       _logger?.LogDebug("No requests to process");
-      return;
+      return Task.CompletedTask;
     }
 
     var methodAndUrlComparer = new MethodAndUrlComparer();
@@ -86,6 +86,8 @@ public class MockGeneratorPlugin : BaseProxyPlugin
     File.WriteAllText(fileName, mocksFileJson);
 
     _logger?.LogInfo($"Created mock file {fileName} with {mocks.Count} mocks");
+    
+    return Task.CompletedTask;
   }
 
   /// <summary>

@@ -181,18 +181,19 @@ public class RateLimitingPlugin : BaseProxyPlugin
     }
 
     // add rate limiting headers to the response from the API
-    private async Task OnResponse(object? sender, ProxyResponseArgs e)
+    private Task OnResponse(object? sender, ProxyResponseArgs e)
     {
         if (_urlsToWatch is null ||
             !e.HasRequestUrlMatch(_urlsToWatch))
         {
-            return;
+            return Task.CompletedTask;
         }
 
         UpdateProxyResponse(e, HttpStatusCode.OK);
+        return Task.CompletedTask;
     }
 
-    private async Task OnRequest(object? sender, ProxyRequestArgs e)
+    private Task OnRequest(object? sender, ProxyRequestArgs e)
     {
         var session = e.Session;
         var state = e.ResponseState;
@@ -200,7 +201,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
             _urlsToWatch is null ||
             !e.ShouldExecute(_urlsToWatch))
         {
-            return;
+            return Task.CompletedTask;
         }
 
         // set the initial values for the first request
@@ -267,5 +268,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
                 }
             }
         }
+
+        return Task.CompletedTask;
     }
 }

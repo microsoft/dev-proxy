@@ -29,11 +29,11 @@ public class CachingGuidancePlugin : BaseProxyPlugin
     pluginEvents.BeforeRequest += BeforeRequest;
   }
 
-  private async Task BeforeRequest(object? sender, ProxyRequestArgs e)
+  private Task BeforeRequest(object? sender, ProxyRequestArgs e)
   {
     if (_urlsToWatch is null || !e.HasRequestUrlMatch(_urlsToWatch))
     {
-      return;
+      return Task.CompletedTask;
     }
 
     Request request = e.Session.HttpClient.Request;
@@ -43,7 +43,7 @@ public class CachingGuidancePlugin : BaseProxyPlugin
     if (!_interceptedRequests.ContainsKey(url))
     {
       _interceptedRequests.Add(url, now);
-      return;
+      return Task.CompletedTask;
     }
 
     var lastIntercepted = _interceptedRequests[url];
@@ -54,6 +54,7 @@ public class CachingGuidancePlugin : BaseProxyPlugin
     }
 
     _interceptedRequests[url] = now;
+    return Task.CompletedTask;
   }
 
   private static string[] BuildCacheWarningMessage(Request r, int _warningSeconds, DateTime lastIntercepted) => new[] {

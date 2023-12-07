@@ -24,13 +24,13 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
     pluginEvents.BeforeResponse += OnBeforeResponse;
   }
 
-  private async Task OnBeforeRequest(object? sender, ProxyRequestArgs e)
+  private Task OnBeforeRequest(object? sender, ProxyRequestArgs e)
   {
     if (_urlsToWatch is null ||
         e.Session.HttpClient.Request.Method != "GET" ||
         !e.HasRequestUrlMatch(_urlsToWatch))
     {
-      return;
+      return Task.CompletedTask;
     }
 
     if (IsODataPagingUrl(e.Session.HttpClient.Request.RequestUri) &&
@@ -38,6 +38,8 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
     {
       _logger?.LogRequest(BuildIncorrectPagingUrlMessage(), MessageType.Warning, new LoggingContext(e.Session));
     }
+
+    return Task.CompletedTask;
   }
 
   private async Task OnBeforeResponse(object? sender, ProxyResponseArgs e)

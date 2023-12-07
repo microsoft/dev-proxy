@@ -93,7 +93,8 @@ public class MockResponsePlugin : BaseProxyPlugin {
         _loader?.InitResponsesWatcher();
     }
 
-    protected virtual async Task OnRequest(object? sender, ProxyRequestArgs e) {
+    protected virtual Task OnRequest(object? sender, ProxyRequestArgs e)
+    {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
         if (!_configuration.NoMocks && _urlsToWatch is not null && e.ShouldExecute(_urlsToWatch)) {
@@ -115,6 +116,8 @@ public class MockResponsePlugin : BaseProxyPlugin {
                 state.HasBeenSet = true;
             }
         }
+
+        return Task.CompletedTask;
     }
 
     private MockResponse? GetMatchingMockResponse(Request request) {

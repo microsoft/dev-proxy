@@ -21,7 +21,7 @@ public class GraphClientRequestIdGuidancePlugin : BaseProxyPlugin
     pluginEvents.BeforeRequest += BeforeRequest;
   }
 
-  private async Task BeforeRequest(object? sender, ProxyRequestArgs e)
+  private Task BeforeRequest(object? sender, ProxyRequestArgs e)
   {
     Request request = e.Session.HttpClient.Request;
     if (_urlsToWatch is not null && e.HasRequestUrlMatch(_urlsToWatch) && WarnNoClientRequestId(request))
@@ -33,6 +33,8 @@ public class GraphClientRequestIdGuidancePlugin : BaseProxyPlugin
         _logger?.LogRequest(MessageUtils.BuildUseSdkMessage(request), MessageType.Tip, new LoggingContext(e.Session));
       }
     }
+
+    return Task.CompletedTask;
   }
 
   private static bool WarnNoClientRequestId(Request request) =>
