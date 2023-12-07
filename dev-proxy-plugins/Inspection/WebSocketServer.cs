@@ -42,7 +42,7 @@ public class WebSocketServer
 
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
-                    var message = Encoding.UTF8.GetString(buffer.Array, 0, result.Count);
+                    var message = Encoding.UTF8.GetString(buffer.Array!, 0, result.Count);
                     MessageReceived?.Invoke(message);
                 }
             }

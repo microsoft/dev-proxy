@@ -9,6 +9,9 @@
     <Version>0.13.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <NoWarn>CS1998</NoWarn>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0">
       <Private>false</Private>
