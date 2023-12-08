@@ -55,10 +55,9 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         Method = methodAndUrl.Item1,
         Url = methodAndUrl.Item2,
         ResponseCode = response.StatusCode,
-        ResponseHeaders = response.Headers
+                    ResponseHeaders = new List<Dictionary<string, string>>{ response.Headers
           .Select(h => new KeyValuePair<string, string>(h.Name, h.Value))
-          .DistinctBy(d=> d.Key)
-          .ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value) },
         ResponseBody = GetResponseBody(request.Context.Session).Result
       };
       // skip mock if it's 200 but has no body

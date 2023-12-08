@@ -4,6 +4,8 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft365.DeveloperProxy.Abstractions;
 
 namespace Microsoft365.DeveloperProxy.Plugins.MockResponses;
@@ -34,7 +36,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
             GraphBatchResponsePayloadResponse? response = null;
             var requestId = Guid.NewGuid().ToString();
             var requestDate = DateTime.Now.ToString();
-            var headers = ProxyUtils
+            Dictionary<string, string> headers = ProxyUtils
                 .BuildGraphResponseHeaders(e.Session.HttpClient.Request, requestId, requestDate)
                 .ToDictionary(h => h.Name, h => h.Value);
 
@@ -45,7 +47,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)HttpStatusCode.BadGateway,
-                    Headers = headers,
+                    Headers = new List<Dictionary<string, string>> { headers },
                     Body = new GraphBatchResponsePayloadResponseBody
                     {
                         Error = new GraphBatchResponsePayloadResponseBodyError
@@ -69,10 +71,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
                 if (mockResponse.ResponseHeaders is not null)
                 {
-                    foreach (var key in mockResponse.ResponseHeaders.Keys)
-                    {
-                        headers[key] = mockResponse.ResponseHeaders[key];
-                    }
+                    mockResponse.ResponseHeaders.SelectMany(dict => dict.Select(kv => headers[kv.Key] = kv.Value));
                 }
                 // default the content type to application/json unless set in the mock response
                 if (!headers.Any(h => h.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
@@ -112,7 +111,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)statusCode,
-                    Headers = headers,
+                    Headers = new List<Dictionary<string, string>> { headers },
                     Body = body
                 };
 

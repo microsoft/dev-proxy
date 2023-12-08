@@ -179,8 +179,8 @@ public class MockResponsePlugin : BaseProxyPlugin {
         }
 
         if (matchingResponse.ResponseHeaders is not null) {
-            foreach (var key in matchingResponse.ResponseHeaders.Keys) {
-                headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
+            foreach (var key in matchingResponse.ResponseHeaders.SelectMany(dict => dict.Select(kv => new HttpHeader(kv.Key, kv.Value)))) {
+                headers.Add(key);
             }
         }
         // default the content type to application/json unless set in the mock response
