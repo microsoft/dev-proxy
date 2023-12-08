@@ -84,7 +84,8 @@ public static class ProxyUtils {
                 new HttpHeader("Strict-Transport-Security", ""),
                 new HttpHeader("request-id", requestId),
                 new HttpHeader("client-request-id", requestId),
-                new HttpHeader("Date", requestDate)
+                new HttpHeader("Date", requestDate),
+                new HttpHeader("Content-Type", "application/json")
             };
         if (request.Headers.FirstOrDefault((h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
             headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));

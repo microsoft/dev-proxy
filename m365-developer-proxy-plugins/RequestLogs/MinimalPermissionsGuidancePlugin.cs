@@ -46,7 +46,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
         continue;
       }
 
-      var methodAndUrlString = request.Message.First();
+      var methodAndUrlString = request.MessageLines.First();
       var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
       var requestsFromBatch = Array.Empty<Tuple<string, string>>();
 

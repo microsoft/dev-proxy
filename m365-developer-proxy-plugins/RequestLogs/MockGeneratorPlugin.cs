@@ -44,7 +44,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         continue;
       }
 
-      var methodAndUrlString = request.Message.First();
+      var methodAndUrlString = request.MessageLines.First();
       _logger?.LogDebug($"Processing request {methodAndUrlString}...");
 
       var methodAndUrl = GetMethodAndUrl(methodAndUrlString);

@@ -1,6 +1,12 @@
 {
   "plugins": [
     {
+      "name": "DevToolsPlugin",
+      "enabled": false,
+      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
+      "configSection": "devTools"
+    },
+    {
       "name": "LatencyPlugin",
       "enabled": false,
       "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
@@ -157,6 +163,9 @@
   "latencyPlugin": {
     "minMs": 200,
     "maxMs": 10000
+  },
+  "devTools": {
+    "preferredBrowser": "Edge"
   },
   "rateLimiting": {
     "costPerRequest": 2,
