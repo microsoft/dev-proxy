@@ -7,6 +7,11 @@ using System.CommandLine;
 
 PluginEvents pluginEvents = new PluginEvents();
 ILogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration, pluginEvents);
+// set the log level if specified through args
+if (ProxyHost.LogLevel is not null)
+{
+    logger.LogLevel = ProxyHost.LogLevel.Value;
+}
 IProxyContext context = new ProxyContext(logger, ProxyCommandHandler.Configuration);
 ProxyHost proxyHost = new();
 RootCommand rootCommand = proxyHost.GetRootCommand(logger);

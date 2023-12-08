@@ -11,7 +11,7 @@ internal class ProxyHost
 {
     private Option<int?> _portOption;
     private Option<string?> _ipAddressOption;
-    private Option<LogLevel?> _logLevelOption;
+    private static Option<LogLevel?>? _logLevelOption;
     private Option<bool?> _recordOption;
     private Option<IEnumerable<int>?> _watchPidsOption;
     private Option<IEnumerable<string>?> _watchProcessNamesOption;
@@ -87,8 +87,56 @@ internal class ProxyHost
         }
     }
 
-    public ProxyHost()
+    private static bool _logLevelResolved = false;
+    private static LogLevel? _logLevel;
+    public static LogLevel? LogLevel
     {
+        get
+        {
+            if (_logLevelResolved)
+            {
+                return _logLevel;
+            }
+
+            if (_logLevelOption is null)
+            {
+                _logLevelOption = new Option<LogLevel?>(
+                    "--log-level",
+                    $"Level of messages to log. Allowed values: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}"
+                )
+                {
+                    ArgumentHelpName = "logLevel"
+                };
+                _logLevelOption.AddValidator(input => {
+                    if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel)) {
+                        input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid log level. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}";
+                    }
+                });
+            }
+
+            var result = _logLevelOption.Parse(Environment.GetCommandLineArgs());
+            // since we're parsing all args, and other options are not instantiated yet
+            // we're getting here a bunch of other errors, so we only need to look for
+            // errors related to the log level option
+            var error = result.Errors.Where(e => e.SymbolResult?.Symbol == _logLevelOption).FirstOrDefault();
+            if (error is not null)
+            {
+                // Logger is not available here yet so we need to fallback to Console
+                var color = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine(error.Message);
+                Console.ForegroundColor = color;
+                Environment.Exit(1);
+            }
+
+            _logLevel = result.GetValueForOption(_logLevelOption);
+            _logLevelResolved = true;
+
+            return _logLevel;
+        }
+    }
+
+    public ProxyHost() {
         _portOption = new Option<int?>("--port", "The port for the proxy to listen on");
         _portOption.AddAlias("-p");
         _portOption.ArgumentHelpName = "port";
@@ -102,16 +150,6 @@ internal class ProxyHost
             if (!IPAddress.TryParse(input.Tokens.First().Value, out var ipAddress))
             {
                 input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid IP address";
-            }
-        });
-
-        _logLevelOption = new Option<LogLevel?>("--log-level", $"Level of messages to log. Allowed values: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}");
-        _logLevelOption.ArgumentHelpName = "logLevel";
-        _logLevelOption.AddValidator(input =>
-        {
-            if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel))
-            {
-                input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid log level. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}";
             }
         });
 
@@ -145,7 +183,9 @@ internal class ProxyHost
         var command = new RootCommand {
             _portOption,
             _ipAddressOption,
-            _logLevelOption,
+            // _logLevelOption is set while initialize the Program
+            // As such, it's always set here
+            _logLevelOption!,
             _recordOption,
             _watchPidsOption,
             _watchProcessNamesOption,
