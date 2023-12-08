@@ -23,10 +23,11 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin {
     {
         Request request = e.Session.HttpClient.Request;
         // only show the message if there is an error.
-        if (e.Session.HttpClient.Response.StatusCode >= 400 
-            && _urlsToWatch is not null 
-            && e.HasRequestUrlMatch(_urlsToWatch) 
-            && WarnNoSdk(request)) {
+        if (e.Session.HttpClient.Response.StatusCode >= 400  &&
+            _urlsToWatch is not null &&
+            e.HasRequestUrlMatch(_urlsToWatch) &&
+            e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
+            WarnNoSdk(request)) {
             _logger?.LogRequest(MessageUtils.BuildUseSdkForErrorsMessage(request), MessageType.Tip, new LoggingContext(e.Session));
         }
 

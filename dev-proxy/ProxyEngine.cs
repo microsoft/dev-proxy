@@ -352,9 +352,7 @@ public class ProxyEngine {
   }
 
   async Task OnRequest(object sender, SessionEventArgs e) {
-        var method = e.HttpClient.Request.Method.ToUpper();
-        // The proxy does not intercept or alter OPTIONS requests
-        if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             // we need to keep the request body for further processing
             // by plugins
             e.HttpClient.Request.KeepBody = true;
@@ -386,20 +384,20 @@ public class ProxyEngine {
 
     // Modify response
     async Task OnBeforeResponse(object sender, SessionEventArgs e) {
-        var method = e.HttpClient.Request.Method.ToUpper();
         // read response headers
-        if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             // necessary to make the response body available to plugins
             e.HttpClient.Response.KeepBody = true;
-            await e.GetResponseBody();
+            if (e.HttpClient.Response.HasBody) {
+                await e.GetResponseBody();
+            }
 
             await _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
     }
     async Task OnAfterResponse(object sender, SessionEventArgs e) {
-        var method = e.HttpClient.Request.Method.ToUpper();
         // read response headers
-        if (method is not "OPTIONS" && IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedResponse, new LoggingContext(e));
             await _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
