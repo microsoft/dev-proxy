@@ -24,7 +24,10 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
     private Task AfterResponse(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
-        if (_urlsToWatch is not null && e.HasRequestUrlMatch(_urlsToWatch) && WarnNoSelect(request))
+        if (_urlsToWatch is not null &&
+            e.HasRequestUrlMatch(_urlsToWatch) &&
+            e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
+            WarnNoSelect(request))
             _logger?.LogRequest(BuildUseSelectMessage(request), MessageType.Warning, new LoggingContext(e.Session));
             
         return Task.CompletedTask;

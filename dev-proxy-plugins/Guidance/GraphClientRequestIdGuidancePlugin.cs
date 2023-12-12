@@ -24,7 +24,10 @@ public class GraphClientRequestIdGuidancePlugin : BaseProxyPlugin
   private Task BeforeRequest(object? sender, ProxyRequestArgs e)
   {
     Request request = e.Session.HttpClient.Request;
-    if (_urlsToWatch is not null && e.HasRequestUrlMatch(_urlsToWatch) && WarnNoClientRequestId(request))
+    if (_urlsToWatch is not null &&
+      e.HasRequestUrlMatch(_urlsToWatch) &&
+      e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
+      WarnNoClientRequestId(request))
     {
       _logger?.LogRequest(BuildAddClientRequestIdMessage(request), MessageType.Warning, new LoggingContext(e.Session));
 
