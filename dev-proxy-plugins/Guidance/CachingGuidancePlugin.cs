@@ -31,7 +31,9 @@ public class CachingGuidancePlugin : BaseProxyPlugin
 
   private Task BeforeRequest(object? sender, ProxyRequestArgs e)
   {
-    if (_urlsToWatch is null || !e.HasRequestUrlMatch(_urlsToWatch))
+    if (_urlsToWatch is null ||
+      !e.HasRequestUrlMatch(_urlsToWatch) ||
+      e.Session.HttpClient.Request.Method.ToUpper() == "OPTIONS")
     {
       return Task.CompletedTask;
     }
