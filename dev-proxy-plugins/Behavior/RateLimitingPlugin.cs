@@ -172,6 +172,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         configSection?.Bind(_configuration);
+        _configuration.CustomResponseFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.CustomResponseFile), Path.GetDirectoryName(context.Configuration?.ConfigFile ?? string.Empty) ?? string.Empty);
         _loader = new RateLimitingCustomResponseLoader(_logger!, _configuration);
         // load the responses from the configured mocks file
         _loader.InitResponsesWatcher();
@@ -264,7 +265,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
                 }
                 else
                 {
-                    _logger?.LogRequest(new[] { $"Custom behavior not set {_configuration.CustomResponseFile} not found." }, MessageType.Failed, new LoggingContext(e.Session));
+                    _logger?.LogRequest(new[] { $"Custom behavior not set. {_configuration.CustomResponseFile} not found." }, MessageType.Failed, new LoggingContext(e.Session));
                 }
             }
         }
