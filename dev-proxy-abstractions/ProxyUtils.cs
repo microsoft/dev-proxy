@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 using Titanium.Web.Proxy.Http;
@@ -252,5 +253,28 @@ public static class ProxyUtils {
         var uri = new Uri(url);
         var origin = uri.GetLeftPart(UriPartial.Authority);
         return RemoveExtraSlashesFromUrl($"{origin}/{queryVersion}/{requestUrl + search}");
+    }
+
+    private static Assembly? _assembly;
+    internal static Assembly GetAssembly()
+            => _assembly ??= (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
+
+    private static string _productVersion = string.Empty;
+    public static string ProductVersion {
+        get {
+            if (_productVersion == string.Empty) {
+                var assembly = GetAssembly();
+                var assemblyVersionAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+                if (assemblyVersionAttribute is null) {
+                    _productVersion = assembly.GetName().Version?.ToString() ?? "";
+                }
+                else {
+                    _productVersion = assemblyVersionAttribute.InformationalVersion;
+                }
+            }
+
+            return _productVersion;
+        }
     }
 }
