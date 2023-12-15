@@ -14,6 +14,12 @@ using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.DevProxy;
 
+enum ToggleSystemProxyAction
+{
+    On,
+    Off
+}
+
 public class ProxyEngine {
     private readonly PluginEvents _pluginEvents;
     private readonly ILogger _logger;
@@ -35,6 +41,30 @@ public class ProxyEngine {
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    private void ToggleSystemProxy(ToggleSystemProxyAction toggle, string? ipAddress = null, int? port = null)
+    {
+        var bashScriptPath = Path.Join(ProxyUtils.AppFolder, "toggle-proxy.sh");
+        var args = toggle switch
+        {
+            ToggleSystemProxyAction.On => $"on {ipAddress} {port}",
+            ToggleSystemProxyAction.Off => "off",
+            _ => throw new NotImplementedException()
+        };
+
+        ProcessStartInfo startInfo = new ProcessStartInfo()
+        {
+            FileName = "/bin/bash",
+            Arguments = $"{bashScriptPath} {args}",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        var process = new Process() { StartInfo = startInfo };
+        process.Start();
+        process.WaitForExit();
     }
 
     public async Task Run(CancellationToken? cancellationToken) {
@@ -87,6 +117,10 @@ public class ProxyEngine {
             // Only explicit proxies can be set as system proxy!
             _proxyServer.SetAsSystemHttpProxy(_explicitEndPoint);
             _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
+        }
+        else if (RunTime.IsMac)
+        {
+            ToggleSystemProxy(ToggleSystemProxyAction.On, _config.IPAddress, _config.Port);
         }
         else {
             _logger.LogWarn("Configure your operating system to use this proxy's port and address");
@@ -229,6 +263,11 @@ public class ProxyEngine {
                 _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
 
                 _proxyServer.Stop();
+            }
+
+            if (RunTime.IsMac)
+            {
+                ToggleSystemProxy(ToggleSystemProxyAction.Off);
             }
         }
         catch (Exception ex) {
