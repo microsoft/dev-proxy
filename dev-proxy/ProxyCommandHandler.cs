@@ -16,6 +16,7 @@ public class ProxyCommandHandler : ICommandHandler {
     public Option<IEnumerable<int>?> WatchPids { get; set; }
     public Option<IEnumerable<string>?> WatchProcessNames { get; set; }
     public Option<int?> Rate { get; set; }
+    public Option<bool?> NoFirstRun { get; set; }
 
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<UrlToWatch> _urlsToWatch;
@@ -28,6 +29,7 @@ public class ProxyCommandHandler : ICommandHandler {
                                Option<IEnumerable<int>?> watchPids,
                                Option<IEnumerable<string>?> watchProcessNames,
                                Option<int?> rate,
+                               Option<bool?> noFirstRun,
                                PluginEvents pluginEvents,
                                ISet<UrlToWatch> urlsToWatch,
                                ILogger logger) {
@@ -38,6 +40,7 @@ public class ProxyCommandHandler : ICommandHandler {
         WatchPids = watchPids ?? throw new ArgumentNullException(nameof(watchPids));
         WatchProcessNames = watchProcessNames ?? throw new ArgumentNullException(nameof(watchProcessNames));
         Rate = rate ?? throw new ArgumentNullException(nameof(rate));
+        NoFirstRun = noFirstRun ?? throw new ArgumentNullException(nameof(noFirstRun));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -75,6 +78,10 @@ public class ProxyCommandHandler : ICommandHandler {
         var rate = context.ParseResult.GetValueForOption(Rate);
         if (rate is not null) {
             Configuration.Rate = rate.Value;
+        }
+        var noFirstRun = context.ParseResult.GetValueForOption(NoFirstRun);
+        if (noFirstRun is not null) {
+            Configuration.NoFirstRun = noFirstRun.Value;
         }
 
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));

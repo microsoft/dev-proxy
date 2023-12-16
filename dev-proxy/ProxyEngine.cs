@@ -77,6 +77,7 @@ public class ProxyEngine {
 
         _proxyServer = new ProxyServer();
 
+        _proxyServer.CertificateManager.RootCertificateName = "Dev Proxy CA";
         _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
         _proxyServer.BeforeRequest += OnRequest;
         _proxyServer.BeforeResponse += OnBeforeResponse;
@@ -84,6 +85,9 @@ public class ProxyEngine {
         _proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
         _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelection;
         cancellationToken?.Register(OnCancellation);
+
+        // run first-run setup on macOS
+        FirstRunSetup();
 
         var ipAddress = string.IsNullOrEmpty(_config.IPAddress) ? IPAddress.Any : IPAddress.Parse(_config.IPAddress);
         _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
@@ -130,6 +134,46 @@ public class ProxyEngine {
             ReadKeys();
         }
         while (_proxyServer.ProxyRunning) { await Task.Delay(10); }
+    }
+
+    private void FirstRunSetup()
+    {
+        if (!RunTime.IsMac ||
+            _config.NoFirstRun ||
+            !IsFirstRun())
+        {
+            return;
+        }
+
+        var bashScriptPath = Path.Join(ProxyUtils.AppFolder, "trust-cert.sh");
+        ProcessStartInfo startInfo = new ProcessStartInfo()
+        {
+            FileName = "/bin/bash",
+            Arguments = bashScriptPath,
+            UseShellExecute = true,
+            CreateNoWindow = false
+        };
+
+        var process = new Process() { StartInfo = startInfo };
+        process.Start();
+        process.WaitForExit();
+    }
+
+    private bool IsFirstRun()
+    {
+        var firstRunFilePath = Path.Combine(ProxyUtils.AppFolder!, ".hasrun");
+        if (File.Exists(firstRunFilePath))
+        {
+            return false;
+        }
+
+        try
+        {
+            File.WriteAllText(firstRunFilePath, "");
+        }
+        catch {}
+
+        return true;
     }
 
     private void AfterRequestLog(object? sender, RequestLogArgs e) {
