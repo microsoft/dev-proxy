@@ -25,30 +25,7 @@ public class ProxyEngine {
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
     private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
-    private static Assembly? _assembly;
     private IList<ThrottlerInfo> _throttledRequests = new List<ThrottlerInfo>();
-
-    internal static Assembly GetAssembly()
-            => _assembly ??= (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
-
-    private static string _productVersion = string.Empty;
-    public static string ProductVersion {
-        get {
-            if (_productVersion == string.Empty) {
-                var assembly = GetAssembly();
-                var assemblyVersionAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-
-                if (assemblyVersionAttribute is null) {
-                    _productVersion = assembly.GetName().Version?.ToString() ?? "";
-                }
-                else {
-                    _productVersion = assemblyVersionAttribute.InformationalVersion;
-                }
-            }
-
-            return _productVersion;
-        }
-    }
 
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();
@@ -421,7 +398,7 @@ public class ProxyEngine {
         }
     }
 
-    private static void AddProxyHeader(Request r) => r.Headers?.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{ProductVersion}");
+    private static void AddProxyHeader(Request r) => r.Headers?.AddHeader("Via", $"{r.HttpVersion} graph-proxy/{ProxyUtils.ProductVersion}");
 
     private bool IsProxiedHost(string hostName) => _hostsToWatch.Any(h => h.Url.IsMatch(hostName));
 
