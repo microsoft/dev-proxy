@@ -23,6 +23,8 @@ public class MockResponseConfiguration {
     [JsonIgnore]
     public bool BlockUnmockedRequests { get; set; } = false;
 
+    [JsonPropertyName("$schema")]
+    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v1.0/responses.schema.json";
     [JsonPropertyName("responses")]
     public IEnumerable<MockResponse> Responses { get; set; } = Array.Empty<MockResponse>();
 }
