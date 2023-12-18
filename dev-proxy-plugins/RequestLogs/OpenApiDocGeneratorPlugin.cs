@@ -351,7 +351,7 @@ public class OpenApiDocGeneratorPlugin : BaseProxyPlugin
       if (IsParametrizable(segment))
       {
         var parameterName = $"{previousSegment}-id";
-        segments[i] = "{" + parameterName + "}";
+        segments[i] = "{" + parameterName + "}/";
 
         pathItem.Parameters.Add(new OpenApiParameter
         {
