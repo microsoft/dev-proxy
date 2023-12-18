@@ -4,6 +4,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.DevProxy.Abstractions;
 
 namespace Microsoft.DevProxy;
 
@@ -47,7 +48,7 @@ internal static class UpdateNotification {
     }
 
     private static Version GetCurrentVersion() {
-        var currentVersion = new Version(ProxyEngine.ProductVersion ?? "0.0.0.0");
+        var currentVersion = new Version(ProxyUtils.ProductVersion ?? "0.0.0.0");
         return currentVersion;
     }
 

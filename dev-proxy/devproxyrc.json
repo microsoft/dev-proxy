@@ -145,6 +145,11 @@
       "name": "MockGeneratorPlugin",
       "enabled": false,
       "pluginPath": "plugins\\dev-proxy-plugins.dll"
+    },
+    {
+      "name": "OpenApiDocGeneratorPlugin",
+      "enabled": false,
+      "pluginPath": "plugins\\dev-proxy-plugins.dll"
     }
   ],
   "urlsToWatch": [
