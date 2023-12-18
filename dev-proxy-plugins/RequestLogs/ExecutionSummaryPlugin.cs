@@ -242,6 +242,11 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
     foreach (var log in requestLogs)
     {
       var message = GetRequestMessage(log);
+      if (log.MessageType == MessageType.InterceptedResponse) {
+        // ignore intercepted response messages
+        continue;
+      }
+
       if (log.MessageType == MessageType.InterceptedRequest)
       {
         var request = GetMethodAndUrl(log);
@@ -282,6 +287,11 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 
     foreach (var log in requestLogs)
     {
+      if (log.MessageType == MessageType.InterceptedResponse) {
+        // ignore intercepted response messages
+        continue;
+      }
+
       var readableMessageType = GetReadableMessageTypeForSummary(log.MessageType);
       if (!data.ContainsKey(readableMessageType))
       {
@@ -356,6 +366,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
   private string[] GetSummary(IEnumerable<RequestLog> requestLogs)
   {
     var data = requestLogs
+      .Where(log => log.MessageType != MessageType.InterceptedResponse)
       .Select(log => GetReadableMessageTypeForSummary(log.MessageType))
       .OrderBy(log => log)
       .GroupBy(log => log)
