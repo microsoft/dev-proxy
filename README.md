@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img alt="Dev Proxy" src="./samples/img/microsoft.png" height="78" />
+    <img alt="Dev Proxy" src="./samples/img/devproxy.png" />
   <br>Dev Proxy<br>
 </h1>
 
