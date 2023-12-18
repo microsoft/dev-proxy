@@ -61,7 +61,7 @@ if (!(Test-Path $PROFILE)) {
 }
 
 if (!(Select-String -Path $PROFILE -Pattern "devproxy")) {
-    Add-Content -Path $PROFILE -Value "`$env:PATH += `":$full_path`""
+    Add-Content -Path $PROFILE -Value "$([Environment]::NewLine)`$env:PATH += `"$([IO.Path]::PathSeparator)$full_path`""
 }
 
 Write-Host "Dev Proxy $version installed!"
