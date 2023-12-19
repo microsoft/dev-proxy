@@ -93,9 +93,6 @@ public class ProxyEngine {
         _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelection;
         cancellationToken?.Register(OnCancellation);
 
-        // run first-run setup on macOS
-        FirstRunSetup();
-
         var ipAddress = string.IsNullOrEmpty(_config.IPAddress) ? IPAddress.Any : IPAddress.Parse(_config.IPAddress);
         _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
         if (!RunTime.IsWindows) {
@@ -112,6 +109,9 @@ public class ProxyEngine {
 
         _proxyServer.AddEndPoint(_explicitEndPoint);
         _proxyServer.Start();
+
+        // run first-run setup on macOS
+        FirstRunSetup();
 
         foreach (var endPoint in _proxyServer.ProxyEndPoints) {
             _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
