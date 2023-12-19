@@ -17,6 +17,7 @@ internal class ProxyHost
     private Option<IEnumerable<string>?> _watchProcessNamesOption;
     private static Option<string?>? _configFileOption;
     private Option<int?> _rateOption;
+    private Option<bool?> _noFirstRunOption;
 
     private static bool _configFileResolved = false;
     private static string _configFile = "devproxyrc.json";
@@ -175,6 +176,8 @@ internal class ProxyHost
             }
         });
 
+        _noFirstRunOption = new Option<bool?>("--no-first-run", "Skip the first run experience");
+
         ProxyCommandHandler.Configuration.ConfigFile = ConfigFile;
     }
 
@@ -192,7 +195,8 @@ internal class ProxyHost
             _rateOption,
             // _configFileOption is set during the call to load
             // `ProxyCommandHandler.Configuration`. As such, it's always set here
-            _configFileOption!
+            _configFileOption!,
+            _noFirstRunOption
         };
         command.Description = "Dev Proxy is a command line tool for testing Microsoft Graph, SharePoint Online and any other HTTP APIs.";
 
@@ -205,6 +209,6 @@ internal class ProxyHost
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, pluginEvents, urlsToWatch, logger);
 }
 

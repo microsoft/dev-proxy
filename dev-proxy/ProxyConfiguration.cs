@@ -23,6 +23,7 @@ public class ProxyConfiguration: IProxyConfiguration {
     public IEnumerable<string> WatchProcessNames { get; set; } = new List<string>();
     [JsonPropertyName("rate")]
     public int Rate { get; set; } = 50;
+    public bool NoFirstRun { get; set; } = false;
     public string ConfigFile { get; set; } = "devproxyrc.json";
 }
 

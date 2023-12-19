@@ -84,6 +84,7 @@ public class ProxyEngine {
 
         _proxyServer = new ProxyServer();
 
+        _proxyServer.CertificateManager.RootCertificateName = "Dev Proxy CA";
         _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
         _proxyServer.BeforeRequest += OnRequest;
         _proxyServer.BeforeResponse += OnBeforeResponse;
@@ -108,6 +109,9 @@ public class ProxyEngine {
 
         _proxyServer.AddEndPoint(_explicitEndPoint);
         _proxyServer.Start();
+
+        // run first-run setup on macOS
+        FirstRunSetup();
 
         foreach (var endPoint in _proxyServer.ProxyEndPoints) {
             _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
@@ -141,6 +145,46 @@ public class ProxyEngine {
             ReadKeys();
         }
         while (_proxyServer.ProxyRunning) { await Task.Delay(10); }
+    }
+
+    private void FirstRunSetup()
+    {
+        if (!RunTime.IsMac ||
+            _config.NoFirstRun ||
+            !IsFirstRun())
+        {
+            return;
+        }
+
+        var bashScriptPath = Path.Join(ProxyUtils.AppFolder, "trust-cert.sh");
+        ProcessStartInfo startInfo = new ProcessStartInfo()
+        {
+            FileName = "/bin/bash",
+            Arguments = bashScriptPath,
+            UseShellExecute = true,
+            CreateNoWindow = false
+        };
+
+        var process = new Process() { StartInfo = startInfo };
+        process.Start();
+        process.WaitForExit();
+    }
+
+    private bool IsFirstRun()
+    {
+        var firstRunFilePath = Path.Combine(ProxyUtils.AppFolder!, ".hasrun");
+        if (File.Exists(firstRunFilePath))
+        {
+            return false;
+        }
+
+        try
+        {
+            File.WriteAllText(firstRunFilePath, "");
+        }
+        catch {}
+
+        return true;
     }
 
     private void AfterRequestLog(object? sender, RequestLogArgs e) {
