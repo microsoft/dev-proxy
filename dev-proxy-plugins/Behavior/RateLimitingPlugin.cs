@@ -230,7 +230,8 @@ public class RateLimitingPlugin : BaseProxyPlugin
             var request = e.Session.HttpClient.Request;
 
             _logger?.LogRequest(new[] { $"Exceeded resource limit when calling {request.Url}.", "Request will be throttled" }, MessageType.Failed, new LoggingContext(e.Session));
-            if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Throttle) {
+            if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Throttle)
+            {
                 e.ThrottledRequests.Add(new ThrottlerInfo(
                     BuildThrottleKey(request),
                     ShouldThrottle,
@@ -249,7 +250,8 @@ public class RateLimitingPlugin : BaseProxyPlugin
 
                     // allow custom throttling response
                     var responseCode = (HttpStatusCode)(_configuration.CustomResponse.ResponseCode ?? 200);
-                    if (responseCode == HttpStatusCode.TooManyRequests) {
+                    if (responseCode == HttpStatusCode.TooManyRequests)
+                    {
                         e.ThrottledRequests.Add(new ThrottlerInfo(
                             BuildThrottleKey(request),
                             ShouldThrottle,

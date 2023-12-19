@@ -108,8 +108,10 @@ internal class ProxyHost
                 {
                     ArgumentHelpName = "logLevel"
                 };
-                _logLevelOption.AddValidator(input => {
-                    if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel)) {
+                _logLevelOption.AddValidator(input =>
+                {
+                    if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel))
+                    {
                         input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid log level. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}";
                     }
                 });
@@ -137,7 +139,8 @@ internal class ProxyHost
         }
     }
 
-    public ProxyHost() {
+    public ProxyHost()
+    {
         _portOption = new Option<int?>("--port", "The port for the proxy to listen on");
         _portOption.AddAlias("-p");
         _portOption.ArgumentHelpName = "port";

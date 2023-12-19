@@ -5,7 +5,8 @@ using System.Runtime.Serialization;
 
 namespace Microsoft.DevProxy.Abstractions;
 
-public enum LabelMode {
+public enum LabelMode
+{
     [EnumMember(Value = "text")]
     Text,
     [EnumMember(Value = "icon")]
@@ -14,7 +15,8 @@ public enum LabelMode {
     NerdFont
 }
 
-public interface IProxyConfiguration {
+public interface IProxyConfiguration
+{
     int Port { get; }
     string? IPAddress { get; }
     LabelMode LabelMode { get; }

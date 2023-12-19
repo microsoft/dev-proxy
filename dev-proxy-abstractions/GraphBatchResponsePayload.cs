@@ -5,12 +5,14 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Abstractions;
 
-public class GraphBatchResponsePayload {
+public class GraphBatchResponsePayload
+{
     [JsonPropertyName("responses")]
     public GraphBatchResponsePayloadResponse[] Responses { get; set; } = Array.Empty<GraphBatchResponsePayloadResponse>();
 }
 
-public class GraphBatchResponsePayloadResponse {
+public class GraphBatchResponsePayloadResponse
+{
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
     [JsonPropertyName("status")]
@@ -21,12 +23,14 @@ public class GraphBatchResponsePayloadResponse {
     public Dictionary<string, string>? Headers { get; set; }
 }
 
-public class GraphBatchResponsePayloadResponseBody {
+public class GraphBatchResponsePayloadResponseBody
+{
     [JsonPropertyName("error")]
     public GraphBatchResponsePayloadResponseBodyError? Error { get; set; }
 }
 
-public class GraphBatchResponsePayloadResponseBodyError {
+public class GraphBatchResponsePayloadResponseBodyError
+{
     [JsonPropertyName("code")]
     public string Code { get; set; } = string.Empty;
     [JsonPropertyName("message")]

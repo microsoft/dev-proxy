@@ -6,11 +6,13 @@ using System.Text.Json;
 
 namespace Microsoft.DevProxy.Plugins.RandomErrors;
 
-internal class GenericErrorResponsesLoader : IDisposable {
+internal class GenericErrorResponsesLoader : IDisposable
+{
     private readonly ILogger _logger;
     private readonly GenericRandomErrorConfiguration _configuration;
 
-    public GenericErrorResponsesLoader(ILogger logger, GenericRandomErrorConfiguration configuration) {
+    public GenericErrorResponsesLoader(ILogger logger, GenericRandomErrorConfiguration configuration)
+    {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
@@ -18,34 +20,43 @@ internal class GenericErrorResponsesLoader : IDisposable {
     private string _errorsFile => Path.Combine(Directory.GetCurrentDirectory(), _configuration.ErrorsFile ?? "");
     private FileSystemWatcher? _watcher;
 
-    public void LoadResponses() {
-        if (!File.Exists(_errorsFile)) {
+    public void LoadResponses()
+    {
+        if (!File.Exists(_errorsFile))
+        {
             _logger.LogWarn($"File {_configuration.ErrorsFile} not found in the current directory. No error responses will be loaded");
             _configuration.Responses = Array.Empty<GenericErrorResponse>();
             return;
         }
 
-        try {
-            using (FileStream stream = new FileStream(_errorsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
-                using (StreamReader reader = new StreamReader(stream)) {                
+        try
+        {
+            using (FileStream stream = new FileStream(_errorsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                using (StreamReader reader = new StreamReader(stream))
+                {
                     var responsesString = reader.ReadToEnd();
                     var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString);
                     IEnumerable<GenericErrorResponse>? configResponses = responsesConfig?.Responses;
-                    if (configResponses is not null) {
+                    if (configResponses is not null)
+                    {
                         _configuration.Responses = configResponses;
                         _logger.LogInfo($"Error responses for {configResponses.Count()} url patterns loaded from from {_configuration.ErrorsFile}");
                     }
                 }
             }
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             _logger.LogError($"An error has occurred while reading {_configuration.ErrorsFile}:");
             _logger.LogError(ex.Message);
         }
     }
 
-    public void InitResponsesWatcher() {
-        if (_watcher is not null) {
+    public void InitResponsesWatcher()
+    {
+        if (_watcher is not null)
+        {
             return;
         }
 
@@ -65,11 +76,13 @@ internal class GenericErrorResponsesLoader : IDisposable {
         LoadResponses();
     }
 
-    private void ResponsesFile_Changed(object sender, FileSystemEventArgs e) {
+    private void ResponsesFile_Changed(object sender, FileSystemEventArgs e)
+    {
         LoadResponses();
     }
 
-    public void Dispose() {
+    public void Dispose()
+    {
         _watcher?.Dispose();
     }
 }

@@ -29,7 +29,7 @@ public class ODSPSearchGuidancePlugin : BaseProxyPlugin
             e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
             WarnDeprecatedSearch(request))
             _logger?.LogRequest(BuildUseGraphSearchMessage(), MessageType.Warning, new LoggingContext(e.Session));
-            
+
         return Task.CompletedTask;
     }
 

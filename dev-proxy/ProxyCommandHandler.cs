@@ -8,7 +8,8 @@ using System.CommandLine.Invocation;
 
 namespace Microsoft.DevProxy;
 
-public class ProxyCommandHandler : ICommandHandler {
+public class ProxyCommandHandler : ICommandHandler
+{
     public Option<int?> Port { get; set; }
     public Option<string?> IPAddress { get; set; }
     public Option<LogLevel?> LogLevel { get; set; }
@@ -32,7 +33,8 @@ public class ProxyCommandHandler : ICommandHandler {
                                Option<bool?> noFirstRun,
                                PluginEvents pluginEvents,
                                ISet<UrlToWatch> urlsToWatch,
-                               ILogger logger) {
+                               ILogger logger)
+    {
         Port = port ?? throw new ArgumentNullException(nameof(port));
         IPAddress = ipAddress ?? throw new ArgumentNullException(nameof(ipAddress));
         LogLevel = logLevel ?? throw new ArgumentNullException(nameof(logLevel));
@@ -46,41 +48,51 @@ public class ProxyCommandHandler : ICommandHandler {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public int Invoke(InvocationContext context) {
+    public int Invoke(InvocationContext context)
+    {
         return InvokeAsync(context).GetAwaiter().GetResult();
     }
 
-    public async Task<int> InvokeAsync(InvocationContext context) {
+    public async Task<int> InvokeAsync(InvocationContext context)
+    {
         var port = context.ParseResult.GetValueForOption(Port);
-        if (port is not null) {
+        if (port is not null)
+        {
             Configuration.Port = port.Value;
         }
         var ipAddress = context.ParseResult.GetValueForOption(IPAddress);
-        if (ipAddress is not null) {
+        if (ipAddress is not null)
+        {
             Configuration.IPAddress = ipAddress;
         }
         var logLevel = context.ParseResult.GetValueForOption(LogLevel);
-        if (logLevel is not null) {
+        if (logLevel is not null)
+        {
             _logger.LogLevel = logLevel.Value;
         }
         var record = context.ParseResult.GetValueForOption(Record);
-        if (record is not null) {
+        if (record is not null)
+        {
             Configuration.Record = record.Value;
         }
         var watchPids = context.ParseResult.GetValueForOption(WatchPids);
-        if (watchPids is not null) {
+        if (watchPids is not null)
+        {
             Configuration.WatchPids = watchPids;
         }
         var watchProcessNames = context.ParseResult.GetValueForOption(WatchProcessNames);
-        if (watchProcessNames is not null) {
+        if (watchProcessNames is not null)
+        {
             Configuration.WatchProcessNames = watchProcessNames;
         }
         var rate = context.ParseResult.GetValueForOption(Rate);
-        if (rate is not null) {
+        if (rate is not null)
+        {
             Configuration.Rate = rate.Value;
         }
         var noFirstRun = context.ParseResult.GetValueForOption(NoFirstRun);
-        if (noFirstRun is not null) {
+        if (noFirstRun is not null)
+        {
             Configuration.NoFirstRun = noFirstRun.Value;
         }
 
@@ -89,23 +101,27 @@ public class ProxyCommandHandler : ICommandHandler {
         _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context));
 
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion();
-        if (newReleaseInfo != null) {
+        if (newReleaseInfo != null)
+        {
             _logger.LogError($"New Dev Proxy version {newReleaseInfo.Version} is available.");
             _logger.LogError($"See https://aka.ms/devproxy/upgrade for more information.");
             _logger.LogError(string.Empty);
         }
 
-        try {
+        try
+        {
             await new ProxyEngine(Configuration, _urlsToWatch, _pluginEvents, _logger).Run(cancellationToken);
             return 0;
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             _logger.LogError("An error occurred while running Dev Proxy");
             _logger.LogError(ex.Message.ToString());
             _logger.LogError(ex.StackTrace?.ToString() ?? string.Empty);
             var inner = ex.InnerException;
 
-            while (inner is not null) {
+            while (inner is not null)
+            {
                 _logger.LogError("============ Inner exception ============");
                 _logger.LogError(inner.Message.ToString());
                 _logger.LogError(inner.StackTrace?.ToString() ?? string.Empty);
@@ -122,7 +138,8 @@ public class ProxyCommandHandler : ICommandHandler {
 
     public static ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
 
-    private static readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() => {
+    private static readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() =>
+    {
         var builder = new ConfigurationBuilder();
         var configuration = builder
                 .AddJsonFile(ProxyHost.ConfigFile, optional: true, reloadOnChange: true)

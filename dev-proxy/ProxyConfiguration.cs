@@ -6,7 +6,8 @@ using Microsoft.DevProxy.Abstractions;
 
 namespace Microsoft.DevProxy;
 
-public class ProxyConfiguration: IProxyConfiguration {
+public class ProxyConfiguration : IProxyConfiguration
+{
     [JsonPropertyName("port")]
     public int Port { get; set; } = 8000;
     [JsonPropertyName("ipAddress")]

@@ -29,7 +29,7 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
             e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
             WarnNoSelect(request))
             _logger?.LogRequest(BuildUseSelectMessage(request), MessageType.Warning, new LoggingContext(e.Session));
-            
+
         return Task.CompletedTask;
     }
 

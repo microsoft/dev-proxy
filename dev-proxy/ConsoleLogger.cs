@@ -6,7 +6,8 @@ using Microsoft.DevProxy.Abstractions;
 
 namespace Microsoft.DevProxy;
 
-public class ConsoleLogger : ILogger {
+public class ConsoleLogger : ILogger
+{
     private readonly ConsoleColor _color;
     private readonly LabelMode _labelMode;
     private readonly PluginEvents _pluginEvents;
@@ -20,7 +21,8 @@ public class ConsoleLogger : ILogger {
 
     public LogLevel LogLevel { get; set; }
 
-    public ConsoleLogger(ProxyConfiguration configuration, PluginEvents pluginEvents) {
+    public ConsoleLogger(ProxyConfiguration configuration, PluginEvents pluginEvents)
+    {
         // needed to properly required rounded corners in the box
         Console.OutputEncoding = Encoding.UTF8;
         _color = Console.ForegroundColor;
@@ -29,16 +31,20 @@ public class ConsoleLogger : ILogger {
         LogLevel = configuration.LogLevel;
     }
 
-    public void LogInfo(string message) {
-        if (LogLevel > LogLevel.Info) {
+    public void LogInfo(string message)
+    {
+        if (LogLevel > LogLevel.Info)
+        {
             return;
         }
 
         Console.WriteLine(message);
     }
 
-    public void LogWarn(string message) {
-        if (LogLevel > LogLevel.Warn) {
+    public void LogWarn(string message)
+    {
+        if (LogLevel > LogLevel.Warn)
+        {
             return;
         }
 
@@ -47,8 +53,10 @@ public class ConsoleLogger : ILogger {
         Console.ForegroundColor = _color;
     }
 
-    public void LogError(string message) {
-        if (LogLevel > LogLevel.Error) {
+    public void LogError(string message)
+    {
+        if (LogLevel > LogLevel.Error)
+        {
             return;
         }
 
@@ -57,8 +65,10 @@ public class ConsoleLogger : ILogger {
         Console.ForegroundColor = _color;
     }
 
-    public void LogDebug(string message) {
-        if (LogLevel > LogLevel.Debug) {
+    public void LogDebug(string message)
+    {
+        if (LogLevel > LogLevel.Debug)
+        {
             return;
         }
 
@@ -67,20 +77,25 @@ public class ConsoleLogger : ILogger {
         Console.ForegroundColor = _color;
     }
 
-    public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null) {
+    public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null)
+    {
         var messageLines = new List<string>(message);
 
         // don't log intercepted response to console
-        if (messageType != MessageType.InterceptedResponse) {
+        if (messageType != MessageType.InterceptedResponse)
+        {
             // add request context information to the message for messages
             // that are not intercepted requests and have a context
             if (messageType != MessageType.InterceptedRequest &&
-                context is not null) {
+                context is not null)
+            {
                 messageLines.Add($"{context.Session.HttpClient.Request.Method} {context.Session.HttpClient.Request.Url}");
             }
 
-            lock (ConsoleLock) {
-                switch (_labelMode) {
+            lock (ConsoleLock)
+            {
+                switch (_labelMode)
+                {
                     case LabelMode.Text:
                         WriteBoxedWithInvertedLabels(messageLines.ToArray(), messageType);
                         break;
@@ -97,7 +112,8 @@ public class ConsoleLogger : ILogger {
         _pluginEvents.RaiseRequestLogged(new RequestLogArgs(new RequestLog(message, messageType, context)));
     }
 
-    public void WriteBoxedWithInvertedLabels(string[] message, MessageType messageType) {
+    public void WriteBoxedWithInvertedLabels(string[] message, MessageType messageType)
+    {
         var labelSpacing = "  ";
         var interceptedRequest = "request";
         var passedThrough = "api";
@@ -115,7 +131,8 @@ public class ConsoleLogger : ILogger {
         var fgColor = Console.ForegroundColor;
         var bgColor = Console.BackgroundColor;
 
-        switch (messageType) {
+        switch (messageType)
+        {
             case MessageType.InterceptedRequest:
                 label = interceptedRequest;
                 bgColor = ConsoleColor.DarkGray;
@@ -157,7 +174,8 @@ public class ConsoleLogger : ILogger {
 
         var leadingSpaces = new string(' ', maxLabelLength - label.Length);
 
-        if (message.Length == 1) {
+        if (message.Length == 1)
+        {
             // no need to box a single line message
             Console.Write(leadingSpaces);
             Console.ForegroundColor = fgColor;
@@ -166,9 +184,12 @@ public class ConsoleLogger : ILogger {
             Console.ResetColor();
             Console.WriteLine($"{labelSpacing}{_boxSpacing}{message[0]}");
         }
-        else {
-            for (var i = 0; i < message.Length; i++) {
-                if (i == 0) {
+        else
+        {
+            for (var i = 0; i < message.Length; i++)
+            {
+                if (i == 0)
+                {
                     // print label and top of the box
                     Console.Write(leadingSpaces);
                     Console.ForegroundColor = fgColor;
@@ -177,11 +198,13 @@ public class ConsoleLogger : ILogger {
                     Console.ResetColor();
                     Console.WriteLine($"{labelSpacing}{_boxTopLeft}{message[i]}");
                 }
-                else if (i < message.Length - 1) {
+                else if (i < message.Length - 1)
+                {
                     // print middle of the box
                     Console.WriteLine($"{noLabelSpacing}{labelSpacing}{_boxLeft}{message[i]}");
                 }
-                else {
+                else
+                {
                     // print end of the box
                     Console.WriteLine($"{noLabelSpacing}{labelSpacing}{_boxBottomLeft}{message[i]}");
                 }
@@ -189,7 +212,8 @@ public class ConsoleLogger : ILogger {
         }
     }
 
-    public void WriteBoxedWithAsciiIcons(string[] message, MessageType messageType) {
+    public void WriteBoxedWithAsciiIcons(string[] message, MessageType messageType)
+    {
         var iconSpacing = "  ";
         var noIconSpacing = "   ";
         var interceptedRequest = $"← ←";
@@ -204,7 +228,8 @@ public class ConsoleLogger : ILogger {
         var icon = normal;
         var fgColor = Console.ForegroundColor;
 
-        switch (messageType) {
+        switch (messageType)
+        {
             case MessageType.InterceptedRequest:
                 icon = interceptedRequest;
                 break;
@@ -236,24 +261,30 @@ public class ConsoleLogger : ILogger {
                 icon = normal;
                 break;
         }
-        
+
         Console.ForegroundColor = fgColor;
 
-        if (message.Length == 1) {
+        if (message.Length == 1)
+        {
             // no need to box a single line message
             Console.WriteLine($"{icon}{iconSpacing}{_boxSpacing}{message[0]}");
         }
-        else {
-            for (var i = 0; i < message.Length; i++) {
-                if (i == 0) {
+        else
+        {
+            for (var i = 0; i < message.Length; i++)
+            {
+                if (i == 0)
+                {
                     // print label and top of the box
                     Console.WriteLine($"{icon}{iconSpacing}{_boxTopLeft}{message[i]}");
                 }
-                else if (i < message.Length - 1) {
+                else if (i < message.Length - 1)
+                {
                     // print middle of the box
                     Console.WriteLine($"{noIconSpacing}{iconSpacing}{_boxLeft}{message[i]}");
                 }
-                else {
+                else
+                {
                     // print end of the box
                     Console.WriteLine($"{noIconSpacing}{iconSpacing}{_boxBottomLeft}{message[i]}");
                 }
@@ -263,7 +294,8 @@ public class ConsoleLogger : ILogger {
         Console.ResetColor();
     }
 
-    public void WriteBoxedWithNerdFontIcons(string[] message, MessageType messageType) {
+    public void WriteBoxedWithNerdFontIcons(string[] message, MessageType messageType)
+    {
         var iconSpacing = "  ";
         var noIconSpacing = " ";
         var interceptedRequest = "\uf441";
@@ -278,7 +310,8 @@ public class ConsoleLogger : ILogger {
         var icon = normal;
         var fgColor = Console.ForegroundColor;
 
-        switch (messageType) {
+        switch (messageType)
+        {
             case MessageType.InterceptedRequest:
                 icon = interceptedRequest;
                 break;
@@ -310,24 +343,30 @@ public class ConsoleLogger : ILogger {
                 icon = normal;
                 break;
         }
-        
+
         Console.ForegroundColor = fgColor;
 
-        if (message.Length == 1) {
+        if (message.Length == 1)
+        {
             // no need to box a single line message
             Console.WriteLine($"{icon}{iconSpacing}{_boxSpacing}{message[0]}");
         }
-        else {
-            for (var i = 0; i < message.Length; i++) {
-                if (i == 0) {
+        else
+        {
+            for (var i = 0; i < message.Length; i++)
+            {
+                if (i == 0)
+                {
                     // print label and top of the box
                     Console.WriteLine($"{icon}{iconSpacing}{_boxTopLeft}{message[i]}");
                 }
-                else if (i < message.Length - 1) {
+                else if (i < message.Length - 1)
+                {
                     // print middle of the box
                     Console.WriteLine($"{noIconSpacing}{iconSpacing}{_boxLeft}{message[i]}");
                 }
-                else {
+                else
+                {
                     // print end of the box
                     Console.WriteLine($"{noIconSpacing}{iconSpacing}{_boxBottomLeft}{message[i]}");
                 }
@@ -339,7 +378,8 @@ public class ConsoleLogger : ILogger {
 
     public object Clone()
     {
-        return new ConsoleLogger(new ProxyConfiguration {
+        return new ConsoleLogger(new ProxyConfiguration
+        {
             LabelMode = _labelMode,
             LogLevel = LogLevel
         }, _pluginEvents);
