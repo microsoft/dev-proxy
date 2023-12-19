@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Dev Proxy error responses",
+    "description": "Error responses for Dev Proxy",
+    "type": "object",
+    "properties": {
+        "responses": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "addDynamicRetryAfter": {
+                        "type": "boolean"
+                    },
+                    "body": {
+                        "type": [
+                            "object",
+                            "string"
+                        ]
+                    },
+                    "statusCode": {
+                        "type": "integer"
+                    },
+                    "headers": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "statusCode",
+                    "body"
+                ]
+            }
+        }
+    },
+    "required": [
+        "responses"
+    ]
+}
