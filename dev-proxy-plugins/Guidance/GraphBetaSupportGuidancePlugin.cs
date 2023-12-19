@@ -7,13 +7,15 @@ using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
-public class GraphBetaSupportGuidancePlugin : BaseProxyPlugin {
+public class GraphBetaSupportGuidancePlugin : BaseProxyPlugin
+{
     public override string Name => nameof(GraphBetaSupportGuidancePlugin);
 
     public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
                             ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null) {
+                            IConfigurationSection? configSection = null)
+    {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         pluginEvents.AfterResponse += AfterResponse;

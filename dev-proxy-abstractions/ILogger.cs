@@ -5,7 +5,8 @@ using Titanium.Web.Proxy.EventArguments;
 
 namespace Microsoft.DevProxy.Abstractions;
 
-public enum MessageType {
+public enum MessageType
+{
     Normal,
     InterceptedRequest,
     PassedThrough,
@@ -17,7 +18,8 @@ public enum MessageType {
     InterceptedResponse
 }
 
-public class LoggingContext {
+public class LoggingContext
+{
     public SessionEventArgs Session { get; }
 
     public LoggingContext(SessionEventArgs session)
@@ -26,7 +28,8 @@ public class LoggingContext {
     }
 }
 
-public enum LogLevel {
+public enum LogLevel
+{
     [EnumMember(Value = "debug")]
     Debug,
     [EnumMember(Value = "info")]
@@ -37,7 +40,8 @@ public enum LogLevel {
     Error
 }
 
-public interface ILogger: ICloneable {
+public interface ILogger : ICloneable
+{
     public LogLevel LogLevel { get; set; }
 
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null);

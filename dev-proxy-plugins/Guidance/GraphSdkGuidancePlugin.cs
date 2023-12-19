@@ -7,13 +7,15 @@ using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
-public class GraphSdkGuidancePlugin : BaseProxyPlugin {
+public class GraphSdkGuidancePlugin : BaseProxyPlugin
+{
     public override string Name => nameof(GraphSdkGuidancePlugin);
 
     public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
                             ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null) {
+                            IConfigurationSection? configSection = null)
+    {
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         pluginEvents.AfterResponse += OnAfterResponse;
@@ -23,11 +25,12 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin {
     {
         Request request = e.Session.HttpClient.Request;
         // only show the message if there is an error.
-        if (e.Session.HttpClient.Response.StatusCode >= 400  &&
+        if (e.Session.HttpClient.Response.StatusCode >= 400 &&
             _urlsToWatch is not null &&
             e.HasRequestUrlMatch(_urlsToWatch) &&
             e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
-            WarnNoSdk(request)) {
+            WarnNoSdk(request))
+        {
             _logger?.LogRequest(MessageUtils.BuildUseSdkForErrorsMessage(request), MessageType.Tip, new LoggingContext(e.Session));
         }
 

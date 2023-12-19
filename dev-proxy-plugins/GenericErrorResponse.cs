@@ -5,7 +5,8 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins;
 
-public class GenericErrorResponse {
+public class GenericErrorResponse
+{
     [JsonPropertyName("statusCode")]
     public int StatusCode { get; set; }
     [JsonPropertyName("headers")]

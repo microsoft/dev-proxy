@@ -5,7 +5,8 @@ using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.DevProxy.Abstractions;
 
-public interface IProxyPlugin {
+public interface IProxyPlugin
+{
     string Name { get; }
     void Register(IPluginEvents pluginEvents,
                   IProxyContext context,

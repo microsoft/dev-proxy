@@ -8,28 +8,35 @@ using System.Text.RegularExpressions;
 
 namespace Microsoft.DevProxy;
 
-internal class PluginLoaderResult {
+internal class PluginLoaderResult
+{
     public ISet<UrlToWatch> UrlsToWatch { get; }
     public IEnumerable<IProxyPlugin> ProxyPlugins { get; }
-    public PluginLoaderResult(ISet<UrlToWatch> urlsToWatch, IEnumerable<IProxyPlugin> proxyPlugins) {
+    public PluginLoaderResult(ISet<UrlToWatch> urlsToWatch, IEnumerable<IProxyPlugin> proxyPlugins)
+    {
         UrlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         ProxyPlugins = proxyPlugins ?? throw new ArgumentNullException(nameof(proxyPlugins));
     }
 }
 
-internal class PluginLoader {
-    public PluginLoader(ILogger logger) {
+internal class PluginLoader
+{
+    public PluginLoader(ILogger logger)
+    {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public PluginLoaderResult LoadPlugins(IPluginEvents pluginEvents, IProxyContext proxyContext) {
+    public PluginLoaderResult LoadPlugins(IPluginEvents pluginEvents, IProxyContext proxyContext)
+    {
         List<IProxyPlugin> plugins = new();
         PluginConfig config = PluginConfig;
         List<UrlToWatch> globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
         ISet<UrlToWatch> defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
         string? configFileDirectory = Path.GetDirectoryName(Path.GetFullPath(ProxyUtils.ReplacePathTokens(ProxyHost.ConfigFile)));
-        if (!string.IsNullOrEmpty(configFileDirectory)) {
-            foreach (PluginReference h in config.Plugins) {
+        if (!string.IsNullOrEmpty(configFileDirectory))
+        {
+            foreach (PluginReference h in config.Plugins)
+            {
                 if (!h.Enabled) continue;
                 // Load Handler Assembly if enabled
                 string pluginLocation = Path.GetFullPath(Path.Combine(configFileDirectory, ProxyUtils.ReplacePathTokens(h.PluginPath.Replace('\\', Path.DirectorySeparatorChar))));
@@ -38,7 +45,8 @@ internal class PluginLoader {
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
                 IEnumerable<UrlToWatch>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
                 ISet<UrlToWatch>? pluginUrls = null;
-                if (pluginUrlsList is not null) {
+                if (pluginUrlsList is not null)
+                {
                     pluginUrls = pluginUrlsList.ToHashSet();
                     globallyWatchedUrls.AddRange(pluginUrlsList);
                 }
@@ -54,11 +62,15 @@ internal class PluginLoader {
             : throw new InvalidDataException("No plugins were loaded");
     }
 
-    private IProxyPlugin CreatePlugin(Assembly assembly, PluginReference h) {
-        foreach (Type type in assembly.GetTypes()) {
-            if (typeof(IProxyPlugin).IsAssignableFrom(type)) {
+    private IProxyPlugin CreatePlugin(Assembly assembly, PluginReference h)
+    {
+        foreach (Type type in assembly.GetTypes())
+        {
+            if (typeof(IProxyPlugin).IsAssignableFrom(type))
+            {
                 IProxyPlugin? result = Activator.CreateInstance(type) as IProxyPlugin;
-                if (result is not null && result.Name == h.Name) {
+                if (result is not null && result.Name == h.Name)
+                {
                     return result;
                 }
             }
@@ -70,9 +82,11 @@ internal class PluginLoader {
             $"Available types: {availableTypes}");
     }
 
-    public static UrlToWatch ConvertToRegex(string stringMatcher) {
+    public static UrlToWatch ConvertToRegex(string stringMatcher)
+    {
         var exclude = false;
-        if (stringMatcher.StartsWith("!")) {
+        if (stringMatcher.StartsWith("!"))
+        {
             exclude = true;
             stringMatcher = stringMatcher.Substring(1);
         }
@@ -86,13 +100,17 @@ internal class PluginLoader {
     private PluginConfig? _pluginConfig;
     private ILogger _logger;
 
-    private PluginConfig PluginConfig {
-        get {
-            if (_pluginConfig == null) {
+    private PluginConfig PluginConfig
+    {
+        get
+        {
+            if (_pluginConfig == null)
+            {
                 _pluginConfig = new PluginConfig();
                 Configuration.Bind(_pluginConfig);
             }
-            if (_pluginConfig == null || !_pluginConfig.Plugins.Any()) {
+            if (_pluginConfig == null || !_pluginConfig.Plugins.Any())
+            {
                 throw new InvalidDataException("The configuration must contain at least one plugin");
             }
             return _pluginConfig;
@@ -108,12 +126,14 @@ internal class PluginLoader {
     );
 }
 
-internal class PluginConfig {
+internal class PluginConfig
+{
     public List<PluginReference> Plugins { get; set; } = new();
     public List<string> UrlsToWatch { get; set; } = new();
 }
 
-internal class PluginReference {
+internal class PluginReference
+{
     public bool Enabled { get; set; } = true;
     public string? ConfigSection { get; set; }
     public string PluginPath { get; set; } = string.Empty;

@@ -5,12 +5,14 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Abstractions;
 
-public class GraphBatchRequestPayload {
+public class GraphBatchRequestPayload
+{
     [JsonPropertyName("requests")]
     public GraphBatchRequestPayloadRequest[] Requests { get; set; } = Array.Empty<GraphBatchRequestPayloadRequest>();
 }
 
-public class GraphBatchRequestPayloadRequest {
+public class GraphBatchRequestPayloadRequest
+{
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
     [JsonPropertyName("method")]

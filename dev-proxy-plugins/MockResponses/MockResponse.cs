@@ -5,7 +5,8 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins.MockResponses;
 
-public class MockResponse {
+public class MockResponse
+{
     [JsonPropertyName("url")]
     public string Url { get; set; } = string.Empty;
     [JsonPropertyName("method")]

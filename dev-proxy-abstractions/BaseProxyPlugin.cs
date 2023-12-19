@@ -5,7 +5,8 @@ using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.DevProxy.Abstractions;
 
-public abstract class BaseProxyPlugin: IProxyPlugin {
+public abstract class BaseProxyPlugin : IProxyPlugin
+{
   protected ISet<UrlToWatch>? _urlsToWatch;
   protected ILogger? _logger;
 
@@ -13,17 +14,21 @@ public abstract class BaseProxyPlugin: IProxyPlugin {
   public virtual void Register(IPluginEvents pluginEvents,
                        IProxyContext context,
                        ISet<UrlToWatch> urlsToWatch,
-                       IConfigurationSection? configSection = null) {
-    if (pluginEvents is null) {
+                       IConfigurationSection? configSection = null)
+  {
+    if (pluginEvents is null)
+    {
       throw new ArgumentNullException(nameof(pluginEvents));
     }
 
-    if (context is null || context.Logger is null) {
+    if (context is null || context.Logger is null)
+    {
       throw new ArgumentException($"{nameof(context)} must not be null and must supply a non-null Logger", nameof(context));
-    
+
     }
 
-    if (urlsToWatch is null || urlsToWatch.Count == 0) {
+    if (urlsToWatch is null || urlsToWatch.Count == 0)
+    {
       throw new ArgumentException($"{nameof(urlsToWatch)} cannot be null or empty", nameof(urlsToWatch));
     }
 

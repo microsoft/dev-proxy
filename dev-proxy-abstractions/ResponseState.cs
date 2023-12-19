@@ -3,7 +3,8 @@
 
 namespace Microsoft.DevProxy.Abstractions;
 
-public class ResponseState {
+public class ResponseState
+{
     /// <summary>
     /// Should be set to true when an event handler for a BeforeRequest event sets a response.
     /// If true no other plugin handling the BeforeRequest event should set a response.

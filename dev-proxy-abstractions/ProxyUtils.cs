@@ -9,14 +9,16 @@ using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.DevProxy.Abstractions;
 
-class ParsedSample {
+class ParsedSample
+{
     public string QueryVersion { get; set; } = string.Empty;
     public string RequestUrl { get; set; } = string.Empty;
     public string SampleUrl { get; set; } = string.Empty;
     public string Search { get; set; } = string.Empty;
 }
 
-public static class ProxyUtils {
+public static class ProxyUtils
+{
     private static readonly Regex itemPathRegex = new Regex(@"(?:\/)[\w]+:[\w\/.]+(:(?=\/)|$)");
     private static readonly Regex sanitizedItemPathRegex = new Regex("^[a-z]+:<value>$", RegexOptions.IgnoreCase);
     private static readonly Regex entityNameRegex = new Regex("^((microsoft.graph(.[a-z]+)+)|[a-z]+)$", RegexOptions.IgnoreCase);
@@ -27,9 +29,12 @@ public static class ProxyUtils {
     // v1 refers to v1 of the db schema, not the graph version
     public static string MsGraphDbFilePath => Path.Combine(AppFolder!, "msgraph-openapi-v1.db");
     private static SqliteConnection? _msGraphDbConnection;
-    public static SqliteConnection MsGraphDbConnection {
-        get {
-            if (_msGraphDbConnection is null) {
+    public static SqliteConnection MsGraphDbConnection
+    {
+        get
+        {
+            if (_msGraphDbConnection is null)
+            {
                 _msGraphDbConnection = new SqliteConnection($"Data Source={MsGraphDbFilePath}");
                 _msGraphDbConnection.Open();
             }
@@ -43,14 +48,15 @@ public static class ProxyUtils {
 
     public static bool IsGraphRequest(Request request) => IsGraphUrl(request.RequestUri);
 
-    public static bool IsGraphUrl(Uri uri) => 
+    public static bool IsGraphUrl(Uri uri) =>
         uri.Host.StartsWith("graph.microsoft.", StringComparison.OrdinalIgnoreCase) ||
         uri.Host.StartsWith("microsoftgraph.", StringComparison.OrdinalIgnoreCase);
 
-    public static bool IsGraphBatchUrl(Uri uri) => 
+    public static bool IsGraphBatchUrl(Uri uri) =>
         uri.AbsoluteUri.EndsWith("/$batch", StringComparison.OrdinalIgnoreCase);
 
-    public static Uri GetAbsoluteRequestUrlFromBatch(Uri batchRequestUri, string relativeRequestUrl) {
+    public static Uri GetAbsoluteRequestUrlFromBatch(Uri batchRequestUri, string relativeRequestUrl)
+    {
         var hostName = batchRequestUri.Host;
         var graphVersion = batchRequestUri.Segments[1].TrimEnd('/');
         var absoluteRequestUrl = new Uri($"https://{hostName}/{graphVersion}{relativeRequestUrl}");
@@ -59,11 +65,11 @@ public static class ProxyUtils {
 
     public static bool IsSdkRequest(Request request) => request.Headers.HeaderExists("SdkVersion");
 
-    public static bool IsGraphBetaRequest(Request request) => 
+    public static bool IsGraphBetaRequest(Request request) =>
         IsGraphRequest(request) &&
         IsGraphBetaUrl(request.RequestUri);
 
-    public static bool IsGraphBetaUrl(Uri uri) => 
+    public static bool IsGraphBetaUrl(Uri uri) =>
         uri.AbsolutePath.Contains("/beta/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
@@ -73,8 +79,10 @@ public static class ProxyUtils {
     /// <param name="requestId">string a guid representing the a unique identifier for the request</param>
     /// <param name="requestDate">string representation of the date and time the request was made</param>
     /// <returns>IList<HttpHeader> with defaults consistent with Microsoft Graph. Automatically adds CORS headers when the Origin header is present</returns>
-    public static IList<HttpHeader> BuildGraphResponseHeaders(Request request, string requestId, string requestDate) {
-        if (!IsGraphRequest(request)) {
+    public static IList<HttpHeader> BuildGraphResponseHeaders(Request request, string requestId, string requestDate)
+    {
+        if (!IsGraphRequest(request))
+        {
             return new List<HttpHeader>();
         }
 
@@ -88,15 +96,18 @@ public static class ProxyUtils {
                 new HttpHeader("Date", requestDate),
                 new HttpHeader("Content-Type", "application/json")
             };
-        if (request.Headers.FirstOrDefault((h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null) {
+        if (request.Headers.FirstOrDefault((h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null)
+        {
             headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
             headers.Add(new HttpHeader("Access-Control-Expose-Headers", "ETag, Location, Preference-Applied, Content-Range, request-id, client-request-id, ReadWriteConsistencyToken, SdkVersion, WWW-Authenticate, x-ms-client-gcc-tenant, Retry-After"));
         }
         return headers;
     }
 
-    public static string ReplacePathTokens(string? path) {
-        if (string.IsNullOrEmpty(path)) {
+    public static string ReplacePathTokens(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
             return path ?? string.Empty;
         }
 
@@ -104,7 +115,8 @@ public static class ProxyUtils {
     }
 
     // from: https://github.com/microsoftgraph/microsoft-graph-explorer-v4/blob/db86b903f36ef1b882996d46aee52cd49ed4444b/src/app/utils/query-url-sanitization.ts
-    public static string SanitizeUrl(string absoluteUrl) {
+    public static string SanitizeUrl(string absoluteUrl)
+    {
         absoluteUrl = Uri.UnescapeDataString(absoluteUrl);
         var uri = new Uri(absoluteUrl);
 
@@ -113,15 +125,18 @@ public static class ProxyUtils {
 
         // Sanitize item path specified in query url
         var resourceUrl = parsedSample.RequestUrl;
-        if (!String.IsNullOrEmpty(resourceUrl)) {
-            resourceUrl = itemPathRegex.Replace(parsedSample.RequestUrl, match => {
+        if (!String.IsNullOrEmpty(resourceUrl))
+        {
+            resourceUrl = itemPathRegex.Replace(parsedSample.RequestUrl, match =>
+            {
                 return $"{match.Value.Substring(0, match.Value.IndexOf(':'))}:<value>";
             });
             // Split requestUrl into segments that can be sanitized individually
             var urlSegments = resourceUrl.Split('/');
-            for (var i = 0; i < urlSegments.Length; i++) {
+            for (var i = 0; i < urlSegments.Length; i++)
+            {
                 var segment = urlSegments[i];
-                var sanitizedSegment = SanitizePathSegment(i < 1 ? "" :  urlSegments[i - 1], segment);
+                var sanitizedSegment = SanitizePathSegment(i < 1 ? "" : urlSegments[i - 1], segment);
                 resourceUrl = resourceUrl.Replace(segment, sanitizedSegment);
             }
         }
@@ -135,19 +150,22 @@ public static class ProxyUtils {
     * The remaining URL segments are assumed to be variables that need to be sanitized
     * @param segment
     */
-    private static string SanitizePathSegment(string previousSegment, string segment) {
+    private static string SanitizePathSegment(string previousSegment, string segment)
+    {
         var segmentsToIgnore = new[] { "$value", "$count", "$ref", "$batch" };
 
         if (IsAllAlpha(segment) ||
             IsDeprecation(segment) ||
             sanitizedItemPathRegex.IsMatch(segment) ||
             segmentsToIgnore.Contains(segment.ToLowerInvariant()) ||
-            entityNameRegex.IsMatch(segment)) {
+            entityNameRegex.IsMatch(segment))
+        {
             return segment;
         }
 
         // Check if segment is in this form: users('<some-id>|<UPN>') and transform to users(<value>)
-        if (IsFunctionCall(segment)) {
+        if (IsFunctionCall(segment))
+        {
             var openingBracketIndex = segment.IndexOf("(");
             var textWithinBrackets = segment.Substring(
                 openingBracketIndex + 1,
@@ -155,8 +173,10 @@ public static class ProxyUtils {
             );
             var sanitizedText = String.Join(',', textWithinBrackets
                 .Split(',')
-                .Select(text => {
-                    if (text.Contains('=')) {
+                .Select(text =>
+                {
+                    if (text.Contains('='))
+                    {
                         var key = text.Split('=')[0];
                         key = !IsAllAlpha(key) ? "<key>" : key;
                         return $"{key}=<value>";
@@ -167,18 +187,21 @@ public static class ProxyUtils {
             return $"{segment.Substring(0, openingBracketIndex)}({sanitizedText})";
         }
 
-        if (IsPlaceHolderSegment(segment)) {
+        if (IsPlaceHolderSegment(segment))
+        {
             return segment;
         }
 
-        if (!IsAllAlpha(previousSegment) && !IsDeprecation(previousSegment)) {
+        if (!IsAllAlpha(previousSegment) && !IsDeprecation(previousSegment))
+        {
             previousSegment = "unknown";
         }
 
         return $"{{{previousSegment}-id}}";
     }
 
-    private static string SanitizeQueryParameters(string queryString) {
+    private static string SanitizeQueryParameters(string queryString)
+    {
         // remove leading ? from query string and decode
         queryString = Uri.UnescapeDataString(
             new Regex(@"\+").Replace(queryString.Substring(1), " ")
@@ -192,36 +215,44 @@ public static class ProxyUtils {
 
     private static bool IsFunctionCall(string value) => functionCallRegex.IsMatch(value);
 
-    private static bool IsPlaceHolderSegment(string segment) {
+    private static bool IsPlaceHolderSegment(string segment)
+    {
         return segment.StartsWith('{') && segment.EndsWith('}');
     }
 
-    private static ParsedSample ParseSampleUrl(string url, string? version = null) {
+    private static ParsedSample ParseSampleUrl(string url, string? version = null)
+    {
         var parsedSample = new ParsedSample();
 
-        if (url != "") {
-            try {
+        if (url != "")
+        {
+            try
+            {
                 url = RemoveExtraSlashesFromUrl(url);
                 parsedSample.QueryVersion = version ?? GetGraphVersion(url);
                 parsedSample.RequestUrl = GetRequestUrl(url, parsedSample.QueryVersion);
                 parsedSample.Search = GenerateSearchParameters(url, "");
                 parsedSample.SampleUrl = GenerateSampleUrl(url, parsedSample.QueryVersion, parsedSample.RequestUrl, parsedSample.Search);
-            } catch (Exception) { }
+            }
+            catch (Exception) { }
         }
 
         return parsedSample;
     }
 
-    private static string RemoveExtraSlashesFromUrl(string url) {
+    private static string RemoveExtraSlashesFromUrl(string url)
+    {
         return new Regex(@"([^:]\/)\/+").Replace(url, "$1");
     }
 
-    public static string GetGraphVersion(string url) {
+    public static string GetGraphVersion(string url)
+    {
         var uri = new Uri(url);
         return uri.Segments[1].Replace("/", "");
     }
 
-    private static string GetRequestUrl(string url, string version) {
+    private static string GetRequestUrl(string url, string version)
+    {
         var uri = new Uri(url);
         var versionToReplace = uri.AbsolutePath.StartsWith($"/{version}")
             ? version
@@ -230,13 +261,18 @@ public static class ProxyUtils {
         return Uri.UnescapeDataString(requestContent.TrimEnd('/')).TrimStart('/');
     }
 
-    private static string GenerateSearchParameters(string url, string search) {
+    private static string GenerateSearchParameters(string url, string search)
+    {
         var uri = new Uri(url);
 
-        if (uri.Query != "") {
-            try {
-             search = Uri.UnescapeDataString(uri.Query);
-            } catch (Exception) {
+        if (uri.Query != "")
+        {
+            try
+            {
+                search = Uri.UnescapeDataString(uri.Query);
+            }
+            catch (Exception)
+            {
                 search = uri.Query;
             }
         }
@@ -249,7 +285,8 @@ public static class ProxyUtils {
         string queryVersion,
         string requestUrl,
         string search
-    ) {
+    )
+    {
         var uri = new Uri(url);
         var origin = uri.GetLeftPart(UriPartial.Authority);
         return RemoveExtraSlashesFromUrl($"{origin}/{queryVersion}/{requestUrl + search}");
@@ -260,16 +297,21 @@ public static class ProxyUtils {
             => _assembly ??= (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
 
     private static string _productVersion = string.Empty;
-    public static string ProductVersion {
-        get {
-            if (_productVersion == string.Empty) {
+    public static string ProductVersion
+    {
+        get
+        {
+            if (_productVersion == string.Empty)
+            {
                 var assembly = GetAssembly();
                 var assemblyVersionAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
-                if (assemblyVersionAttribute is null) {
+                if (assemblyVersionAttribute is null)
+                {
                     _productVersion = assembly.GetName().Version?.ToString() ?? "";
                 }
-                else {
+                else
+                {
                     _productVersion = assemblyVersionAttribute.InformationalVersion;
                 }
             }

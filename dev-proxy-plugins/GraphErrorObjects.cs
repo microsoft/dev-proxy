@@ -5,16 +5,19 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins;
 
-public class GraphErrorResponseBody {
+public class GraphErrorResponseBody
+{
     [JsonPropertyName("error")]
     public GraphErrorResponseError Error { get; set; }
 
-    public GraphErrorResponseBody(GraphErrorResponseError error) {
+    public GraphErrorResponseBody(GraphErrorResponseError error)
+    {
         Error = error;
     }
 }
 
-public class GraphErrorResponseError {
+public class GraphErrorResponseError
+{
     [JsonPropertyName("code")]
     public string Code { get; set; } = string.Empty;
     [JsonPropertyName("message")]
@@ -23,7 +26,8 @@ public class GraphErrorResponseError {
     public GraphErrorResponseInnerError? InnerError { get; set; }
 }
 
-public class GraphErrorResponseInnerError {
+public class GraphErrorResponseInnerError
+{
     [JsonPropertyName("request-id")]
     public string RequestId { get; set; } = string.Empty;
     [JsonPropertyName("date")]

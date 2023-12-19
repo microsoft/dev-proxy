@@ -20,7 +20,8 @@ enum ToggleSystemProxyAction
     Off
 }
 
-public class ProxyEngine {
+public class ProxyEngine
+{
     private readonly PluginEvents _pluginEvents;
     private readonly ILogger _logger;
     private readonly ProxyConfiguration _config;
@@ -36,7 +37,8 @@ public class ProxyEngine {
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger) {
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
+    {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
@@ -67,8 +69,10 @@ public class ProxyEngine {
         process.WaitForExit();
     }
 
-    public async Task Run(CancellationToken? cancellationToken) {
-        if (!_urlsToWatch.Any()) {
+    public async Task Run(CancellationToken? cancellationToken)
+    {
+        if (!_urlsToWatch.Any())
+        {
             _logger.LogInfo("No URLs to watch configured. Please add URLs to watch in the devproxyrc.json config file.");
             return;
         }
@@ -95,7 +99,8 @@ public class ProxyEngine {
 
         var ipAddress = string.IsNullOrEmpty(_config.IPAddress) ? IPAddress.Any : IPAddress.Parse(_config.IPAddress);
         _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
-        if (!RunTime.IsWindows) {
+        if (!RunTime.IsWindows)
+        {
             // we need to change this to a value lower than 397
             // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
             _proxyServer.CertificateManager.CertificateValidDays = 365;
@@ -113,11 +118,13 @@ public class ProxyEngine {
         // run first-run setup on macOS
         FirstRunSetup();
 
-        foreach (var endPoint in _proxyServer.ProxyEndPoints) {
+        foreach (var endPoint in _proxyServer.ProxyEndPoints)
+        {
             _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
         }
 
-        if (RunTime.IsWindows) {
+        if (RunTime.IsWindows)
+        {
             // Only explicit proxies can be set as system proxy!
             _proxyServer.SetAsSystemHttpProxy(_explicitEndPoint);
             _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
@@ -126,7 +133,8 @@ public class ProxyEngine {
         {
             ToggleSystemProxy(ToggleSystemProxyAction.On, _config.IPAddress, _config.Port);
         }
-        else {
+        else
+        {
             _logger.LogWarn("Configure your operating system to use this proxy's port and address");
         }
 
@@ -134,14 +142,16 @@ public class ProxyEngine {
         _logger.LogInfo("");
         Console.CancelKeyPress += Console_CancelKeyPress;
 
-        if (_config.Record) {
+        if (_config.Record)
+        {
             StartRecording();
         }
         _pluginEvents.AfterRequestLog += AfterRequestLog;
 
         // we need this check or proxy will fail with an exception
         // when run for example in VSCode's integrated terminal
-        if (!Console.IsInputRedirected) {
+        if (!Console.IsInputRedirected)
+        {
             ReadKeys();
         }
         while (_proxyServer.ProxyRunning) { await Task.Delay(10); }
@@ -182,12 +192,13 @@ public class ProxyEngine {
         {
             File.WriteAllText(firstRunFilePath, "");
         }
-        catch {}
+        catch { }
 
         return true;
     }
 
-    private void AfterRequestLog(object? sender, RequestLogArgs e) {
+    private void AfterRequestLog(object? sender, RequestLogArgs e)
+    {
         if (!_isRecording)
         {
             return;
@@ -196,18 +207,23 @@ public class ProxyEngine {
         _requestLogs.Add(e.RequestLog);
     }
 
-    private void ReadKeys() {
+    private void ReadKeys()
+    {
         ConsoleKey key;
-        do {
+        do
+        {
             key = Console.ReadKey(true).Key;
-            if (key == ConsoleKey.R) {
+            if (key == ConsoleKey.R)
+            {
                 StartRecording();
             }
-            if (key == ConsoleKey.S) {
+            if (key == ConsoleKey.S)
+            {
                 // we need to use GetAwaiter().GetResult() because we're in a sync method
                 StopRecording().GetAwaiter().GetResult();
             }
-            if (key == ConsoleKey.C) {
+            if (key == ConsoleKey.C)
+            {
                 Console.Clear();
                 Console.WriteLine("Press CTRL+C to stop Dev Proxy");
                 Console.WriteLine("");
@@ -215,8 +231,10 @@ public class ProxyEngine {
         } while (key != ConsoleKey.Escape);
     }
 
-    private void StartRecording() {
-        if (_isRecording) {
+    private void StartRecording()
+    {
+        if (_isRecording)
+        {
             return;
         }
 
@@ -224,8 +242,10 @@ public class ProxyEngine {
         PrintRecordingIndicator();
     }
 
-    private async Task StopRecording() {
-        if (!_isRecording) {
+    private async Task StopRecording()
+    {
+        if (!_isRecording)
+        {
             return;
         }
 
@@ -239,15 +259,19 @@ public class ProxyEngine {
         await _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs));
     }
 
-    private void PrintRecordingIndicator() {
-        lock (ConsoleLogger.ConsoleLock) {
-            if (_isRecording) {
+    private void PrintRecordingIndicator()
+    {
+        lock (ConsoleLogger.ConsoleLock)
+        {
+            if (_isRecording)
+            {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.Write("◉");
                 Console.ResetColor();
                 Console.Error.WriteLine(" Recording... ");
             }
-            else {
+            else
+            {
                 Console.Error.WriteLine("○ Stopped recording");
             }
         }
@@ -257,16 +281,20 @@ public class ProxyEngine {
     // From the list of URLs, extract host names and convert them to regexes.
     // We need this because before we decrypt a request, we only have access
     // to the host name, not the full URL.
-    private void LoadHostNamesFromUrls() {
-        foreach (var urlToWatch in _urlsToWatch) {
+    private void LoadHostNamesFromUrls()
+    {
+        foreach (var urlToWatch in _urlsToWatch)
+        {
             // extract host from the URL
             string urlToWatchPatter = Regex.Unescape(urlToWatch.Url.ToString()).Replace(".*", "*");
             string hostToWatch;
-            if (urlToWatchPatter.ToString().Contains("://")) {
+            if (urlToWatchPatter.ToString().Contains("://"))
+            {
                 // if the URL contains a protocol, extract the host from the URL
                 hostToWatch = urlToWatchPatter.Split("://")[1].Substring(0, urlToWatchPatter.Split("://")[1].IndexOf("/"));
             }
-            else {
+            else
+            {
                 // if the URL doesn't contain a protocol,
                 // we assume the whole URL is a host name
                 hostToWatch = urlToWatchPatter;
@@ -275,13 +303,15 @@ public class ProxyEngine {
             var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
             Regex hostRegex = new Regex($"^{hostToWatchRegexString}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             // don't add the same host twice
-            if (!_hostsToWatch.Any(h => h.Url.ToString() == hostRegex.ToString())) {
+            if (!_hostsToWatch.Any(h => h.Url.ToString() == hostRegex.ToString()))
+            {
                 _hostsToWatch.Add(new UrlToWatch(hostRegex));
             }
         }
     }
 
-    private async void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
+    private async void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+    {
         // Prevent the process from terminating immediately
         e.Cancel = true;
 
@@ -292,14 +322,18 @@ public class ProxyEngine {
         Environment.Exit(0);
     }
 
-    private void StopProxy() {
+    private void StopProxy()
+    {
         // Unsubscribe & Quit
-        try {
-            if (_explicitEndPoint != null) {
+        try
+        {
+            if (_explicitEndPoint != null)
+            {
                 _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
             }
 
-            if (_proxyServer is not null) {
+            if (_proxyServer is not null)
+            {
                 _proxyServer.BeforeRequest -= OnRequest;
                 _proxyServer.BeforeResponse -= OnBeforeResponse;
                 _proxyServer.AfterResponse -= OnAfterResponse;
@@ -314,17 +348,21 @@ public class ProxyEngine {
                 ToggleSystemProxy(ToggleSystemProxyAction.Off);
             }
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             _logger.LogError($"Exception: {ex.Message}");
         }
     }
 
-    private void OnCancellation() {
-        if (_explicitEndPoint is not null) {
+    private void OnCancellation()
+    {
+        if (_explicitEndPoint is not null)
+        {
             _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
         }
 
-        if (_proxyServer is not null) {
+        if (_proxyServer is not null)
+        {
             _proxyServer.BeforeRequest -= OnRequest;
             _proxyServer.BeforeResponse -= OnBeforeResponse;
             _proxyServer.AfterResponse -= OnAfterResponse;
@@ -335,103 +373,122 @@ public class ProxyEngine {
         }
     }
 
-    async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e) {
+    async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e)
+    {
         // Ensures that only the targeted Https domains are proxyied
         if (!IsProxiedHost(e.HttpClient.Request.RequestUri.Host) ||
-            !IsProxiedProcess(e)) {
+            !IsProxiedProcess(e))
+        {
             e.DecryptSsl = false;
         }
         await Task.CompletedTask;
     }
 
-  private int GetProcessId(TunnelConnectSessionEventArgs e)
-  {
-    if (RunTime.IsWindows) {
-        return e.HttpClient.ProcessId.Value;
-    }
-
-    var psi = new ProcessStartInfo {
-        FileName = "lsof",
-        Arguments = $"-i :{e.ClientRemoteEndPoint.Port}",
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        CreateNoWindow = true
-    };
-    var proc = new Process {
-        StartInfo = psi
-    };
-    proc.Start();
-    var output = proc.StandardOutput.ReadToEnd();
-    proc.WaitForExit();
-
-    var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-    var matchingLine = lines.FirstOrDefault(l => l.Contains($"{e.ClientRemoteEndPoint.Port}->"));
-    if (matchingLine is null) {
-        return -1;
-    }
-    var pidString = Regex.Matches(matchingLine, @"^.*?\s+(\d+)")?.FirstOrDefault()?.Groups[1]?.Value;
-    if (pidString is null) {
-        return -1;
-    }
-
-    var pid = -1;
-    if (int.TryParse(pidString, out pid))
+    private int GetProcessId(TunnelConnectSessionEventArgs e)
     {
-        return pid;
-    }
-    else {
-        return -1;
-    }
-  }
+        if (RunTime.IsWindows)
+        {
+            return e.HttpClient.ProcessId.Value;
+        }
 
-  private bool IsProxiedProcess(TunnelConnectSessionEventArgs e) {
-    // If no process names or IDs are specified, we proxy all processes
-    if (!_config.WatchPids.Any() &&
-        !_config.WatchProcessNames.Any()) {
-      return true;
+        var psi = new ProcessStartInfo
+        {
+            FileName = "lsof",
+            Arguments = $"-i :{e.ClientRemoteEndPoint.Port}",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            CreateNoWindow = true
+        };
+        var proc = new Process
+        {
+            StartInfo = psi
+        };
+        proc.Start();
+        var output = proc.StandardOutput.ReadToEnd();
+        proc.WaitForExit();
+
+        var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        var matchingLine = lines.FirstOrDefault(l => l.Contains($"{e.ClientRemoteEndPoint.Port}->"));
+        if (matchingLine is null)
+        {
+            return -1;
+        }
+        var pidString = Regex.Matches(matchingLine, @"^.*?\s+(\d+)")?.FirstOrDefault()?.Groups[1]?.Value;
+        if (pidString is null)
+        {
+            return -1;
+        }
+
+        var pid = -1;
+        if (int.TryParse(pidString, out pid))
+        {
+            return pid;
+        }
+        else
+        {
+            return -1;
+        }
     }
 
-    var processId = GetProcessId(e);
-    if (processId == -1) {
-      return false;
+    private bool IsProxiedProcess(TunnelConnectSessionEventArgs e)
+    {
+        // If no process names or IDs are specified, we proxy all processes
+        if (!_config.WatchPids.Any() &&
+            !_config.WatchProcessNames.Any())
+        {
+            return true;
+        }
+
+        var processId = GetProcessId(e);
+        if (processId == -1)
+        {
+            return false;
+        }
+
+        if (_config.WatchPids.Any() &&
+            _config.WatchPids.Contains(processId))
+        {
+            return true;
+        }
+
+        if (_config.WatchProcessNames.Any())
+        {
+            var processName = Process.GetProcessById(processId).ProcessName;
+            if (_config.WatchProcessNames.Contains(processName))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    if (_config.WatchPids.Any() &&
-        _config.WatchPids.Contains(processId)) {
-      return true;
-    }
-
-    if (_config.WatchProcessNames.Any()) {
-      var processName = Process.GetProcessById(processId).ProcessName;
-      if (_config.WatchProcessNames .Contains(processName)) {
-        return true;
-      }
-    }
-    
-    return false;
-  }
-
-  async Task OnRequest(object sender, SessionEventArgs e) {
-        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+    async Task OnRequest(object sender, SessionEventArgs e)
+    {
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
+        {
             // we need to keep the request body for further processing
             // by plugins
             e.HttpClient.Request.KeepBody = true;
-            if (e.HttpClient.Request.HasBody) {
+            if (e.HttpClient.Request.HasBody)
+            {
                 await e.GetRequestBodyAsString();
             }
-            
+
             e.UserData = e.HttpClient.Request;
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
             await HandleRequest(e);
         }
     }
 
-    private async Task HandleRequest(SessionEventArgs e) {
+    private async Task HandleRequest(SessionEventArgs e)
+    {
         ResponseState responseState = new ResponseState();
         await _pluginEvents.RaiseProxyBeforeRequest(new ProxyRequestArgs(e, _throttledRequests, responseState));
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
-        if (!responseState.HasBeenSet) {
+        if (!responseState.HasBeenSet)
+        {
             _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e));
             AddProxyHeader(e.HttpClient.Request);
         }
@@ -443,30 +500,37 @@ public class ProxyEngine {
 
 
     // Modify response
-    async Task OnBeforeResponse(object sender, SessionEventArgs e) {
+    async Task OnBeforeResponse(object sender, SessionEventArgs e)
+    {
         // read response headers
-        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
+        {
             // necessary to make the response body available to plugins
             e.HttpClient.Response.KeepBody = true;
-            if (e.HttpClient.Response.HasBody) {
+            if (e.HttpClient.Response.HasBody)
+            {
                 await e.GetResponseBody();
             }
 
             await _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
     }
-    async Task OnAfterResponse(object sender, SessionEventArgs e) {
+    async Task OnAfterResponse(object sender, SessionEventArgs e)
+    {
         // read response headers
-        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host)) {
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
+        {
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedResponse, new LoggingContext(e));
             await _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
         }
     }
 
     // Allows overriding default certificate validation logic
-    Task OnCertificateValidation(object sender, CertificateValidationEventArgs e) {
+    Task OnCertificateValidation(object sender, CertificateValidationEventArgs e)
+    {
         // set IsValid to true/false based on Certificate Errors
-        if (e.SslPolicyErrors == System.Net.Security.SslPolicyErrors.None) {
+        if (e.SslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
+        {
             e.IsValid = true;
         }
 
@@ -474,7 +538,8 @@ public class ProxyEngine {
     }
 
     // Allows overriding default client certificate selection logic during mutual authentication
-    Task OnCertificateSelection(object sender, CertificateSelectionEventArgs e) {
+    Task OnCertificateSelection(object sender, CertificateSelectionEventArgs e)
+    {
         // set e.clientCertificate to override
         return Task.CompletedTask;
     }
