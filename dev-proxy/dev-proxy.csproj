@@ -50,6 +50,9 @@
     <None Update="devproxyrc.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="toggle-proxy.sh">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="picture.jpg">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
