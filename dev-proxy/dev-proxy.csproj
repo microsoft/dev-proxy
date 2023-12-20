@@ -76,6 +76,4 @@
     </None>
   </ItemGroup>
 
-  <ProjectExtensions><VisualStudio><UserProperties default_1json__JsonSchema="https://json.schemastore.org/global.json" devproxyrc_1json__JsonSchema="https://json.schemastore.org/global.json" errors_1json__JsonSchema="https://json.schemastore.org/global.json" /></VisualStudio></ProjectExtensions>
-
 </Project>
