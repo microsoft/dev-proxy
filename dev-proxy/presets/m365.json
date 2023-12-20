@@ -162,7 +162,7 @@
       "https://*.sharepoint-df.*/*_vti_bin/*"
     ],
     "mocksPlugin": {
-      "mocksFile": "microsoft-365-responses.json"
+      "mocksFile": "m365-responses.json"
     },
     "graphRandomErrorsPlugin": {
       "allowedErrors": [ 429, 500, 502, 503, 504, 507 ]

@@ -2,20 +2,6 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v1.0/errors.schema.json",
   "responses": [
     {
-      "statusCode": 500,
-      "body": {
-        "message": "Internal Server Error",
-        "details": "The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application."
-      }
-    },
-    {
-      "statusCode": 503,
-      "body": {
-        "message": "Service Unavailable",
-        "details": "The server is currently unable to handle the request due to a temporary overload or maintenance. Please try again later."
-      }
-    },
-    {
       "statusCode": 400,
       "body": {
         "message": "Bad Request",
@@ -41,6 +27,35 @@
       "body": {
         "message": "Not Found",
         "details": "The requested resource could not be found."
+      }
+    },
+    {
+      "statusCode": 418,
+      "body": {
+        "message": "I'm a teapot",
+        "details": "The server refuses the attempt to brew coffee with a teapot."
+      }
+    },
+    {
+      "statusCode": 429,
+      "addDynamicRetryAfter": true,
+      "body": {
+        "message": "Too Many Requests",
+        "details": "The user has sent too many requests in a given amount of time (\"rate limiting\")."
+      }
+    },
+    {
+      "statusCode": 500,
+      "body": {
+        "message": "Internal Server Error",
+        "details": "The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application."
+      }
+    },
+    {
+      "statusCode": 503,
+      "body": {
+        "message": "Service Unavailable",
+        "details": "The server is currently unable to handle the request due to a temporary overload or maintenance. Please try again later."
       }
     }
   ]
