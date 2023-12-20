@@ -19,5 +19,8 @@
   ],
   "genericRandomErrorPlugin": {
     "errorsFile": "devproxy-errors.json"
-  }
+  },
+  "rate": 50,
+  "labelMode": "text",
+  "logLevel": "info"
 }
