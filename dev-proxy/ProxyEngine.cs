@@ -126,7 +126,6 @@ public class ProxyEngine
         if (RunTime.IsWindows)
         {
             // Only explicit proxies can be set as system proxy!
-            _proxyServer.SetAsSystemHttpProxy(_explicitEndPoint);
             _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
         }
         else if (RunTime.IsMac)
