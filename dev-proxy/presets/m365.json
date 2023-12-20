@@ -4,24 +4,24 @@
       {
         "name": "DevToolsPlugin",
         "enabled": false,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "devTools"
       },
       {
         "name": "LatencyPlugin",
         "enabled": false,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "latencyPlugin"
       },
       {
         "name": "RetryAfterPlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll"
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll"
       },
       {
         "name": "GraphSelectGuidancePlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "urlsToWatch": [
           "https://graph.microsoft.com/v1.0/*",
           "https://graph.microsoft.com/beta/*",
@@ -36,7 +36,7 @@
       {
         "name": "ODSPSearchGuidancePlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "urlsToWatch": [
           "https://graph.microsoft.com/v1.0/*",
           "https://graph.microsoft.com/beta/*",
@@ -51,7 +51,7 @@
       {
         "name": "GraphBetaSupportGuidancePlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "urlsToWatch": [
           "https://graph.microsoft.com/beta/*",
           "https://graph.microsoft.us/beta/*",
@@ -62,7 +62,7 @@
       {
         "name": "GraphSdkGuidancePlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "urlsToWatch": [
           "https://graph.microsoft.com/v1.0/*",
           "https://graph.microsoft.com/beta/*",
@@ -77,12 +77,12 @@
       {
         "name": "ODataPagingGuidancePlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll"
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll"
       },
       {
         "name": "GraphClientRequestIdGuidancePlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "urlsToWatch": [
           "https://graph.microsoft.com/v1.0/*",
           "https://graph.microsoft.com/beta/*",
@@ -97,54 +97,54 @@
       {
         "name": "CachingGuidancePlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "cachingGuidance"
       },
       {
         "name": "RateLimitingPlugin",
         "enabled": false,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "rateLimiting"
       },
       {
         "name": "MockResponsePlugin",
         "enabled": false,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "mocksPlugin"
       },
       {
         "name": "GraphMockResponsePlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "mocksPlugin"
       },
       {
         "name": "GraphRandomErrorPlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "graphRandomErrorsPlugin"
       },
       {
         "name": "ExecutionSummaryPlugin",
         "enabled": false,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "executionSummaryPlugin"
       },
       {
         "name": "MinimalPermissionsPlugin",
         "enabled": true,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll",
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll",
         "configSection": "minimalPermissionsPlugin"
       },
       {
         "name": "MinimalPermissionsGuidancePlugin",
         "enabled": false,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll"
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll"
       },
       {
         "name": "MockGeneratorPlugin",
         "enabled": false,
-        "pluginPath": "plugins\\dev-proxy-plugins.dll"
+        "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll"
       }      
     ],
     "urlsToWatch": [
