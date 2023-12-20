@@ -3,6 +3,7 @@
 
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Net;
 
 namespace Microsoft.DevProxy;
@@ -209,9 +210,19 @@ internal class ProxyHost
         };
         command.Add(msGraphDbCommand);
 
+        var presetCommand = new Command("preset", "Manage Dev Proxy presets");
+        
+        var presetGetCommand = new Command("get", "Download the specified preset from the Sample Solution Gallery");
+        var presetIdArgument = new Argument<string>("preset-id", "The ID of the preset to download");
+        presetGetCommand.AddArgument(presetIdArgument);
+        presetGetCommand.SetHandler(async presetId => await PresetGetCommandHandler.DownloadPreset(presetId, logger), presetIdArgument);
+        presetCommand.Add(presetGetCommand);
+
+        command.Add(presetCommand);
+
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, pluginEvents, urlsToWatch, logger);
 }
 
