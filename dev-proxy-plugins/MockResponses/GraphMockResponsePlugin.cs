@@ -14,6 +14,12 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
     protected override async Task OnRequest(object? sender, ProxyRequestArgs e)
     {
+        if (_configuration.NoMocks)
+        {
+            // mocking has been disabled. Nothing to do
+            return;
+        }
+
         if (!ProxyUtils.IsGraphBatchUrl(e.Session.HttpClient.Request.RequestUri))
         {
             // not a batch request, use the basic mock functionality
@@ -130,6 +136,8 @@ public class GraphMockResponsePlugin : MockResponsePlugin
             Responses = responses.ToArray()
         };
         e.Session.GenericResponse(JsonSerializer.Serialize(batchResponse), HttpStatusCode.OK, batchHeaders);
+        _logger?.LogRequest([$"200 {e.Session.HttpClient.Request.RequestUri}"], MessageType.Mocked, new LoggingContext(e.Session));
+        e.ResponseState.HasBeenSet = true;
     }
 
     protected MockResponse? GetMatchingMockResponse(GraphBatchRequestPayloadRequest request, Uri batchRequestUri)
