@@ -136,9 +136,26 @@ public class CrudApiPlugin : BaseProxyPlugin
         return result;
     }
 
+    private void SendEmptyResponse(HttpStatusCode statusCode, SessionEventArgs e)
+    {
+        var headers = new List<HttpHeader>();
+        if (e.HttpClient.Request.Headers.Any(h => h.Name == "Origin"))
+        {
+            headers.Add(new HttpHeader("access-control-allow-origin", "*"));
+        }
+        e.GenericResponse("", statusCode, headers);
+    }
+
     private void SendJsonResponse(string body, HttpStatusCode statusCode, SessionEventArgs e)
     {
-        e.GenericResponse(body, statusCode, new List<HttpHeader> { new HttpHeader("content-type", "application/json") });
+        var headers = new List<HttpHeader> {
+            new HttpHeader("content-type", "application/json")
+        };
+        if (e.HttpClient.Request.Headers.Any(h => h.Name == "Origin"))
+        {
+            headers.Add(new HttpHeader("access-control-allow-origin", "*"));
+        }
+        e.GenericResponse(body, statusCode, headers);
     }
 
     private void GetAll(SessionEventArgs e, CrudApiAction action, IDictionary<string, string> parameters)
@@ -179,7 +196,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
         var update = JObject.Parse(e.HttpClient.Request.BodyString);
         ((JContainer)item)?.Merge(update);
-        e.GenericResponse("", HttpStatusCode.NoContent);
+        SendEmptyResponse(HttpStatusCode.NoContent, e);
         _logger?.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
     }
 
@@ -194,7 +211,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
         var update = JObject.Parse(e.HttpClient.Request.BodyString);
         ((JContainer)item)?.Replace(update);
-        e.GenericResponse("", HttpStatusCode.NoContent);
+        SendEmptyResponse(HttpStatusCode.NoContent, e);
         _logger?.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
     }
 
@@ -209,7 +226,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
 
         item?.Remove();
-        e.GenericResponse("", HttpStatusCode.NoContent);
+        SendEmptyResponse(HttpStatusCode.NoContent, e);
         _logger?.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
     }
 
