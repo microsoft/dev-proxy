@@ -68,10 +68,10 @@
     <None Update="presets\microsoft-graph-rate-limiting.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="presets\microsoft-365.json">
+    <None Update="presets\m365.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="presets\microsoft-365-errors.json">
+    <None Update="presets\m365-responses.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
