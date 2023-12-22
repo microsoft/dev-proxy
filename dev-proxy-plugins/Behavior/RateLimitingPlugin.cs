@@ -229,7 +229,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
             _resourcesRemaining = 0;
             var request = e.Session.HttpClient.Request;
 
-            _logger?.LogRequest(new[] { $"Exceeded resource limit when calling {request.Url}.", "Request will be throttled" }, MessageType.Failed, new LoggingContext(e.Session));
+            _logger?.LogRequest([$"Exceeded resource limit when calling {request.Url}.", "Request will be throttled"], MessageType.Failed, new LoggingContext(e.Session));
             if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Throttle)
             {
                 e.ThrottledRequests.Add(new ThrottlerInfo(
@@ -244,12 +244,12 @@ public class RateLimitingPlugin : BaseProxyPlugin
             {
                 if (_configuration.CustomResponse is not null)
                 {
-                    var headers = _configuration.CustomResponse.ResponseHeaders is not null ?
-                        _configuration.CustomResponse.ResponseHeaders.Select(h => new HttpHeader(h.Key, h.Value)) :
+                    var headers = _configuration.CustomResponse.Response?.Headers is not null ?
+                        _configuration.CustomResponse.Response.Headers.Select(h => new HttpHeader(h.Key, h.Value)) :
                         Array.Empty<HttpHeader>();
 
                     // allow custom throttling response
-                    var responseCode = (HttpStatusCode)(_configuration.CustomResponse.ResponseCode ?? 200);
+                    var responseCode = (HttpStatusCode)(_configuration.CustomResponse.Response?.StatusCode ?? 200);
                     if (responseCode == HttpStatusCode.TooManyRequests)
                     {
                         e.ThrottledRequests.Add(new ThrottlerInfo(
@@ -259,15 +259,15 @@ public class RateLimitingPlugin : BaseProxyPlugin
                         ));
                     }
 
-                    string body = _configuration.CustomResponse.ResponseBody is not null ?
-                        JsonSerializer.Serialize(_configuration.CustomResponse.ResponseBody, new JsonSerializerOptions { WriteIndented = true }) :
+                    string body = _configuration.CustomResponse.Response?.Body is not null ?
+                        JsonSerializer.Serialize(_configuration.CustomResponse.Response.Body, new JsonSerializerOptions { WriteIndented = true }) :
                         "";
                     e.Session.GenericResponse(body, responseCode, headers);
                     state.HasBeenSet = true;
                 }
                 else
                 {
-                    _logger?.LogRequest(new[] { $"Custom behavior not set. {_configuration.CustomResponseFile} not found." }, MessageType.Failed, new LoggingContext(e.Session));
+                    _logger?.LogRequest([$"Custom behavior not set. {_configuration.CustomResponseFile} not found."], MessageType.Failed, new LoggingContext(e.Session));
                 }
             }
         }

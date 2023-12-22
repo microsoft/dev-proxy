@@ -65,10 +65,18 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             error.Headers.Select(h => new HttpHeader(h.Key, h.Value)).ToList() :
             new List<HttpHeader>();
         if (error.StatusCode == (int)HttpStatusCode.TooManyRequests &&
-            error.AddDynamicRetryAfter.GetValueOrDefault(false))
+            error.Headers is not null &&
+                (
+                    (error.Headers.ContainsKey("Retry-After") && error.Headers["Retry-After"] == "@dynamic") ||
+                    (error.Headers.ContainsKey("retry-after") && error.Headers["retry-after"] == "@dynamic")
+                )
+            )
         {
             var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
             ev.ThrottledRequests.Add(new ThrottlerInfo(BuildThrottleKey(request), ShouldThrottle, retryAfterDate));
+            // replace the header with the @dynamic value with the actual value
+            var h = headers.First(h => h.Name == "Retry-After" || h.Name == "retry-after");
+            headers.Remove(h);
             headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
         }
 

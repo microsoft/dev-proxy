@@ -7,16 +7,28 @@ namespace Microsoft.DevProxy.Plugins.MockResponses;
 
 public class MockResponse
 {
+    [JsonPropertyName("request")]
+    public MockResponseRequest? Request { get; set; }
+    [JsonPropertyName("response")]
+    public MockResponseResponse? Response { get; set; }
+}
+
+public class MockResponseRequest
+{
     [JsonPropertyName("url")]
     public string Url { get; set; } = string.Empty;
     [JsonPropertyName("method")]
     public string Method { get; set; } = "GET";
     [JsonPropertyName("nth"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Nth { get; set; }
-    [JsonPropertyName("responseCode")]
-    public int? ResponseCode { get; set; } = 200;
-    [JsonPropertyName("responseBody")]
-    public dynamic? ResponseBody { get; set; }
-    [JsonPropertyName("responseHeaders")]
-    public IDictionary<string, string>? ResponseHeaders { get; set; }
+}
+
+public class MockResponseResponse
+{
+    [JsonPropertyName("statusCode")]
+    public int? StatusCode { get; set; } = 200;
+    [JsonPropertyName("body")]
+    public dynamic? Body { get; set; }
+    [JsonPropertyName("headers")]
+    public IDictionary<string, string>? Headers { get; set; }
 }

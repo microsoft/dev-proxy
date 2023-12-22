@@ -13,6 +13,4 @@ public class GenericErrorResponse
     public Dictionary<string, string>? Headers { get; set; }
     [JsonPropertyName("body")]
     public dynamic? Body { get; set; }
-    [JsonPropertyName("addDynamicRetryAfter")]
-    public bool? AddDynamicRetryAfter { get; set; } = false;
 }

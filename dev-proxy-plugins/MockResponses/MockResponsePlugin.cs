@@ -20,14 +20,14 @@ public class MockResponseConfiguration
     [JsonIgnore]
     public bool NoMocks { get; set; } = false;
     [JsonIgnore]
-    public string MocksFile { get; set; } = "responses.json";
+    public string MocksFile { get; set; } = "mocks.json";
     [JsonIgnore]
     public bool BlockUnmockedRequests { get; set; } = false;
 
     [JsonPropertyName("$schema")]
-    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v1.0/responses.schema.json";
-    [JsonPropertyName("responses")]
-    public IEnumerable<MockResponse> Responses { get; set; } = Array.Empty<MockResponse>();
+    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v1.0/mockresponseplugin.schema.json";
+    [JsonPropertyName("mocks")]
+    public IEnumerable<MockResponse> Mocks { get; set; } = Array.Empty<MockResponse>();
 }
 
 public class MockResponsePlugin : BaseProxyPlugin
@@ -48,8 +48,10 @@ public class MockResponsePlugin : BaseProxyPlugin
         _noMocks.AddAlias("-n");
         _noMocks.ArgumentHelpName = "no mocks";
 
-        _mocksFile = new Option<string?>("--mocks-file", "Provide a file populated with mock responses");
-        _mocksFile.ArgumentHelpName = "mocks file";
+        _mocksFile = new Option<string?>("--mocks-file", "Provide a file populated with mock responses")
+        {
+            ArgumentHelpName = "mocks file"
+        };
     }
 
     public override void Register(IPluginEvents pluginEvents,
@@ -120,14 +122,20 @@ public class MockResponsePlugin : BaseProxyPlugin
             {
                 ProcessMockResponse(e.Session, new MockResponse
                 {
-                    Method = request.Method,
-                    Url = request.Url,
-                    ResponseCode = 502,
-                    ResponseBody = new GraphErrorResponseBody(new GraphErrorResponseError
+                    Request = new()
                     {
-                        Code = "Bad Gateway",
-                        Message = $"No mock response found for {request.Method} {request.Url}"
-                    })
+                        Url = request.Url,
+                        Method = request.Method
+                    },
+                    Response = new()
+                    {
+                        StatusCode = 502,
+                        Body = new GraphErrorResponseBody(new GraphErrorResponseError
+                        {
+                            Code = "Bad Gateway",
+                            Message = $"No mock response found for {request.Method} {request.Url}"
+                        })
+                    }
                 });
                 state.HasBeenSet = true;
             }
@@ -139,39 +147,41 @@ public class MockResponsePlugin : BaseProxyPlugin
     private MockResponse? GetMatchingMockResponse(Request request)
     {
         if (_configuration.NoMocks ||
-            _configuration.Responses is null ||
-            !_configuration.Responses.Any())
+            _configuration.Mocks is null ||
+            !_configuration.Mocks.Any())
         {
             return null;
         }
 
-        var mockResponse = _configuration.Responses.FirstOrDefault(mockResponse =>
+        var mockResponse = _configuration.Mocks.FirstOrDefault(mockResponse =>
         {
-            if (mockResponse.Method != request.Method) return false;
-            if (mockResponse.Url == request.Url && IsNthRequest(mockResponse))
+            if (mockResponse.Request is null) return false;
+
+            if (mockResponse.Request.Method != request.Method) return false;
+            if (mockResponse.Request.Url == request.Url && IsNthRequest(mockResponse))
             {
                 return true;
             }
 
             // check if the URL contains a wildcard
             // if it doesn't, it's not a match for the current request for sure
-            if (!mockResponse.Url.Contains('*'))
+            if (!mockResponse.Request.Url.Contains('*'))
             {
                 return false;
             }
 
             //turn mock URL with wildcard into a regex and match against the request URL
-            var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
+            var mockResponseUrlRegex = Regex.Escape(mockResponse.Request.Url).Replace("\\*", ".*");
             return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$") && IsNthRequest(mockResponse);
         });
 
-        if (mockResponse is not null)
+        if (mockResponse is not null && mockResponse.Request is not null)
         {
-            if (!_appliedMocks.ContainsKey(mockResponse.Url))
+            if (!_appliedMocks.ContainsKey(mockResponse.Request.Url))
             {
-                _appliedMocks.Add(mockResponse.Url, 0);
+                _appliedMocks.Add(mockResponse.Request.Url, 0);
             }
-            _appliedMocks[mockResponse.Url]++;
+            _appliedMocks[mockResponse.Request.Url]++;
         }
 
         return mockResponse;
@@ -179,17 +189,17 @@ public class MockResponsePlugin : BaseProxyPlugin
 
     private bool IsNthRequest(MockResponse mockResponse)
     {
-        if (mockResponse.Nth is null)
+        if (mockResponse.Request is null || mockResponse.Request.Nth is null)
         {
             // mock doesn't define an Nth property so it always qualifies
             return true;
         }
 
-        var nth = 0;
-        _appliedMocks.TryGetValue(mockResponse.Url, out nth);
+        int nth;
+        _appliedMocks.TryGetValue(mockResponse.Request.Url, out nth);
         nth++;
 
-        return mockResponse.Nth == nth;
+        return mockResponse.Request.Nth == nth;
     }
 
     private void ProcessMockResponse(SessionEventArgs e, MockResponse matchingResponse)
@@ -199,14 +209,14 @@ public class MockResponsePlugin : BaseProxyPlugin
         string requestDate = DateTime.Now.ToString();
         var headers = ProxyUtils.BuildGraphResponseHeaders(e.HttpClient.Request, requestId, requestDate);
         HttpStatusCode statusCode = HttpStatusCode.OK;
-        if (matchingResponse.ResponseCode is not null)
+        if (matchingResponse.Response?.StatusCode is not null)
         {
-            statusCode = (HttpStatusCode)matchingResponse.ResponseCode;
+            statusCode = (HttpStatusCode)matchingResponse.Response.StatusCode;
         }
 
-        if (matchingResponse.ResponseHeaders is not null)
+        if (matchingResponse.Response?.Headers is not null)
         {
-            foreach (var key in matchingResponse.ResponseHeaders.Keys)
+            foreach (var key in matchingResponse.Response.Headers.Keys)
             {
                 // remove duplicate headers
                 var existingHeader = headers.FirstOrDefault(h => h.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
@@ -215,7 +225,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                     headers.Remove(existingHeader);
                 }
 
-                headers.Add(new HttpHeader(key, matchingResponse.ResponseHeaders[key]));
+                headers.Add(new HttpHeader(key, matchingResponse.Response.Headers[key]));
             }
         }
         // default the content type to application/json unless set in the mock response
@@ -224,9 +234,9 @@ public class MockResponsePlugin : BaseProxyPlugin
             headers.Add(new HttpHeader("content-type", "application/json"));
         }
 
-        if (matchingResponse.ResponseBody is not null)
+        if (matchingResponse.Response?.Body is not null)
         {
-            var bodyString = JsonSerializer.Serialize(matchingResponse.ResponseBody) as string;
+            var bodyString = JsonSerializer.Serialize(matchingResponse.Response.Body) as string;
             // we get a JSON string so need to start with the opening quote
             if (bodyString?.StartsWith("\"@") ?? false)
             {
@@ -245,7 +255,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                 {
                     var bodyBytes = File.ReadAllBytes(filePath);
                     e.GenericResponse(bodyBytes, statusCode, headers);
-                    _logger?.LogRequest(new[] { $"{matchingResponse.ResponseCode ?? 200} {matchingResponse.Url}" }, MessageType.Mocked, new LoggingContext(e));
+                    _logger?.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e));
                     return;
                 }
             }
@@ -256,6 +266,6 @@ public class MockResponsePlugin : BaseProxyPlugin
         }
         e.GenericResponse(body ?? string.Empty, statusCode, headers);
 
-        _logger?.LogRequest(new[] { $"{matchingResponse.ResponseCode ?? 200} {matchingResponse.Url}" }, MessageType.Mocked, new LoggingContext(e));
+        _logger?.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e));
     }
 }

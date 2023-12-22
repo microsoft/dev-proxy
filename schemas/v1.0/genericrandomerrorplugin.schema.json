@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Dev Proxy error responses",
-    "description": "Error responses for Dev Proxy",
+    "title": "Dev Proxy GenericRandomErrorPlugin responses",
+    "description": "Mocks for the Dev Proxy GenericRandomErrorPlugin",
     "type": "object",
     "properties": {
         "responses": {
@@ -9,9 +9,6 @@
             "items": {
                 "type": "object",
                 "properties": {
-                    "addDynamicRetryAfter": {
-                        "type": "boolean"
-                    },
                     "body": {
                         "type": [
                             "object",
