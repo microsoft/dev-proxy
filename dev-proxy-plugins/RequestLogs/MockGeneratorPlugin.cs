@@ -53,34 +53,40 @@ public class MockGeneratorPlugin : BaseProxyPlugin
 
             var mock = new MockResponse
             {
-                Method = methodAndUrl.Item1,
-                Url = methodAndUrl.Item2,
-                ResponseCode = response.StatusCode,
-                ResponseHeaders = response.Headers
-                .Select(h => new KeyValuePair<string, string>(h.Name, h.Value))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                ResponseBody = GetResponseBody(request.Context.Session).Result
+                Request = new()
+                {
+                    Method = methodAndUrl.Item1,
+                    Url = methodAndUrl.Item2,
+                },
+                Response = new()
+                {
+                    StatusCode = response.StatusCode,
+                    Headers = response.Headers
+                        .Select(h => new KeyValuePair<string, string>(h.Name, h.Value))
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                    Body = GetResponseBody(request.Context.Session).Result
+                }
             };
             // skip mock if it's 200 but has no body
-            if (mock.ResponseCode == 200 && mock.ResponseBody is null)
+            if (mock.Response.StatusCode == 200 && mock.Response.Body is null)
             {
                 _logger?.LogDebug("Skipping mock with 200 response code and no body");
                 continue;
             }
 
             mocks.Add(mock);
-            _logger?.LogDebug($"Added mock for {mock.Method} {mock.Url}");
+            _logger?.LogDebug($"Added mock for {mock.Request.Method} {mock.Request.Url}");
         }
 
         _logger?.LogDebug($"Sorting mocks...");
         // sort mocks descending by url length so that most specific mocks are first
-        mocks.Sort((a, b) => b.Url.CompareTo(a.Url));
+        mocks.Sort((a, b) => b.Request!.Url.CompareTo(a.Request!.Url));
 
-        var mocksFile = new MockResponseConfiguration { Responses = mocks };
+        var mocksFile = new MockResponseConfiguration { Mocks = mocks };
 
         _logger?.LogDebug($"Serializing mocks...");
         var mocksFileJson = JsonSerializer.Serialize(mocksFile, new JsonSerializerOptions { WriteIndented = true });
-        var fileName = $"mocks-{DateTime.Now.ToString("yyyyMMddHHmmss")}.json";
+        var fileName = $"mocks-{DateTime.Now:yyyyMMddHHmmss}.json";
 
         _logger?.LogDebug($"Writing mocks to {fileName}...");
         File.WriteAllText(fileName, mocksFileJson);
@@ -130,7 +136,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         // assume body is binary
         try
         {
-            var filename = $"response-{DateTime.Now.ToString("yyyyMMddHHmmss")}.bin";
+            var filename = $"response-{DateTime.Now:yyyyMMddHHmmss}.bin";
             _logger?.LogDebug("Reading response body as bytes...");
             var body = await session.GetResponseBody();
             _logger?.LogDebug($"Writing response body to {filename}...");
@@ -149,7 +155,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         var info = message.Split(" ");
         if (info.Length > 2)
         {
-            info = new[] { info[0], String.Join(" ", info.Skip(1)) };
+            info = [info[0], string.Join(" ", info.Skip(1))];
         }
         return new Tuple<string, string>(info[0], info[1]);
     }

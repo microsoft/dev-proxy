@@ -62,22 +62,22 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                     }
                 };
 
-                _logger?.LogRequest(new[] { $"502 {request.Url}" }, MessageType.Mocked, new LoggingContext(e.Session));
+                _logger?.LogRequest([$"502 {request.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
             }
             else
             {
                 dynamic? body = null;
                 var statusCode = HttpStatusCode.OK;
-                if (mockResponse.ResponseCode is not null)
+                if (mockResponse.Response?.StatusCode is not null)
                 {
-                    statusCode = (HttpStatusCode)mockResponse.ResponseCode;
+                    statusCode = (HttpStatusCode)mockResponse.Response.StatusCode;
                 }
 
-                if (mockResponse.ResponseHeaders is not null)
+                if (mockResponse.Response?.Headers is not null)
                 {
-                    foreach (var key in mockResponse.ResponseHeaders.Keys)
+                    foreach (var key in mockResponse.Response.Headers.Keys)
                     {
-                        headers[key] = mockResponse.ResponseHeaders[key];
+                        headers[key] = mockResponse.Response.Headers[key];
                     }
                 }
                 // default the content type to application/json unless set in the mock response
@@ -86,9 +86,9 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                     headers.Add("content-type", "application/json");
                 }
 
-                if (mockResponse.ResponseBody is not null)
+                if (mockResponse.Response?.Body is not null)
                 {
-                    var bodyString = JsonSerializer.Serialize(mockResponse.ResponseBody) as string;
+                    var bodyString = JsonSerializer.Serialize(mockResponse.Response.Body) as string;
                     // we get a JSON string so need to start with the opening quote
                     if (bodyString?.StartsWith("\"@") ?? false)
                     {
@@ -111,7 +111,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                     }
                     else
                     {
-                        body = mockResponse.ResponseBody;
+                        body = mockResponse.Response.Body;
                     }
                 }
                 response = new GraphBatchResponsePayloadResponse
@@ -122,7 +122,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                     Body = body
                 };
 
-                _logger?.LogRequest(new[] { $"{mockResponse.ResponseCode ?? 200} {mockResponse.Url}" }, MessageType.Mocked, new LoggingContext(e.Session));
+                _logger?.LogRequest([$"{mockResponse.Response?.StatusCode ?? 200} {mockResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
             }
 
             responses.Add(response);
@@ -143,34 +143,34 @@ public class GraphMockResponsePlugin : MockResponsePlugin
     protected MockResponse? GetMatchingMockResponse(GraphBatchRequestPayloadRequest request, Uri batchRequestUri)
     {
         if (_configuration.NoMocks ||
-            _configuration.Responses is null ||
-            !_configuration.Responses.Any())
+            _configuration.Mocks is null ||
+            !_configuration.Mocks.Any())
         {
             return null;
         }
 
-        var mockResponse = _configuration.Responses.FirstOrDefault(mockResponse =>
+        var mockResponse = _configuration.Mocks.FirstOrDefault(mockResponse =>
         {
-            if (mockResponse.Method != request.Method) return false;
+            if (mockResponse.Request?.Method != request.Method) return false;
             // URLs in batch are relative to Graph version number so we need
             // to make them absolute using the batch request URL
             var absoluteRequestFromBatchUrl = ProxyUtils
                 .GetAbsoluteRequestUrlFromBatch(batchRequestUri, request.Url)
                 .ToString();
-            if (mockResponse.Url == absoluteRequestFromBatchUrl)
+            if (mockResponse.Request.Url == absoluteRequestFromBatchUrl)
             {
                 return true;
             }
 
             // check if the URL contains a wildcard
             // if it doesn't, it's not a match for the current request for sure
-            if (!mockResponse.Url.Contains('*'))
+            if (!mockResponse.Request.Url.Contains('*'))
             {
                 return false;
             }
 
             //turn mock URL with wildcard into a regex and match against the request URL
-            var mockResponseUrlRegex = Regex.Escape(mockResponse.Url).Replace("\\*", ".*");
+            var mockResponseUrlRegex = Regex.Escape(mockResponse.Request.Url).Replace("\\*", ".*");
             return Regex.IsMatch(absoluteRequestFromBatchUrl, $"^{mockResponseUrlRegex}$");
         });
         return mockResponse;

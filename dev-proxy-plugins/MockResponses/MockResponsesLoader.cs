@@ -25,7 +25,7 @@ internal class MockResponsesLoader : IDisposable
         if (!File.Exists(_responsesFilePath))
         {
             _logger.LogWarn($"File {_configuration.MocksFile} not found. No mocks will be provided");
-            _configuration.Responses = Array.Empty<MockResponse>();
+            _configuration.Mocks = Array.Empty<MockResponse>();
             return;
         }
 
@@ -37,10 +37,10 @@ internal class MockResponsesLoader : IDisposable
                 {
                     var responsesString = reader.ReadToEnd();
                     var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString);
-                    IEnumerable<MockResponse>? configResponses = responsesConfig?.Responses;
+                    IEnumerable<MockResponse>? configResponses = responsesConfig?.Mocks;
                     if (configResponses is not null)
                     {
-                        _configuration.Responses = configResponses;
+                        _configuration.Mocks = configResponses;
                         _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from {_configuration.MocksFile}");
                     }
                 }
@@ -64,7 +64,7 @@ internal class MockResponsesLoader : IDisposable
         if (!File.Exists(_responsesFilePath))
         {
             _logger.LogWarn($"File {_configuration.MocksFile} not found. No mocks will be provided");
-            _configuration.Responses = Array.Empty<MockResponse>();
+            _configuration.Mocks = Array.Empty<MockResponse>();
             return;
         }
 

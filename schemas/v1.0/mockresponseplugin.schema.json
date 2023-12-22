@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Proxy MockResponsePlugin mocks",
+  "description": "Mocks for the Dev Proxy MockResponsePlugin",
+  "type": "object",
+  "properties": {
+    "mocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string",
+                "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "CONNECT", "TRACE"]
+              },
+              "nth": {
+                "type": "integer"
+              }
+            },
+            "required": ["url"]
+          },
+          "response": {
+            "body": {
+              "type": ["object", "string"]
+            },
+            "code": {
+              "type": "integer"
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": ["request", "response"]
+      }
+    }
+  },
+  "required": ["mocks"]
+}
