@@ -38,7 +38,7 @@ public class RateLimitConfiguration
     public int RetryAfterSeconds { get; set; } = 5;
     public RateLimitResponseWhenLimitExceeded WhenLimitExceeded { get; set; } = RateLimitResponseWhenLimitExceeded.Throttle;
     public string CustomResponseFile { get; set; } = "rate-limit-response.json";
-    public MockResponse? CustomResponse { get; set; }
+    public MockResponseResponse? CustomResponse { get; set; }
 }
 
 public class RateLimitingPlugin : BaseProxyPlugin
@@ -95,55 +95,10 @@ public class RateLimitingPlugin : BaseProxyPlugin
             return;
         }
 
-        // add rate limiting headers if reached the threshold percentage
-        if (_resourcesRemaining <= _configuration.RateLimit - (_configuration.RateLimit * _configuration.WarningThresholdPercent / 100))
+        if (e.PluginData.TryGetValue(Name, out var pluginData) &&
+            pluginData is List<HttpHeader> rateLimitingHeaders)
         {
-            var reset = _configuration.ResetFormat == RateLimitResetFormat.SecondsLeft ?
-                (_resetTime - DateTime.Now).TotalSeconds.ToString("N0") :  // drop decimals
-                new DateTimeOffset(_resetTime).ToUnixTimeSeconds().ToString();
-            headers.AddRange(new List<HttpHeader> {
-                new HttpHeader(_configuration.HeaderLimit, _configuration.RateLimit.ToString()),
-                new HttpHeader(_configuration.HeaderRemaining, _resourcesRemaining.ToString()),
-                new HttpHeader(_configuration.HeaderReset, reset)
-            });
-
-            // make rate limiting information available for CORS requests
-            if (request.Headers.FirstOrDefault((h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null)
-            {
-                if (!response.Headers.HeaderExists("Access-Control-Allow-Origin"))
-                {
-                    headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
-                }
-                var exposeHeadersHeader = response.Headers.FirstOrDefault((h) => h.Name.Equals("Access-Control-Expose-Headers", StringComparison.OrdinalIgnoreCase));
-                var headerValue = "";
-                if (exposeHeadersHeader is null)
-                {
-                    headerValue = $"{_configuration.HeaderLimit}, {_configuration.HeaderRemaining}, {_configuration.HeaderReset}, {_configuration.HeaderRetryAfter}";
-                }
-                else
-                {
-                    headerValue = exposeHeadersHeader.Value;
-                    if (!headerValue.Contains(_configuration.HeaderLimit))
-                    {
-                        headerValue += $", {_configuration.HeaderLimit}";
-                    }
-                    if (!headerValue.Contains(_configuration.HeaderRemaining))
-                    {
-                        headerValue += $", {_configuration.HeaderRemaining}";
-                    }
-                    if (!headerValue.Contains(_configuration.HeaderReset))
-                    {
-                        headerValue += $", {_configuration.HeaderReset}";
-                    }
-                    if (!headerValue.Contains(_configuration.HeaderRetryAfter))
-                    {
-                        headerValue += $", {_configuration.HeaderRetryAfter}";
-                    }
-                    response.Headers.RemoveHeader("Access-Control-Expose-Headers");
-                }
-
-                headers.Add(new HttpHeader("Access-Control-Expose-Headers", headerValue));
-            }
+            ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
         }
 
         // add headers to the original API response, avoiding duplicates
@@ -244,12 +199,12 @@ public class RateLimitingPlugin : BaseProxyPlugin
             {
                 if (_configuration.CustomResponse is not null)
                 {
-                    var headers = _configuration.CustomResponse.Response?.Headers is not null ?
-                        _configuration.CustomResponse.Response.Headers.Select(h => new HttpHeader(h.Key, h.Value)) :
+                    var headers = _configuration.CustomResponse.Headers is not null ?
+                        _configuration.CustomResponse.Headers.Select(h => new HttpHeader(h.Key, h.Value)) :
                         Array.Empty<HttpHeader>();
 
                     // allow custom throttling response
-                    var responseCode = (HttpStatusCode)(_configuration.CustomResponse.Response?.StatusCode ?? 200);
+                    var responseCode = (HttpStatusCode)(_configuration.CustomResponse.StatusCode ?? 200);
                     if (responseCode == HttpStatusCode.TooManyRequests)
                     {
                         e.ThrottledRequests.Add(new ThrottlerInfo(
@@ -259,8 +214,8 @@ public class RateLimitingPlugin : BaseProxyPlugin
                         ));
                     }
 
-                    string body = _configuration.CustomResponse.Response?.Body is not null ?
-                        JsonSerializer.Serialize(_configuration.CustomResponse.Response.Body, new JsonSerializerOptions { WriteIndented = true }) :
+                    string body = _configuration.CustomResponse.Body is not null ?
+                        JsonSerializer.Serialize(_configuration.CustomResponse.Body, new JsonSerializerOptions { WriteIndented = true }) :
                         "";
                     e.Session.GenericResponse(body, responseCode, headers);
                     state.HasBeenSet = true;
@@ -272,6 +227,43 @@ public class RateLimitingPlugin : BaseProxyPlugin
             }
         }
 
+        StoreRateLimitingHeaders(e);
         return Task.CompletedTask;
+    }
+
+    private void StoreRateLimitingHeaders(ProxyRequestArgs e)
+    {
+        // add rate limiting headers if reached the threshold percentage
+        if (_resourcesRemaining > _configuration.RateLimit - (_configuration.RateLimit * _configuration.WarningThresholdPercent / 100))
+        {
+            return;
+        }
+
+        var headers = new List<HttpHeader>();
+        var reset = _configuration.ResetFormat == RateLimitResetFormat.SecondsLeft ?
+            (_resetTime - DateTime.Now).TotalSeconds.ToString("N0") :  // drop decimals
+            new DateTimeOffset(_resetTime).ToUnixTimeSeconds().ToString();
+        headers.AddRange(new List<HttpHeader>
+        {
+            new HttpHeader(_configuration.HeaderLimit, _configuration.RateLimit.ToString()),
+            new HttpHeader(_configuration.HeaderRemaining, _resourcesRemaining.ToString()),
+            new HttpHeader(_configuration.HeaderReset, reset)
+        });
+
+        ExposeRateLimitingForCors(headers, e);
+
+        e.PluginData.Add(Name, headers);
+    }
+
+    private void ExposeRateLimitingForCors(IList<HttpHeader> headers, ProxyRequestArgs e)
+    {
+        var request = e.Session.HttpClient.Request;
+        if (request.Headers.FirstOrDefault((h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is null)
+        {
+            return;
+        }
+
+        headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
+        headers.Add(new HttpHeader("Access-Control-Expose-Headers", $"{_configuration.HeaderLimit}, {_configuration.HeaderRemaining}, {_configuration.HeaderReset}, {_configuration.HeaderRetryAfter}"));
     }
 }

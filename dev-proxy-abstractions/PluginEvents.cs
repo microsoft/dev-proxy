@@ -66,6 +66,7 @@ public class ProxyHttpEventArgsBase
 
     public SessionEventArgs Session { get; }
     public IList<ThrottlerInfo> ThrottledRequests { get; }
+    public Dictionary<string, object> PluginData { get; set; } = new Dictionary<string, object>();
 
     public bool HasRequestUrlMatch(ISet<UrlToWatch> watchedUrls)
     {
