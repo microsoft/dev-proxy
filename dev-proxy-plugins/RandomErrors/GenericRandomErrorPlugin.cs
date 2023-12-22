@@ -152,7 +152,6 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
 
             if (failMode == GenericRandomErrorFailMode.PassThru && _proxyConfiguration?.Rate != 100)
             {
-                _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e.Session));
                 return Task.CompletedTask;
             }
             FailResponse(e, failMode);
