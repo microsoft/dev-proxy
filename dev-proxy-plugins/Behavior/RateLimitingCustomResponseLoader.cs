@@ -36,7 +36,7 @@ internal class RateLimitingCustomResponseLoader : IDisposable
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     var responseString = reader.ReadToEnd();
-                    var response = JsonSerializer.Deserialize<MockResponse>(responseString);
+                    var response = JsonSerializer.Deserialize<MockResponseResponse>(responseString);
                     if (response is not null)
                     {
                         _configuration.CustomResponse = response;

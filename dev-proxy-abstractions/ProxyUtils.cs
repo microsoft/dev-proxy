@@ -319,4 +319,28 @@ public static class ProxyUtils
             return _productVersion;
         }
     }
+
+    public static void MergeHeaders(IList<HttpHeader> allHeaders, IList<HttpHeader> headersToAdd)
+    {
+        foreach (var header in headersToAdd)
+        {
+            var existingHeader = allHeaders.FirstOrDefault(h => h.Name.Equals(header.Name, StringComparison.OrdinalIgnoreCase));
+            if (existingHeader is not null)
+            {
+                if (header.Name.Equals("Access-Control-Expose-Headers", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existingValues = existingHeader.Value.Split(',').Select(v => v.Trim());
+                    var newValues = header.Value.Split(',').Select(v => v.Trim());
+                    var allValues = existingValues.Union(newValues).Distinct();
+                    allHeaders.Remove(existingHeader);
+                    allHeaders.Add(new HttpHeader(header.Name, string.Join(", ", allValues)));
+                    continue;
+                }
+
+                allHeaders.Remove(existingHeader);
+            }
+
+            allHeaders.Add(header);
+        }
+    }
 }

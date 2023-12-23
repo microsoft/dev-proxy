@@ -5,6 +5,8 @@ using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.DevProxy.Plugins.Behavior;
+using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.DevProxy.Plugins.MockResponses;
 
@@ -41,8 +43,15 @@ public class GraphMockResponsePlugin : MockResponsePlugin
             var requestId = Guid.NewGuid().ToString();
             var requestDate = DateTime.Now.ToString();
             var headers = ProxyUtils
-                .BuildGraphResponseHeaders(e.Session.HttpClient.Request, requestId, requestDate)
-                .ToDictionary(h => h.Name, h => h.Value);
+                .BuildGraphResponseHeaders(e.Session.HttpClient.Request, requestId, requestDate);
+
+            if (e.PluginData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
+                pluginData is List<HttpHeader> rateLimitingHeaders)
+            {
+                ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
+            }
+
+            var headersDictionary = headers.ToDictionary(h => h.Name, h => h.Value);
 
             var mockResponse = GetMatchingMockResponse(request, e.Session.HttpClient.Request.RequestUri);
             if (mockResponse == null)
@@ -51,7 +60,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)HttpStatusCode.BadGateway,
-                    Headers = headers,
+                    Headers = headersDictionary,
                     Body = new GraphBatchResponsePayloadResponseBody
                     {
                         Error = new GraphBatchResponsePayloadResponseBodyError
@@ -77,13 +86,13 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     foreach (var key in mockResponse.Response.Headers.Keys)
                     {
-                        headers[key] = mockResponse.Response.Headers[key];
+                        headersDictionary[key] = mockResponse.Response.Headers[key];
                     }
                 }
                 // default the content type to application/json unless set in the mock response
-                if (!headers.Any(h => h.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
+                if (!headersDictionary.Any(h => h.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
                 {
-                    headers.Add("content-type", "application/json");
+                    headersDictionary.Add("content-type", "application/json");
                 }
 
                 if (mockResponse.Response?.Body is not null)
@@ -118,7 +127,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)statusCode,
-                    Headers = headers,
+                    Headers = headersDictionary,
                     Body = body
                 };
 

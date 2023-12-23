@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
+using Microsoft.DevProxy.Plugins.Behavior;
 
 namespace Microsoft.DevProxy.Plugins.MockResponses;
 
@@ -115,12 +116,12 @@ public class MockResponsePlugin : BaseProxyPlugin
             var matchingResponse = GetMatchingMockResponse(request);
             if (matchingResponse is not null)
             {
-                ProcessMockResponse(e.Session, matchingResponse);
+                ProcessMockResponse(e, matchingResponse);
                 state.HasBeenSet = true;
             }
             else if (_configuration.BlockUnmockedRequests)
             {
-                ProcessMockResponse(e.Session, new MockResponse
+                ProcessMockResponse(e, new MockResponse
                 {
                     Request = new()
                     {
@@ -202,12 +203,12 @@ public class MockResponsePlugin : BaseProxyPlugin
         return mockResponse.Request.Nth == nth;
     }
 
-    private void ProcessMockResponse(SessionEventArgs e, MockResponse matchingResponse)
+    private void ProcessMockResponse(ProxyRequestArgs e, MockResponse matchingResponse)
     {
         string? body = null;
         string requestId = Guid.NewGuid().ToString();
         string requestDate = DateTime.Now.ToString();
-        var headers = ProxyUtils.BuildGraphResponseHeaders(e.HttpClient.Request, requestId, requestDate);
+        var headers = ProxyUtils.BuildGraphResponseHeaders(e.Session.HttpClient.Request, requestId, requestDate);
         HttpStatusCode statusCode = HttpStatusCode.OK;
         if (matchingResponse.Response?.StatusCode is not null)
         {
@@ -234,6 +235,12 @@ public class MockResponsePlugin : BaseProxyPlugin
             headers.Add(new HttpHeader("content-type", "application/json"));
         }
 
+        if (e.PluginData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
+            pluginData is List<HttpHeader> rateLimitingHeaders)
+        {
+            ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
+        }
+
         if (matchingResponse.Response?.Body is not null)
         {
             var bodyString = JsonSerializer.Serialize(matchingResponse.Response.Body) as string;
@@ -254,8 +261,8 @@ public class MockResponsePlugin : BaseProxyPlugin
                 else
                 {
                     var bodyBytes = File.ReadAllBytes(filePath);
-                    e.GenericResponse(bodyBytes, statusCode, headers);
-                    _logger?.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e));
+                    e.Session.GenericResponse(bodyBytes, statusCode, headers);
+                    _logger?.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
                     return;
                 }
             }
@@ -264,8 +271,8 @@ public class MockResponsePlugin : BaseProxyPlugin
                 body = bodyString;
             }
         }
-        e.GenericResponse(body ?? string.Empty, statusCode, headers);
+        e.Session.GenericResponse(body ?? string.Empty, statusCode, headers);
 
-        _logger?.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e));
+        _logger?.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
     }
 }
