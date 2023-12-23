@@ -73,6 +73,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: config
+    attributes:
+      label: Configuration file
+      description: Provide the contents of the configuration file used when you had the issue
+    validations:
+      required: true
+  - type: textarea
     id: info
     attributes:
       label: Additional Info
