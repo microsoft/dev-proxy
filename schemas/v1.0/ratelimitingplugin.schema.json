@@ -1,0 +1,23 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Dev Proxy RateLimitingPlugin response",
+    "description": "Mock for the Dev Proxy RateLimitingPlugin",
+    "type": "object",
+    "properties": {
+        "body": {
+            "type": [
+                "object",
+                "string"
+            ]
+        },
+        "statusCode": {
+            "type": "integer"
+        },
+        "headers": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        }
+    }
+}
