@@ -11,6 +11,12 @@
       "name": "RetryAfterPlugin",
       "enabled": true,
       "pluginPath": "plugins\\dev-proxy-plugins.dll"
+    },
+    {
+      "name": "DevToolsPlugin",
+      "enabled": true,
+      "pluginPath": "plugins\\dev-proxy-plugins.dll",
+      "configSection": "devTools"
     }
   ],
   "urlsToWatch": [
@@ -19,6 +25,9 @@
   ],
   "genericRandomErrorPlugin": {
     "errorsFile": "devproxy-errors.json"
+  },
+  "devTools": {
+    "preferredBrowser": "Edge"
   },
   "rate": 50,
   "labelMode": "text",
