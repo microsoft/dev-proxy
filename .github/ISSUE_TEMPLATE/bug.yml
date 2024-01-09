@@ -38,13 +38,13 @@ body:
     validations:
       required: true
   - type: input
-    id: m365proxyversion
+    id: devproxyversion
     attributes:
-      label: Microsoft 365 Developer Proxy Version
+      label: Dev Proxy Version
       description: |
         Provide the version of the proxy you are using.
         
-        Execute `m365proxy --version` in your terminal to identify your version
+        Execute `devproxy --version` in your terminal to identify your version
     validations:
       required: true 
   - type: dropdown
@@ -70,6 +70,13 @@ body:
         - bash
         - zsh
         - Other
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration file
+      description: Provide the contents of the configuration file used when you had the issue
     validations:
       required: true
   - type: textarea

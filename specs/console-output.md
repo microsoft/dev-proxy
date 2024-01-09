@@ -1,6 +1,6 @@
 # Improve readability of the console output
 
-To improve readability of the console output, Microsoft 365 Developer Proxy will implement a way to communicate the different types of messages that are output to console.
+To improve readability of the console output, Dev Proxy will implement a way to communicate the different types of messages that are output to console.
 
 ## History
 

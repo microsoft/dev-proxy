@@ -7,7 +7,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/m365-developer-proxy.sln",
+        "${workspaceFolder}/dev-proxy.sln",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -19,7 +19,7 @@
       "type": "process",
       "args": [
         "publish",
-        "${workspaceFolder}/m365-developer-proxy.sln",
+        "${workspaceFolder}/dev-proxy.sln",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -33,7 +33,7 @@
         "watch",
         "run",
         "--project",
-        "${workspaceFolder}/m365-developer-proxy.sln"
+        "${workspaceFolder}/dev-proxy.sln"
       ],
       "problemMatcher": "$msCompile"
     }

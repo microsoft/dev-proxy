@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v1.0/rc.schema.json",
+  "plugins": [
+    {
+      "name": "GenericRandomErrorPlugin",
+      "enabled": true,
+      "pluginPath": "plugins\\dev-proxy-plugins.dll",
+      "configSection": "genericRandomErrorPlugin"
+    },
+    {
+      "name": "RetryAfterPlugin",
+      "enabled": true,
+      "pluginPath": "plugins\\dev-proxy-plugins.dll"
+    }
+  ],
+  "urlsToWatch": [
+    "!https://jsonplaceholder.typicode.com/posts/2",
+    "https://jsonplaceholder.typicode.com/*"
+  ],
+  "genericRandomErrorPlugin": {
+    "errorsFile": "devproxy-errors.json"
+  },
+  "rate": 50,
+  "labelMode": "text",
+  "logLevel": "info"
+}

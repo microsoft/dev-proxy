@@ -107,7 +107,7 @@ The plugin will have its own preset file. This configuration file is where meter
     {
       "name": "GraphMeteredGuidancePlugin",
       "enabled": true,
-      "pluginPath": "plugins\\m365-developer-proxy-plugins.dll",
+      "pluginPath": "plugins\\dev-proxy-plugins.dll",
       "configSection": "graphMeteredGuidancePlugin"
     }
   ],
