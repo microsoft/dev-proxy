@@ -4,6 +4,25 @@
 # Licensed under the MIT License. See License in the project root for license information.
 #---------------------------------------------------------------------------------------------
 
+echo ""
+echo "This script installs Dev Proxy on your machine. It runs the following steps:"
+echo ""
+echo "1. Create the 'devproxy' directory in the current working folder"
+echo "2. Download the latest Dev Proxy release"
+echo "3. Unzip the release in the devproxy directory"
+echo "4. Configure devproxy and its files as executable"
+echo "5. Add the devproxy directory to your PATH environment variable in your shell profile"
+echo ""
+echo -n "Continue (y/n)? "
+
+read -n1 -r response
+if [[ "$response" != [yY] ]]; then
+    echo -e "\nExiting"
+    exit 1
+fi
+
+echo -e "\n"
+
 mkdir devproxy
 cd devproxy
 full_path=$(pwd)
@@ -42,7 +61,10 @@ fi
 
 unzip -o ./devproxy.zip -d ./
 rm ./devproxy.zip
-chmod +x ./devproxy
+echo "Configuring devproxy and its files as executable..."
+chmod +x ./devproxy ./libe_sqlite3.dylib
+
+echo "Adding devproxy to your PATH environment variable in your shell profile..."
 
 if [[ ":$PATH:" != *":$full_path:"* ]]; then
     if [[ -e ~/.zshrc ]]; then
