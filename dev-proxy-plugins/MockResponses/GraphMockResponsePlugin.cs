@@ -42,14 +42,16 @@ public class GraphMockResponsePlugin : MockResponsePlugin
             GraphBatchResponsePayloadResponse? response = null;
             var requestId = Guid.NewGuid().ToString();
             var requestDate = DateTime.Now.ToString();
-            var headers = ProxyUtils.BuildGraphResponseHeaders(e.Session.HttpClient.Request, requestId, requestDate);
-            var headersDictionary = headers.ToDictionary(h => h.Name, h => h.Value);
+            var headers = ProxyUtils
+                .BuildGraphResponseHeaders(e.Session.HttpClient.Request, requestId, requestDate);
 
             if (e.PluginData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
                 pluginData is List<HttpHeader> rateLimitingHeaders)
             {
                 ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
             }
+
+            var headersDictionary = headers.ToDictionary(h => h.Name, h => h.Value);
 
             var mockResponse = GetMatchingMockResponse(request, e.Session.HttpClient.Request.RequestUri);
             if (mockResponse == null)

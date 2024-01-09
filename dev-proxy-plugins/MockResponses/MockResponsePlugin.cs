@@ -156,11 +156,9 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         var mockResponse = _configuration.Mocks.FirstOrDefault(mockResponse =>
         {
-            if (mockResponse.Request is null)
-                return false;
+            if (mockResponse.Request is null) return false;
 
-            if (mockResponse.Request.Method != request.Method)
-                return false;
+            if (mockResponse.Request.Method != request.Method) return false;
             if (mockResponse.Request.Url == request.Url && IsNthRequest(mockResponse))
             {
                 return true;

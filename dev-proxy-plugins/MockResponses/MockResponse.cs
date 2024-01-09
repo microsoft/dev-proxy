@@ -30,5 +30,5 @@ public class MockResponseResponse
     [JsonPropertyName("body")]
     public dynamic? Body { get; set; }
     [JsonPropertyName("headers")]
-    public List<Dictionary<string, string>>? ResponseHeaders { get; set; }
+    public List<IDictionary<string, string>>? ResponseHeaders { get; set; }
 }

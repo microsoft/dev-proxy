@@ -4,7 +4,7 @@ The best way to contribute initially is to download and try Dev Proxy and then g
 
 ## Our foundation
 
-The Dev Proxy is built with .NET 6 and uses the [Titanium.Web.Proxy](https://github.com/justcoding121/titanium-web-proxy).
+The Dev Proxy is built with .NET 8 and uses the [Titanium.Web.Proxy](https://github.com/justcoding121/titanium-web-proxy).
 
 ## Reporting issues and suggesting new features
 

@@ -38,7 +38,8 @@ internal class MockResponsesLoader : IDisposable
                     var responsesString = reader.ReadToEnd();
                     var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString, new JsonSerializerOptions { AllowTrailingCommas = true, ReadCommentHandling= JsonCommentHandling.Skip});
                     IEnumerable<MockResponse>? configResponses = responsesConfig?.Mocks;
-                    if (configResponses is not null) {
+                    if (configResponses is not null)
+                    {
                         _configuration.Mocks = configResponses;
                         _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from {_configuration.MocksFile}");
                     }
