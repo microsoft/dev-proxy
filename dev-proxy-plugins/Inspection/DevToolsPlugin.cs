@@ -63,7 +63,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         {
             case PreferredBrowser.Chrome:
                 return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? "chrome.exe"
+                    ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Google\Chrome\Application\chrome.exe")
                     : "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
             case PreferredBrowser.EdgeDev:
                 return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
