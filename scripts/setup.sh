@@ -64,7 +64,7 @@ rm ./devproxy.zip
 echo "Configuring devproxy and its files as executable..."
 chmod +x ./devproxy ./libe_sqlite3.dylib
 
-echo "Adding devproxy to your PATH environment variable in your shell profile..."
+echo "Adding devproxy to the PATH environment variable in your shell profile..."
 
 if [[ ":$PATH:" != *":$full_path:"* ]]; then
     if [[ -e ~/.zshrc ]]; then
