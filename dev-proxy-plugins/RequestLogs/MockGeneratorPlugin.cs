@@ -51,6 +51,8 @@ public class MockGeneratorPlugin : BaseProxyPlugin
             var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
             var response = request.Context.Session.HttpClient.Response;
 
+            var newHeaders = new List<KeyValuePair<string, string>>();
+            newHeaders.AddRange(response.Headers.Select(h => new KeyValuePair<string, string>(h.Name, h.Value)));
             var mock = new MockResponse
             {
                 Request = new()
@@ -61,9 +63,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
                 Response = new()
                 {
                     StatusCode = response.StatusCode,
-                    Headers = new List<IDictionary<string, string>> {response.Headers
-                        .Select(h => new KeyValuePair<string, string>(h.Name, h.Value))
-                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value) },
+                    Headers = newHeaders,
                     Body = GetResponseBody(request.Context.Session).Result
                 }
             };

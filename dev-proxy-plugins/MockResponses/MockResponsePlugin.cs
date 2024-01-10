@@ -9,7 +9,6 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Microsoft.DevProxy.Plugins.Behavior;
@@ -217,7 +216,7 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         if (matchingResponse.Response?.Headers is not null)
         {
-            foreach (var headerToAdd in matchingResponse.Response.Headers.SelectMany(dict => dict.Select(kv => new HttpHeader(kv.Key, kv.Value))))
+            foreach (HttpHeader headerToAdd in matchingResponse.Response.Headers.Select(kvp => new HttpHeader(kvp.Key, kvp.Value)))
             {
                 headers.Add(headerToAdd);
             }

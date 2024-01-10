@@ -147,9 +147,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
                     var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
                     var requestUrl = ProxyUtils.GetAbsoluteRequestUrlFromBatch(e.Session.HttpClient.Request.RequestUri, request.Url);
                     e.ThrottledRequests.Add(new ThrottlerInfo(GraphUtils.BuildThrottleKey(requestUrl), ShouldThrottle, retryAfterDate));
-                    response.Headers = new List<Dictionary<string, string>>{new Dictionary<string, string>{
-                        { "Retry-After", retryAfterInSeconds.ToString() }
-                    }};
+                    response.Headers = new List<KeyValuePair<string, string>>{new ( "Retry-After", retryAfterInSeconds.ToString())};
                 }
 
                 responses.Add(response);

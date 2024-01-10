@@ -20,7 +20,7 @@ public class GraphBatchResponsePayloadResponse
     [JsonPropertyName("body")]
     public dynamic? Body { get; set; }
     [JsonPropertyName("headers")]
-    public List<Dictionary<string, string>>? Headers { get; set; }
+    public List<KeyValuePair<string, string>>? Headers { get; set; }
 }
 
 public class GraphBatchResponsePayloadResponseBody
