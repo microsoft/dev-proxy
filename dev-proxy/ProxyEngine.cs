@@ -79,13 +79,6 @@ public class ProxyEngine
 
         LoadHostNamesFromUrls();
 
-        // for background db refresh, let's use a separate logger
-        // that only logs warnings and errors
-        var _logger2 = (ILogger)_logger.Clone();
-        _logger2.LogLevel = LogLevel.Warn;
-        // let's not await so that it doesn't block the proxy startup
-        _ = MSGraphDbCommandHandler.GenerateMsGraphDb(_logger2, true);
-
         _proxyServer = new ProxyServer();
 
         _proxyServer.CertificateManager.RootCertificateName = "Dev Proxy CA";

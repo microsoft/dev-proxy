@@ -19,6 +19,13 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         pluginEvents.AfterResponse += AfterResponse;
+
+        // for background db refresh, let's use a separate logger
+        // that only logs warnings and errors
+        var _logger2 = (ILogger)context.Logger.Clone();
+        _logger2.LogLevel = LogLevel.Warn;
+        // let's not await so that it doesn't block the proxy startup
+        _ = MSGraphDbUtils.GenerateMSGraphDb(_logger2, true);
     }
 
     private Task AfterResponse(object? sender, ProxyResponseArgs e)
@@ -61,7 +68,7 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
 
         try
         {
-            var dbConnection = ProxyUtils.MsGraphDbConnection;
+            var dbConnection = MSGraphDbUtils.MSGraphDbConnection;
             // lookup information from the database
             var selectEndpoint = dbConnection.CreateCommand();
             selectEndpoint.CommandText = "SELECT hasSelect FROM endpoints WHERE path = @path AND graphVersion = @graphVersion";
