@@ -215,11 +215,11 @@ public class MockResponsePlugin : BaseProxyPlugin
             statusCode = (HttpStatusCode)matchingResponse.Response.StatusCode;
         }
 
-        if (matchingResponse.Response?.ResponseHeaders is not null)
+        if (matchingResponse.Response?.Headers is not null)
         {
-            foreach (var key in matchingResponse.Response.ResponseHeaders.SelectMany(dict => dict.Select(kv => new HttpHeader(kv.Key, kv.Value))))
+            foreach (var headerToAdd in matchingResponse.Response.Headers.SelectMany(dict => dict.Select(kv => new HttpHeader(kv.Key, kv.Value))))
             {
-                headers.Add(key);
+                headers.Add(headerToAdd);
             }
         }
 

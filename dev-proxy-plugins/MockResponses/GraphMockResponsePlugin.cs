@@ -82,9 +82,9 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                     statusCode = (HttpStatusCode)mockResponse.Response.StatusCode;
                 }
 
-                if (mockResponse.Response?.ResponseHeaders is not null)
+                if (mockResponse.Response?.Headers is not null)
                 {
-                    mockResponse.Response.ResponseHeaders.SelectMany(dict => dict.Select(kv => headersDictionary[kv.Key] = kv.Value));
+                    mockResponse.Response.Headers.SelectMany(dict => dict.Select(kv => headersDictionary[kv.Key] = kv.Value));
                 }
                 // default the content type to application/json unless set in the mock response
                 if (!headersDictionary.Any(h => h.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase)))

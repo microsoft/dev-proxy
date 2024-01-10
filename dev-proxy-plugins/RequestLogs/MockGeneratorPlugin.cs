@@ -61,7 +61,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
                 Response = new()
                 {
                     StatusCode = response.StatusCode,
-                    ResponseHeaders = new List<IDictionary<string, string>> {response.Headers
+                    Headers = new List<IDictionary<string, string>> {response.Headers
                         .Select(h => new KeyValuePair<string, string>(h.Name, h.Value))
                         .ToDictionary(kvp => kvp.Key, kvp => kvp.Value) },
                     Body = GetResponseBody(request.Context.Session).Result
