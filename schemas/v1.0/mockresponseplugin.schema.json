@@ -17,32 +17,64 @@
               },
               "method": {
                 "type": "string",
-                "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "CONNECT", "TRACE"]
+                "enum": [
+                  "GET",
+                  "POST",
+                  "PUT",
+                  "PATCH",
+                  "DELETE",
+                  "HEAD",
+                  "OPTIONS",
+                  "CONNECT",
+                  "TRACE"
+                ]
               },
               "nth": {
                 "type": "integer"
               }
             },
-            "required": ["url"]
+            "required": [
+              "url"
+            ]
           },
           "response": {
             "body": {
-              "type": ["object", "string"]
+              "type": [
+                "object",
+                "string"
+              ]
             },
             "code": {
               "type": "integer"
             },
             "headers": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "value"
+                ]
               }
             }
           }
         },
-        "required": ["request", "response"]
+        "required": [
+          "request",
+          "response"
+        ]
       }
     }
   },
-  "required": ["mocks"]
+  "required": [
+    "mocks"
+  ]
 }

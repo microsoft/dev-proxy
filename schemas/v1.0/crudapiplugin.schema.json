@@ -26,14 +26,26 @@
           },
           "method": {
             "type": "string",
-            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
           }
         },
-        "required": ["action"],
+        "required": [
+          "action"
+        ],
         "additionalProperties": false
       }
     }
   },
-  "required": ["baseUrl", "dataFile", "actions"],
+  "required": [
+    "baseUrl",
+    "dataFile",
+    "actions"
+  ],
   "additionalProperties": false
 }

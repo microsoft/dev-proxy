@@ -10,11 +10,21 @@
     },
     "labelMode": {
       "type": "string",
-      "enum": ["debug", "text", "icon", "nerdFont"]
+      "enum": [
+        "debug",
+        "text",
+        "icon",
+        "nerdFont"
+      ]
     },
     "logLevel": {
       "type": "string",
-      "enum": ["debug", "info", "warn", "error"]
+      "enum": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ]
     },
     "plugins": {
       "type": "array",
@@ -40,7 +50,11 @@
             }
           }
         },
-        "required": ["name", "enabled", "pluginPath"]
+        "required": [
+          "name",
+          "enabled",
+          "pluginPath"
+        ]
       }
     },
     "port": {
@@ -76,5 +90,7 @@
     }
   },
   "additionalProperties": true,
-  "required": ["plugins"]
+  "required": [
+    "plugins"
+  ]
 }

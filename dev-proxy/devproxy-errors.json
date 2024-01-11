@@ -42,9 +42,12 @@
         "message": "Too Many Requests",
         "details": "The user has sent too many requests in a given amount of time (\"rate limiting\")."
       },
-      "headers": {
-        "Retry-After": "@dynamic"
-      }
+      "headers": [
+        {
+          "name": "Retry-After",
+          "value": "@dynamic"
+        }
+      ]
     },
     {
       "statusCode": 500,
