@@ -60,7 +60,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)HttpStatusCode.BadGateway,
-                    Headers = headersDictionary,
+                    Headers = headersDictionary.Select(x => new KeyValuePair<string, string>(x.Key, x.Value)).ToList(),
                     Body = new GraphBatchResponsePayloadResponseBody
                     {
                         Error = new GraphBatchResponsePayloadResponseBodyError
@@ -84,11 +84,13 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
                 if (mockResponse.Response?.Headers is not null)
                 {
-                    foreach (var key in mockResponse.Response.Headers.Keys)
+                    //Add all the mocked headers into the response we want
+                    foreach (var kvp in mockResponse.Response.Headers)
                     {
-                        headersDictionary[key] = mockResponse.Response.Headers[key];
+                        headersDictionary.Add(kvp.Key, kvp.Value);
                     }
                 }
+
                 // default the content type to application/json unless set in the mock response
                 if (!headersDictionary.Any(h => h.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
                 {
@@ -127,7 +129,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)statusCode,
-                    Headers = headersDictionary,
+                    Headers = headersDictionary.Select(x => new KeyValuePair<string, string>(x.Key, x.Value)).ToList(),
                     Body = body
                 };
 

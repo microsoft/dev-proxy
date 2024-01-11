@@ -203,8 +203,8 @@ public class RateLimitingPlugin : BaseProxyPlugin
                 if (_configuration.CustomResponse is not null)
                 {
                     var headers = _configuration.CustomResponse.Headers is not null ?
-                        _configuration.CustomResponse.Headers.Select(h => new HttpHeader(h.Key, h.Value)) :
-                        Array.Empty<HttpHeader>();
+                        _configuration.CustomResponse.Headers.Select(kvp => new HttpHeader(kvp.Key, kvp.Value)).ToArray():
+                    Array.Empty<HttpHeader>();
 
                     // allow custom throttling response
                     var responseCode = (HttpStatusCode)(_configuration.CustomResponse.StatusCode ?? 200);

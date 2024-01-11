@@ -9,7 +9,6 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Microsoft.DevProxy.Plugins.Behavior;
@@ -217,18 +216,12 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         if (matchingResponse.Response?.Headers is not null)
         {
-            foreach (var key in matchingResponse.Response.Headers.Keys)
+            foreach (HttpHeader headerToAdd in matchingResponse.Response.Headers.Select(kvp => new HttpHeader(kvp.Key, kvp.Value)))
             {
-                // remove duplicate headers
-                var existingHeader = headers.FirstOrDefault(h => h.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
-                if (existingHeader is not null)
-                {
-                    headers.Remove(existingHeader);
-                }
-
-                headers.Add(new HttpHeader(key, matchingResponse.Response.Headers[key]));
+                headers.Add(headerToAdd);
             }
         }
+
         // default the content type to application/json unless set in the mock response
         if (!headers.Any(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
         {
