@@ -2,15 +2,15 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v1.0/rc.schema.json",
   "plugins": [
     {
+      "name": "RetryAfterPlugin",
+      "enabled": true,
+      "pluginPath": "plugins\\dev-proxy-plugins.dll"
+    },
+    {
       "name": "GenericRandomErrorPlugin",
       "enabled": true,
       "pluginPath": "plugins\\dev-proxy-plugins.dll",
       "configSection": "genericRandomErrorPlugin"
-    },
-    {
-      "name": "RetryAfterPlugin",
-      "enabled": true,
-      "pluginPath": "plugins\\dev-proxy-plugins.dll"
     }
   ],
   "urlsToWatch": [
