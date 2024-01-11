@@ -46,12 +46,10 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 .BuildGraphResponseHeaders(e.Session.HttpClient.Request, requestId, requestDate);
 
             if (e.PluginData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
-                pluginData is List<HttpHeader> rateLimitingHeaders)
+                pluginData is List<MockResponseHeader> rateLimitingHeaders)
             {
                 ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
             }
-
-            var headersDictionary = headers.ToDictionary(h => h.Name, h => h.Value);
 
             var mockResponse = GetMatchingMockResponse(request, e.Session.HttpClient.Request.RequestUri);
             if (mockResponse == null)
@@ -60,7 +58,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)HttpStatusCode.BadGateway,
-                    Headers = headersDictionary.Select(x => new KeyValuePair<string, string>(x.Key, x.Value)).ToList(),
+                    Headers = headers.ToList(),
                     Body = new GraphBatchResponsePayloadResponseBody
                     {
                         Error = new GraphBatchResponsePayloadResponseBodyError
@@ -84,17 +82,17 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
                 if (mockResponse.Response?.Headers is not null)
                 {
-                    //Add all the mocked headers into the response we want
-                    foreach (var kvp in mockResponse.Response.Headers)
+                    // add all the mocked headers into the response we want
+                    foreach (var header in mockResponse.Response.Headers)
                     {
-                        headersDictionary.Add(kvp.Key, kvp.Value);
+                        headers.Add(header);
                     }
                 }
 
                 // default the content type to application/json unless set in the mock response
-                if (!headersDictionary.Any(h => h.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
+                if (!headers.Any(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
                 {
-                    headersDictionary.Add("content-type", "application/json");
+                    headers.Add(new("content-type", "application/json"));
                 }
 
                 if (mockResponse.Response?.Body is not null)
@@ -129,7 +127,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)statusCode,
-                    Headers = headersDictionary.Select(x => new KeyValuePair<string, string>(x.Key, x.Value)).ToList(),
+                    Headers = headers.ToList(),
                     Body = body
                 };
 
@@ -146,7 +144,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
         {
             Responses = responses.ToArray()
         };
-        e.Session.GenericResponse(JsonSerializer.Serialize(batchResponse), HttpStatusCode.OK, batchHeaders);
+        e.Session.GenericResponse(JsonSerializer.Serialize(batchResponse), HttpStatusCode.OK, batchHeaders.Select(h => new HttpHeader(h.Name, h.Value)));
         _logger?.LogRequest([$"200 {e.Session.HttpClient.Request.RequestUri}"], MessageType.Mocked, new LoggingContext(e.Session));
         e.ResponseState.HasBeenSet = true;
     }

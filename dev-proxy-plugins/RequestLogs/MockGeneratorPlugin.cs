@@ -51,8 +51,8 @@ public class MockGeneratorPlugin : BaseProxyPlugin
             var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
             var response = request.Context.Session.HttpClient.Response;
 
-            var newHeaders = new List<KeyValuePair<string, string>>();
-            newHeaders.AddRange(response.Headers.Select(h => new KeyValuePair<string, string>(h.Name, h.Value)));
+            var newHeaders = new List<MockResponseHeader>();
+            newHeaders.AddRange(response.Headers.Select(h => new MockResponseHeader(h.Name, h.Value)));
             var mock = new MockResponse
             {
                 Request = new()

@@ -160,8 +160,8 @@ public class DevToolsPlugin : BaseProxyPlugin
         }
 
         var requestId = GetRequestId(e.Session.HttpClient.Request);
-        var headers = e.Session.HttpClient.Request.Headers.Select(h =>
-            new KeyValuePair<string, string>(h.Name, h.Value)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        var headers = e.Session.HttpClient.Request.Headers
+            .ToDictionary(h => h.Name, h => h.Value);
 
         var requestWillBeSentMessage = new RequestWillBeSentMessage
         {
@@ -240,8 +240,8 @@ public class DevToolsPlugin : BaseProxyPlugin
                     Url = e.Session.HttpClient.Request.Url,
                     Status = e.Session.HttpClient.Response.StatusCode,
                     StatusText = e.Session.HttpClient.Response.StatusDescription,
-                    Headers = e.Session.HttpClient.Response.Headers.Select(h =>
-                        new KeyValuePair<string, string>(h.Name, h.Value)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                    Headers = e.Session.HttpClient.Response.Headers
+                        .ToDictionary(h => h.Name, h => h.Value),
                     MimeType = e.Session.HttpClient.Response.ContentType
                 }
             }

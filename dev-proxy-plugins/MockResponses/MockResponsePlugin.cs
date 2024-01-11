@@ -216,20 +216,20 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         if (matchingResponse.Response?.Headers is not null)
         {
-            foreach (HttpHeader headerToAdd in matchingResponse.Response.Headers.Select(kvp => new HttpHeader(kvp.Key, kvp.Value)))
+            foreach (var header in matchingResponse.Response.Headers)
             {
-                headers.Add(headerToAdd);
+                headers.Add(header);
             }
         }
 
         // default the content type to application/json unless set in the mock response
         if (!headers.Any(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
         {
-            headers.Add(new HttpHeader("content-type", "application/json"));
+            headers.Add(new("content-type", "application/json"));
         }
 
         if (e.PluginData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
-            pluginData is List<HttpHeader> rateLimitingHeaders)
+            pluginData is List<MockResponseHeader> rateLimitingHeaders)
         {
             ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
         }
@@ -254,7 +254,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                 else
                 {
                     var bodyBytes = File.ReadAllBytes(filePath);
-                    e.Session.GenericResponse(bodyBytes, statusCode, headers);
+                    e.Session.GenericResponse(bodyBytes, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
                     _logger?.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
                     return;
                 }
@@ -264,7 +264,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                 body = bodyString;
             }
         }
-        e.Session.GenericResponse(body ?? string.Empty, statusCode, headers);
+        e.Session.GenericResponse(body ?? string.Empty, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
 
         _logger?.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
     }

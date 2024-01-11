@@ -61,23 +61,17 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
     {
         SessionEventArgs session = ev.Session;
         Request request = session.HttpClient.Request;
-        var headers = error.Headers is not null ?
-            error.Headers.Select(h => new HttpHeader(h.Key, h.Value)).ToList() :
-            new List<HttpHeader>();
+        var headers = error.Headers ?? new List<MockResponseHeader>();
         if (error.StatusCode == (int)HttpStatusCode.TooManyRequests &&
             error.Headers is not null &&
-                (
-                    (error.Headers.ContainsKey("Retry-After") && error.Headers["Retry-After"] == "@dynamic") ||
-                    (error.Headers.ContainsKey("retry-after") && error.Headers["retry-after"] == "@dynamic")
-                )
-            )
+            error.Headers.FirstOrDefault(h => h.Name == "Retry-After" || h.Name == "retry-after")?.Value == "@dynamic")
         {
             var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
             ev.ThrottledRequests.Add(new ThrottlerInfo(BuildThrottleKey(request), ShouldThrottle, retryAfterDate));
             // replace the header with the @dynamic value with the actual value
             var h = headers.First(h => h.Name == "Retry-After" || h.Name == "retry-after");
             headers.Remove(h);
-            headers.Add(new HttpHeader("Retry-After", retryAfterInSeconds.ToString()));
+            headers.Add(new("Retry-After", retryAfterInSeconds.ToString()));
         }
 
         var statusCode = (HttpStatusCode)error.StatusCode;
@@ -94,17 +88,17 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             if (!File.Exists(filePath))
             {
                 _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
-                session.GenericResponse(body, statusCode, headers);
+                session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
             }
             else
             {
                 var bodyBytes = File.ReadAllBytes(filePath);
-                session.GenericResponse(bodyBytes, statusCode, headers);
+                session.GenericResponse(bodyBytes, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
             }
         }
         else
         {
-            session.GenericResponse(body, statusCode, headers);
+            session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
         }
         _logger?.LogRequest(new[] { $"{error.StatusCode} {statusCode.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
     }

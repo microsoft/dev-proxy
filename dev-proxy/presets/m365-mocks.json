@@ -94,9 +94,12 @@
       },
       "response": {
         "body": "@picture.jpg",
-        "headers": {
-          "content-type": "image/jpeg"
-        }
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "image/jpeg"
+          }
+        ]
       }
     },
     {
@@ -105,9 +108,12 @@
       },
       "response": {
         "body": "@picture.jpg",
-        "headers": {
-          "content-type": "image/jpeg"
-        }
+        "headers": [
+          {
+            "name": "content-type",
+            "value": "image/jpeg"
+          }
+        ]
       }
     },
     {

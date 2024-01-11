@@ -3,9 +3,7 @@
 
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Microsoft.Data.Sqlite;
 using Titanium.Web.Proxy.Http;
-using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.DevProxy.Abstractions;
 
@@ -61,28 +59,28 @@ public static class ProxyUtils
     /// <param name="request">The http request for which response headers are being constructed</param>
     /// <param name="requestId">string a guid representing the a unique identifier for the request</param>
     /// <param name="requestDate">string representation of the date and time the request was made</param>
-    /// <returns>IList<HttpHeader> with defaults consistent with Microsoft Graph. Automatically adds CORS headers when the Origin header is present</returns>
-    public static IList<HttpHeader> BuildGraphResponseHeaders(Request request, string requestId, string requestDate)
+    /// <returns>IList<MockResponseHeader> with defaults consistent with Microsoft Graph. Automatically adds CORS headers when the Origin header is present</returns>
+    public static IList<MockResponseHeader> BuildGraphResponseHeaders(Request request, string requestId, string requestDate)
     {
         if (!IsGraphRequest(request))
         {
-            return new List<HttpHeader>();
+            return new List<MockResponseHeader>();
         }
 
-        var headers = new List<HttpHeader>
+        var headers = new List<MockResponseHeader>
             {
-                new HttpHeader("Cache-Control", "no-store"),
-                new HttpHeader("x-ms-ags-diagnostic", ""),
-                new HttpHeader("Strict-Transport-Security", ""),
-                new HttpHeader("request-id", requestId),
-                new HttpHeader("client-request-id", requestId),
-                new HttpHeader("Date", requestDate),
-                new HttpHeader("Content-Type", "application/json")
+                new ("Cache-Control", "no-store"),
+                new ("x-ms-ags-diagnostic", ""),
+                new ("Strict-Transport-Security", ""),
+                new ("request-id", requestId),
+                new ("client-request-id", requestId),
+                new ("Date", requestDate),
+                new ("Content-Type", "application/json")
             };
         if (request.Headers.FirstOrDefault((h) => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)) is not null)
         {
-            headers.Add(new HttpHeader("Access-Control-Allow-Origin", "*"));
-            headers.Add(new HttpHeader("Access-Control-Expose-Headers", "ETag, Location, Preference-Applied, Content-Range, request-id, client-request-id, ReadWriteConsistencyToken, SdkVersion, WWW-Authenticate, x-ms-client-gcc-tenant, Retry-After"));
+            headers.Add(new("Access-Control-Allow-Origin", "*"));
+            headers.Add(new("Access-Control-Expose-Headers", "ETag, Location, Preference-Applied, Content-Range, request-id, client-request-id, ReadWriteConsistencyToken, SdkVersion, WWW-Authenticate, x-ms-client-gcc-tenant, Retry-After"));
         }
         return headers;
     }
@@ -303,7 +301,7 @@ public static class ProxyUtils
         }
     }
 
-    public static void MergeHeaders(IList<HttpHeader> allHeaders, IList<HttpHeader> headersToAdd)
+    public static void MergeHeaders(IList<MockResponseHeader> allHeaders, IList<MockResponseHeader> headersToAdd)
     {
         foreach (var header in headersToAdd)
         {
@@ -316,7 +314,7 @@ public static class ProxyUtils
                     var newValues = header.Value.Split(',').Select(v => v.Trim());
                     var allValues = existingValues.Union(newValues).Distinct();
                     allHeaders.Remove(existingHeader);
-                    allHeaders.Add(new HttpHeader(header.Name, string.Join(", ", allValues)));
+                    allHeaders.Add(new(header.Name, string.Join(", ", allValues)));
                     continue;
                 }
 

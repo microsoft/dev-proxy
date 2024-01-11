@@ -70,7 +70,7 @@ public class RetryAfterPlugin : BaseProxyPlugin
 
     private void UpdateProxyResponse(ProxyRequestArgs e, ThrottlingInfo throttlingInfo, string message)
     {
-        var headers = new List<HttpHeader>();
+        var headers = new List<MockResponseHeader>();
         var body = string.Empty;
         var request = e.Session.HttpClient.Request;
 
@@ -95,9 +95,9 @@ public class RetryAfterPlugin : BaseProxyPlugin
             );
         }
 
-        headers.Add(new HttpHeader(throttlingInfo.RetryAfterHeaderName, throttlingInfo.ThrottleForSeconds.ToString()));
+        headers.Add(new(throttlingInfo.RetryAfterHeaderName, throttlingInfo.ThrottleForSeconds.ToString()));
 
-        e.Session.GenericResponse(body ?? string.Empty, HttpStatusCode.TooManyRequests, headers);
+        e.Session.GenericResponse(body ?? string.Empty, HttpStatusCode.TooManyRequests, headers.Select(h => new HttpHeader(h.Name, h.Value)));
         e.ResponseState.HasBeenSet = true;
     }
 
