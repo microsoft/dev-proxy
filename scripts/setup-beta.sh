@@ -8,7 +8,7 @@ echo ""
 echo "This script installs Dev Proxy on your machine. It runs the following steps:"
 echo ""
 echo "1. Create the 'devproxy' directory in the current working folder"
-echo "2. Download the latest Dev Proxy release"
+echo "2. Download the latest beta Dev Proxy release"
 echo "3. Unzip the release in the devproxy directory"
 echo "4. Configure devproxy and its files as executable"
 echo "5. Add the devproxy directory to your PATH environment variable in your shell profile"
@@ -18,7 +18,7 @@ if [ -t 0 ]; then
     # Terminal is interactive, prompt the user
     read -p "Continue (y/n)? " -n1 -r response
 else
-    # Not interactive, set a default response
+    # Not interactive
     response='y'
 fi
 
@@ -37,9 +37,9 @@ full_path=$(pwd)
 
 set -e # Terminates program immediately if any command below exits with a non-zero exit status
 
-echo "Getting latest Dev Proxy version..."
-version=$(curl -s https://api.github.com/repos/microsoft/dev-proxy/releases/latest | awk -F: '/"tag_name"/ {print $2}' | sed 's/[", ]//g')
-echo "Latest version is $version"
+echo "Getting latest beta Dev Proxy version..."
+version=$(curl -s "https://api.github.com/repos/microsoft/dev-proxy/releases?per_page=1" | awk -F: '/"tag_name"/ {print $2}' | sed 's/[", ]//g')
+echo "Latest beta version is $version"
 
 echo "Downloading Dev Proxy $version..."
 
