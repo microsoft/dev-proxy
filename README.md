@@ -13,7 +13,7 @@
     </a>
 </p>
 <p align="center">
-    <a href="https://discord.gg/EGsBZH9v">
+    <a href="https://aka.ms/devproxy/discord">
         <img alt="Discord" src="https://img.shields.io/badge/discord-chat-green?style=for-the-badge&logo=discord">
     </a>
 </p>
