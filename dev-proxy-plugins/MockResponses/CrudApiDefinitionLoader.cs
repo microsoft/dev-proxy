@@ -23,7 +23,6 @@ internal class CrudApiDefinitionLoader : IDisposable
     {
         if (!File.Exists(_configuration.ApiFile))
         {
-            _logger.LogWarn($"File {_configuration.ApiFile} not found. CRUD API will be disabled");
             return;
         }
 
@@ -51,6 +50,7 @@ internal class CrudApiDefinitionLoader : IDisposable
                                     CrudApiActionType.Create => "POST",
                                     CrudApiActionType.GetAll => "GET",
                                     CrudApiActionType.GetOne => "GET",
+                                    CrudApiActionType.GetMany => "GET",
                                     CrudApiActionType.Merge => "PATCH",
                                     CrudApiActionType.Update => "PUT",
                                     CrudApiActionType.Delete => "DELETE",
