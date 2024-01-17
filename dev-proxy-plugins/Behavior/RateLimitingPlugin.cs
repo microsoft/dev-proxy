@@ -3,7 +3,6 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.MockResponses;
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -35,7 +34,6 @@ public class RateLimitConfiguration
     public int ResetTimeWindowSeconds { get; set; } = 60;
     public int WarningThresholdPercent { get; set; } = 80;
     public int RateLimit { get; set; } = 120;
-    public int RetryAfterSeconds { get; set; } = 5;
     public RateLimitResponseWhenLimitExceeded WhenLimitExceeded { get; set; } = RateLimitResponseWhenLimitExceeded.Throttle;
     public string CustomResponseFile { get; set; } = "rate-limit-response.json";
     public MockResponseResponse? CustomResponse { get; set; }
@@ -54,7 +52,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey)
     {
         var throttleKeyForRequest = BuildThrottleKey(request);
-        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? _configuration.RetryAfterSeconds : 0, _configuration.HeaderRetryAfter);
+        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? (int)(_resetTime - DateTime.Now).TotalSeconds : 0, _configuration.HeaderRetryAfter);
     }
 
     private void ThrottleResponse(ProxyRequestArgs e) => UpdateProxyResponse(e, HttpStatusCode.TooManyRequests);
@@ -89,7 +87,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
                 );
             }
 
-            headers.Add(new(_configuration.HeaderRetryAfter, _configuration.RetryAfterSeconds.ToString()));
+            headers.Add(new(_configuration.HeaderRetryAfter, ((int)(_resetTime - DateTime.Now).TotalSeconds).ToString()));
 
             e.Session.GenericResponse(body ?? string.Empty, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)).ToArray());
             return;
@@ -193,7 +191,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
                 e.ThrottledRequests.Add(new ThrottlerInfo(
                     BuildThrottleKey(request),
                     ShouldThrottle,
-                    DateTime.Now.AddSeconds(_configuration.RetryAfterSeconds)
+                    _resetTime
                 ));
                 ThrottleResponse(e);
                 state.HasBeenSet = true;
@@ -202,9 +200,18 @@ public class RateLimitingPlugin : BaseProxyPlugin
             {
                 if (_configuration.CustomResponse is not null)
                 {
-                    var headers = _configuration.CustomResponse.Headers is not null ?
-                        _configuration.CustomResponse.Headers.Select(h => new HttpHeader(h.Name, h.Value)).ToArray() :
-                    Array.Empty<HttpHeader>();
+                    var headersList = _configuration.CustomResponse.Headers is not null ?
+                        _configuration.CustomResponse.Headers.Select(h => new HttpHeader(h.Name, h.Value)).ToList() :
+                    new List<HttpHeader>();
+
+                    var retryAfterHeader = headersList.FirstOrDefault(h => h.Name.Equals(_configuration.HeaderRetryAfter, StringComparison.OrdinalIgnoreCase));
+                    if (retryAfterHeader is not null && retryAfterHeader.Value == "@dynamic")
+                    {
+                        headersList.Add(new HttpHeader(_configuration.HeaderRetryAfter, ((int)(_resetTime - DateTime.Now).TotalSeconds).ToString()));
+                        headersList.Remove(retryAfterHeader);
+                    }
+
+                    var headers = headersList.ToArray();
 
                     // allow custom throttling response
                     var responseCode = (HttpStatusCode)(_configuration.CustomResponse.StatusCode ?? 200);
@@ -213,7 +220,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
                         e.ThrottledRequests.Add(new ThrottlerInfo(
                             BuildThrottleKey(request),
                             ShouldThrottle,
-                            DateTime.Now.AddSeconds(_configuration.RetryAfterSeconds)
+                            _resetTime
                         ));
                     }
 
