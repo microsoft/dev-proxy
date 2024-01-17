@@ -4,6 +4,9 @@
   "description": "Mock for the Dev Proxy RateLimitingPlugin",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type":"string"
+    },
     "body": {
       "type": [
         "object",
@@ -31,5 +34,6 @@
         ]
       }
     }
-  }
+  },
+  "additionalProperties": false
 }
