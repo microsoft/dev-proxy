@@ -4,6 +4,9 @@
   "description": "Configuration for Dev Proxy",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type":"string"
+    },
     "ipAddress": {
       "type": "string",
       "format": "ipv4"
@@ -89,8 +92,8 @@
       }
     }
   },
-  "additionalProperties": true,
   "required": [
     "plugins"
-  ]
+  ],
+  "additionalProperties": false
 }

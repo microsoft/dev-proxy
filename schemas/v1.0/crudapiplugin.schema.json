@@ -4,6 +4,9 @@
   "description": "API definition for use with the CRUD API Dev Proxy plugin",
   "type": "object",
   "properties": {
+    "$schema": {
+    	"type":"string"
+    },
     "baseUrl": {
       "type": "string"
     },

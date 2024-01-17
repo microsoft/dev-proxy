@@ -4,6 +4,9 @@
   "description": "Mocks for the Dev Proxy MockResponsePlugin",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type":"string"
+    },
     "mocks": {
       "type": "array",
       "items": {
@@ -76,5 +79,6 @@
   },
   "required": [
     "mocks"
-  ]
+  ],
+  "additionalProperties": false
 }

@@ -4,6 +4,9 @@
   "description": "Mocks for the Dev Proxy GenericRandomErrorPlugin",
   "type": "object",
   "properties": {
+    "$schema": {
+    	"type":"string"
+    },
     "responses": {
       "type": "array",
       "items": {
@@ -46,5 +49,6 @@
   },
   "required": [
     "responses"
-  ]
+  ],
+  "additionalProperties": false
 }
