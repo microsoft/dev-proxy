@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "$schema": {
-      "type":"string"
+      "type": "string"
     },
     "mocks": {
       "type": "array",
@@ -41,31 +41,34 @@
             ]
           },
           "response": {
-            "body": {
-              "type": [
-                "object",
-                "string"
-              ]
-            },
-            "code": {
-              "type": "integer"
-            },
-            "headers": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "value": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "value"
+            "type": "object",
+            "properties": {
+              "body": {
+                "type": [
+                  "object",
+                  "string"
                 ]
+              },
+              "statusCode": {
+                "type": "integer"
+              },
+              "headers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "value"
+                  ]
+                }
               }
             }
           }

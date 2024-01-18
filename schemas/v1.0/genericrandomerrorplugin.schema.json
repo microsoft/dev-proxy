@@ -39,11 +39,7 @@
               ]
             }
           }
-        },
-        "required": [
-          "statusCode",
-          "body"
-        ]
+        }
       }
     }
   },
