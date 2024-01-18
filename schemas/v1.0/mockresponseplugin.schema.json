@@ -70,11 +70,7 @@
                   ]
                 }
               }
-            },
-            "required": [
-              "statusCode",
-              "body"
-            ]
+            }
           }
         },
         "required": [
