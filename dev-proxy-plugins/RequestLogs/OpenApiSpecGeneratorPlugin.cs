@@ -461,13 +461,15 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
         operation.RequestBody = new OpenApiRequestBody
         {
             Content = new Dictionary<string, OpenApiMediaType>
-      {
-        { request.ContentType, new OpenApiMediaType
-          {
-            Schema = GetSchemaFromBody(request.ContentType, request.BodyString)
-          }
-        }
-      }
+            {
+                {
+                    request.ContentType,
+                    new OpenApiMediaType
+                    {
+                        Schema = GetSchemaFromBody(request.ContentType, request.BodyString)
+                    }
+                }
+            }
         };
     }
 
@@ -630,14 +632,14 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
                     Description = $"{serverUrl} API",
                 },
                 Servers = new List<OpenApiServer>
-        {
-          new OpenApiServer { Url = serverUrl }
-        },
+                {
+                    new OpenApiServer { Url = serverUrl }
+                },
                 Paths = new OpenApiPaths(),
                 Extensions = new Dictionary<string, IOpenApiExtension>
-        {
-          { "x-ms-generated-by", new GeneratedByOpenApiExtension() }
-        }
+                {
+                    { "x-ms-generated-by", new GeneratedByOpenApiExtension() }
+                }
             };
             openApiDocs.Add(openApiDoc);
         }
@@ -755,7 +757,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
     private void AddOrMergeRequestBody(OpenApiOperation operation, OpenApiRequestBody requestBody)
     {
-        if (requestBody is null)
+        if (requestBody is null || !requestBody.Content.Any())
         {
             _logger?.LogDebug($"    No request body to process");
             return;
@@ -798,6 +800,12 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
             operation.Responses.Add(apiResponseStatusCode, apiResponse);
             // since we've just added the response, we're done
+            return;
+        }
+
+        if (!apiResponse.Content.Any())
+        {
+            _logger?.LogDebug($"    No response content to process");
             return;
         }
 
