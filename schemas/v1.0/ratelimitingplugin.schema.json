@@ -10,6 +10,7 @@
     "body": {
       "type": [
         "object",
+        "array",
         "string"
       ]
     },
