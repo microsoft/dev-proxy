@@ -36,6 +36,9 @@ public class ProxyEngine
 
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();
+    // Dictionary for plugins to store data between requests
+    // the key is HashObject of the SessionEventArgs object
+    private Dictionary<int, Dictionary<string, object>> _pluginData = new();
 
     public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
     {
@@ -459,6 +462,8 @@ public class ProxyEngine
     {
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
         {
+            _pluginData.Add(e.GetHashCode(), new Dictionary<string, object>());
+
             // we need to keep the request body for further processing
             // by plugins
             e.HttpClient.Request.KeepBody = true;
@@ -476,7 +481,11 @@ public class ProxyEngine
     private async Task HandleRequest(SessionEventArgs e)
     {
         ResponseState responseState = new ResponseState();
-        await _pluginEvents.RaiseProxyBeforeRequest(new ProxyRequestArgs(e, _throttledRequests, responseState));
+        var proxyRequestArgs = new ProxyRequestArgs(e, _throttledRequests, responseState)
+        {
+            PluginData = _pluginData[e.GetHashCode()]
+        };
+        await _pluginEvents.RaiseProxyBeforeRequest(proxyRequestArgs);
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!responseState.HasBeenSet)
@@ -497,6 +506,10 @@ public class ProxyEngine
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
         {
+            var proxyResponseArgs = new ProxyResponseArgs(e, _throttledRequests, new ResponseState())
+            {
+                PluginData = _pluginData[e.GetHashCode()]
+            };
             // necessary to make the response body available to plugins
             e.HttpClient.Response.KeepBody = true;
             if (e.HttpClient.Response.HasBody)
@@ -504,7 +517,7 @@ public class ProxyEngine
                 await e.GetResponseBody();
             }
 
-            await _pluginEvents.RaiseProxyBeforeResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
+            await _pluginEvents.RaiseProxyBeforeResponse(proxyResponseArgs);
         }
     }
     async Task OnAfterResponse(object sender, SessionEventArgs e)
@@ -512,8 +525,14 @@ public class ProxyEngine
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
         {
+            var proxyResponseArgs = new ProxyResponseArgs(e, _throttledRequests, new ResponseState())
+            {
+                PluginData = _pluginData[e.GetHashCode()]
+            };
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedResponse, new LoggingContext(e));
-            await _pluginEvents.RaiseProxyAfterResponse(new ProxyResponseArgs(e, _throttledRequests, new ResponseState()));
+            await _pluginEvents.RaiseProxyAfterResponse(proxyResponseArgs);
+            // clean up
+            _pluginData.Remove(e.GetHashCode());
         }
     }
 
