@@ -108,6 +108,11 @@ internal class PluginLoader
             {
                 _pluginConfig = new PluginConfig();
                 Configuration.Bind(_pluginConfig);
+
+                if (ProxyHost.UrlsToWatch is not null && ProxyHost.UrlsToWatch.Any())
+                {
+                    _pluginConfig.UrlsToWatch = ProxyHost.UrlsToWatch.ToList();
+                }
             }
             if (_pluginConfig == null || !_pluginConfig.Plugins.Any())
             {
