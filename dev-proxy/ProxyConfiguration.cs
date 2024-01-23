@@ -1,10 +1,21 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
 
 namespace Microsoft.DevProxy;
+
+public enum ReleaseType
+{
+    [EnumMember(Value = "none")]
+    None,
+    [EnumMember(Value = "stable")]
+    Stable,
+    [EnumMember(Value = "beta")]
+    Beta
+}
 
 public class ProxyConfiguration : IProxyConfiguration
 {
@@ -26,5 +37,8 @@ public class ProxyConfiguration : IProxyConfiguration
     public int Rate { get; set; } = 50;
     public bool NoFirstRun { get; set; } = false;
     public string ConfigFile { get; set; } = "devproxyrc.json";
+    [JsonPropertyName("newVersionNotification")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ReleaseType NewVersionNotification { get; set; } = ReleaseType.Stable;
 }
 

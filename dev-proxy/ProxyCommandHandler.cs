@@ -100,7 +100,7 @@ public class ProxyCommandHandler : ICommandHandler
 
         _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context));
 
-        var newReleaseInfo = await UpdateNotification.CheckForNewVersion();
+        var newReleaseInfo = await UpdateNotification.CheckForNewVersion(Configuration.NewVersionNotification);
         if (newReleaseInfo != null)
         {
             _logger.LogError($"New Dev Proxy version {newReleaseInfo.Version} is available.");
