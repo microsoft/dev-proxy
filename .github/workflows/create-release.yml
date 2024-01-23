@@ -51,6 +51,8 @@ jobs:
     environment:
       name: gh_releases
     runs-on: [windows-latest]
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
