@@ -19,6 +19,7 @@ internal class ProxyHost
     private static Option<string?>? _configFileOption;
     private Option<int?> _rateOption;
     private Option<bool?> _noFirstRunOption;
+    private static Option<IEnumerable<string>?>? _urlsToWatchOption;
 
     private static bool _configFileResolved = false;
     private static string _configFile = "devproxyrc.json";
@@ -140,6 +141,39 @@ internal class ProxyHost
         }
     }
 
+    private static bool _urlsToWatchResolved = false;
+    private static IEnumerable<string>? _urlsToWatch;
+    public static IEnumerable<string>? UrlsToWatch
+    {
+        get
+        {
+            if (_urlsToWatchResolved)
+            {
+                return _urlsToWatch;
+            }
+
+            var result = _urlsToWatchOption!.Parse(Environment.GetCommandLineArgs());
+            // since we're parsing all args, and other options are not instantiated yet
+            // we're getting here a bunch of other errors, so we only need to look for
+            // errors related to the log level option
+            var error = result.Errors.Where(e => e.SymbolResult?.Symbol == _urlsToWatchOption).FirstOrDefault();
+            if (error is not null)
+            {
+                // Logger is not available here yet so we need to fallback to Console
+                var color = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine(error.Message);
+                Console.ForegroundColor = color;
+                Environment.Exit(1);
+            }
+
+            _urlsToWatch = result.GetValueForOption(_urlsToWatchOption!);
+            _urlsToWatchResolved = true;
+
+            return _urlsToWatch;
+        }
+    }
+
     public ProxyHost()
     {
         _portOption = new Option<int?>("--port", "The port for the proxy to listen on");
@@ -182,6 +216,14 @@ internal class ProxyHost
 
         _noFirstRunOption = new Option<bool?>("--no-first-run", "Skip the first run experience");
 
+        _urlsToWatchOption = new("--urls-to-watch", "The list of URLs to watch for requests")
+        {
+            ArgumentHelpName = "urlsToWatch",
+            AllowMultipleArgumentsPerToken = true,
+            Arity = ArgumentArity.ZeroOrMore
+        };
+        _urlsToWatchOption.AddAlias("-u");
+
         ProxyCommandHandler.Configuration.ConfigFile = ConfigFile;
     }
 
@@ -190,7 +232,7 @@ internal class ProxyHost
         var command = new RootCommand {
             _portOption,
             _ipAddressOption,
-            // _logLevelOption is set while initialize the Program
+            // _logLevelOption is set while initializing the Program
             // As such, it's always set here
             _logLevelOption!,
             _recordOption,
@@ -200,7 +242,10 @@ internal class ProxyHost
             // _configFileOption is set during the call to load
             // `ProxyCommandHandler.Configuration`. As such, it's always set here
             _configFileOption!,
-            _noFirstRunOption
+            _noFirstRunOption,
+            // _urlsToWatchOption is set while initialize the Program
+            // As such, it's always set here
+            _urlsToWatchOption!
         };
         command.Description = "Dev Proxy is a command line tool for testing Microsoft Graph, SharePoint Online and any other HTTP APIs.";
 
