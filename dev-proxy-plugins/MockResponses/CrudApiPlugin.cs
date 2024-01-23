@@ -149,7 +149,7 @@ public class CrudApiPlugin : BaseProxyPlugin
     private void SendJsonResponse(string body, HttpStatusCode statusCode, SessionEventArgs e)
     {
         var headers = new List<HttpHeader> {
-            new HttpHeader("content-type", "application/json")
+            new HttpHeader("content-type", "application/json; charset=utf-8")
         };
         if (e.HttpClient.Request.Headers.Any(h => h.Name == "Origin"))
         {
