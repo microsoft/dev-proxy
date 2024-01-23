@@ -281,18 +281,20 @@ public class ProxyEngine
         foreach (var urlToWatch in _urlsToWatch)
         {
             // extract host from the URL
-            string urlToWatchPatter = Regex.Unescape(urlToWatch.Url.ToString()).Replace(".*", "*");
+            string urlToWatchPattern = Regex.Unescape(urlToWatch.Url.ToString()).Replace(".*", "*");
             string hostToWatch;
-            if (urlToWatchPatter.ToString().Contains("://"))
+            if (urlToWatchPattern.ToString().Contains("://"))
             {
                 // if the URL contains a protocol, extract the host from the URL
-                hostToWatch = urlToWatchPatter.Split("://")[1].Substring(0, urlToWatchPatter.Split("://")[1].IndexOf("/"));
+                var urlChunks = urlToWatchPattern.Split("://");
+                var slashPos = urlChunks[1].IndexOf("/");
+                hostToWatch = slashPos < 0 ? urlChunks[1] : urlChunks[1].Substring(0, slashPos);
             }
             else
             {
                 // if the URL doesn't contain a protocol,
                 // we assume the whole URL is a host name
-                hostToWatch = urlToWatchPatter;
+                hostToWatch = urlToWatchPattern;
             }
 
             var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");

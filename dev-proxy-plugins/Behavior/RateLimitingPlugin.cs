@@ -88,6 +88,11 @@ public class RateLimitingPlugin : BaseProxyPlugin
             }
 
             headers.Add(new(_configuration.HeaderRetryAfter, ((int)(_resetTime - DateTime.Now).TotalSeconds).ToString()));
+            if (request.Headers.Any(h => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)))
+            {
+                headers.Add(new("Access-Control-Allow-Origin", "*"));
+                headers.Add(new("Access-Control-Expose-Headers", _configuration.HeaderRetryAfter));
+            }
 
             e.Session.GenericResponse(body ?? string.Empty, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)).ToArray());
             return;
