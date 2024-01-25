@@ -297,6 +297,7 @@ public static class ProxyUtils
                 }
             }
 
+
             return _productVersion;
         }
     }

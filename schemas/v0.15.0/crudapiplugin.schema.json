@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRUD API plugin API definition",
+  "description": "API definition for use with the CRUD API Dev Proxy plugin",
+  "type": "object",
+  "properties": {
+    "$schema": {
+    	"type":"string"
+    },
+    "baseUrl": {
+      "type": "string"
+    },
+    "dataFile": {
+      "type": "string"
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "create",
+              "getAll",
+              "getOne",
+              "getMany",
+              "merge",
+              "update",
+              "delete"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "baseUrl",
+    "dataFile",
+    "actions"
+  ],
+  "additionalProperties": false
+}

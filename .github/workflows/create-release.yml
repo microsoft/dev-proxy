@@ -15,7 +15,7 @@ jobs:
           - linux-x64
           - osx-x64
     env:
-      release: 'dev-proxy-${{ matrix.architecture }}-${{  github.ref_name }}'
+      release: 'dev-proxy-${{ matrix.architecture }}-${{ github.ref_name }}'
     steps:
       - uses: actions/checkout@v3
       - name: Setup .NET
@@ -23,9 +23,9 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Publish ${{ matrix.architecture }}
-        run: dotnet publish ./dev-proxy/dev-proxy.csproj -c Release -p:PublishSingleFile=true -r ${{ matrix.architecture }} --self-contained -o ./${{ env.release }}
+        run: dotnet publish ./dev-proxy/dev-proxy.csproj -c Release -p:PublishSingleFile=true -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -r ${{ matrix.architecture }} --self-contained -o ./${{ env.release }}
       - name: Build plugins
-        run: dotnet build ./dev-proxy-plugins/dev-proxy-plugins.csproj -c Release -r ${{ matrix.architecture }} --no-self-contained
+        run: dotnet build ./dev-proxy-plugins/dev-proxy-plugins.csproj -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -c Release -r ${{ matrix.architecture }} --no-self-contained
       - name: Add plugins to output
         run: cp ./dev-proxy/bin/Release/net8.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
       - name: Remove unnecessary files
