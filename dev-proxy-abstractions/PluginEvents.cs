@@ -57,16 +57,15 @@ public class ThrottlingInfo
 }
 
 public class ProxyHttpEventArgsBase
-{
-    internal ProxyHttpEventArgsBase(SessionEventArgs session, IList<ThrottlerInfo> throttledRequests)
+{    
+    internal ProxyHttpEventArgsBase(SessionEventArgs session)
     {
         Session = session ?? throw new ArgumentNullException(nameof(session));
-        ThrottledRequests = throttledRequests ?? throw new ArgumentNullException(nameof(throttledRequests));
     }
 
     public SessionEventArgs Session { get; }
-    public IList<ThrottlerInfo> ThrottledRequests { get; }
-    public Dictionary<string, object> PluginData { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> SessionData { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> GlobalData { get; set; } = new Dictionary<string, object>();
 
     public bool HasRequestUrlMatch(ISet<UrlToWatch> watchedUrls)
     {
@@ -77,7 +76,7 @@ public class ProxyHttpEventArgsBase
 
 public class ProxyRequestArgs : ProxyHttpEventArgsBase
 {
-    public ProxyRequestArgs(SessionEventArgs session, IList<ThrottlerInfo> throttledRequests, ResponseState responseState) : base(session, throttledRequests)
+    public ProxyRequestArgs(SessionEventArgs session, ResponseState responseState) : base(session)
     {
         ResponseState = responseState ?? throw new ArgumentNullException(nameof(responseState));
     }
@@ -90,7 +89,7 @@ public class ProxyRequestArgs : ProxyHttpEventArgsBase
 
 public class ProxyResponseArgs : ProxyHttpEventArgsBase
 {
-    public ProxyResponseArgs(SessionEventArgs session, IList<ThrottlerInfo> throttledRequests, ResponseState responseState) : base(session, throttledRequests)
+    public ProxyResponseArgs(SessionEventArgs session, ResponseState responseState) : base(session)
     {
         ResponseState = responseState ?? throw new ArgumentNullException(nameof(responseState));
     }

@@ -14,6 +14,7 @@ namespace Microsoft.DevProxy.Plugins.Behavior;
 public class RetryAfterPlugin : BaseProxyPlugin
 {
     public override string Name => nameof(RetryAfterPlugin);
+    public static readonly string ThrottledRequestsKey = "ThrottledRequests";
 
     public override void Register(IPluginEvents pluginEvents,
                          IProxyContext context,
@@ -42,18 +43,29 @@ public class RetryAfterPlugin : BaseProxyPlugin
     private void ThrottleIfNecessary(ProxyRequestArgs e)
     {
         var request = e.Session.HttpClient.Request;
-        var expiredThrottlers = e.ThrottledRequests.Where(t => t.ResetTime < DateTime.Now);
-        foreach (var throttler in expiredThrottlers)
-        {
-            e.ThrottledRequests.Remove(throttler);
-        }
-
-        if (!e.ThrottledRequests.Any())
+        if (!e.GlobalData.ContainsKey(ThrottledRequestsKey))
         {
             return;
         }
 
-        foreach (var throttler in e.ThrottledRequests)
+        var throttledRequests = e.GlobalData[ThrottledRequestsKey] as List<ThrottlerInfo>;
+        if (throttledRequests is null)
+        {
+            return;
+        }
+
+        var expiredThrottlers = throttledRequests.Where(t => t.ResetTime < DateTime.Now).ToArray();
+        foreach (var throttler in expiredThrottlers)
+        {
+            throttledRequests.Remove(throttler);
+        }
+
+        if (throttledRequests.Any() != true)
+        {
+            return;
+        }
+
+        foreach (var throttler in throttledRequests)
         {
             var throttleInfo = throttler.ShouldThrottle(request, throttler.ThrottlingKey);
             if (throttleInfo.ThrottleForSeconds > 0)

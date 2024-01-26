@@ -45,7 +45,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
             var headers = ProxyUtils
                 .BuildGraphResponseHeaders(e.Session.HttpClient.Request, requestId, requestDate);
 
-            if (e.PluginData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
+            if (e.SessionData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
                 pluginData is List<MockResponseHeader> rateLimitingHeaders)
             {
                 ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
