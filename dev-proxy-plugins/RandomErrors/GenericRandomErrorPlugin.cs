@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
+using Microsoft.DevProxy.Plugins.Behavior;
 
 namespace Microsoft.DevProxy.Plugins.RandomErrors;
 internal enum GenericRandomErrorFailMode
@@ -57,17 +58,27 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
         return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? retryAfterInSeconds : 0, "Retry-After");
     }
 
-    private void UpdateProxyResponse(ProxyRequestArgs ev, GenericErrorResponse error)
+    private void UpdateProxyResponse(ProxyRequestArgs e, GenericErrorResponse error)
     {
-        SessionEventArgs session = ev.Session;
+        SessionEventArgs session = e.Session;
         Request request = session.HttpClient.Request;
-        var headers = error.Headers ?? new List<MockResponseHeader>();
+        var headers = new List<MockResponseHeader>();
+        if (error.Headers is not null)
+        {
+            headers.AddRange(error.Headers);
+        }
+        
         if (error.StatusCode == (int)HttpStatusCode.TooManyRequests &&
             error.Headers is not null &&
             error.Headers.FirstOrDefault(h => h.Name == "Retry-After" || h.Name == "retry-after")?.Value == "@dynamic")
         {
             var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
-            ev.ThrottledRequests.Add(new ThrottlerInfo(BuildThrottleKey(request), ShouldThrottle, retryAfterDate));
+            if (!e.GlobalData.ContainsKey(RetryAfterPlugin.ThrottledRequestsKey))
+            {
+                e.GlobalData.Add(RetryAfterPlugin.ThrottledRequestsKey, new List<ThrottlerInfo>());
+            }
+            var throttledRequests = e.GlobalData[RetryAfterPlugin.ThrottledRequestsKey] as List<ThrottlerInfo>;
+            throttledRequests?.Add(new ThrottlerInfo(BuildThrottleKey(request), ShouldThrottle, retryAfterDate));
             // replace the header with the @dynamic value with the actual value
             var h = headers.First(h => h.Name == "Retry-After" || h.Name == "retry-after");
             headers.Remove(h);
@@ -100,7 +111,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
         {
             session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
         }
-        _logger?.LogRequest(new[] { $"{error.StatusCode} {statusCode.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
+        _logger?.LogRequest(new[] { $"{error.StatusCode} {statusCode.ToString()}" }, MessageType.Chaos, new LoggingContext(e.Session));
     }
 
     // throttle requests per host

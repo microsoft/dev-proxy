@@ -32,7 +32,7 @@ public class ProxyEngine
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
     private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
-    private IList<ThrottlerInfo> _throttledRequests = new List<ThrottlerInfo>();
+    private Dictionary<string, object> _globalData = new();
 
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();
@@ -483,10 +483,12 @@ public class ProxyEngine
     private async Task HandleRequest(SessionEventArgs e)
     {
         ResponseState responseState = new ResponseState();
-        var proxyRequestArgs = new ProxyRequestArgs(e, _throttledRequests, responseState)
+        var proxyRequestArgs = new ProxyRequestArgs(e, responseState)
         {
-            PluginData = _pluginData[e.GetHashCode()]
+            SessionData = _pluginData[e.GetHashCode()],
+            GlobalData = _globalData
         };
+
         await _pluginEvents.RaiseProxyBeforeRequest(proxyRequestArgs);
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
@@ -508,10 +510,12 @@ public class ProxyEngine
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
         {
-            var proxyResponseArgs = new ProxyResponseArgs(e, _throttledRequests, new ResponseState())
+            var proxyResponseArgs = new ProxyResponseArgs(e, new ResponseState())
             {
-                PluginData = _pluginData[e.GetHashCode()]
+                SessionData = _pluginData[e.GetHashCode()],
+                GlobalData = _globalData
             };
+
             // necessary to make the response body available to plugins
             e.HttpClient.Response.KeepBody = true;
             if (e.HttpClient.Response.HasBody)
@@ -527,10 +531,12 @@ public class ProxyEngine
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
         {
-            var proxyResponseArgs = new ProxyResponseArgs(e, _throttledRequests, new ResponseState())
+            var proxyResponseArgs = new ProxyResponseArgs(e, new ResponseState())
             {
-                PluginData = _pluginData[e.GetHashCode()]
+                SessionData = _pluginData[e.GetHashCode()],
+                GlobalData = _globalData
             };
+
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedResponse, new LoggingContext(e));
             await _pluginEvents.RaiseProxyAfterResponse(proxyResponseArgs);
             // clean up

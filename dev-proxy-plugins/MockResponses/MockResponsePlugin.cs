@@ -228,7 +228,7 @@ public class MockResponsePlugin : BaseProxyPlugin
             headers.Add(new("content-type", "application/json"));
         }
 
-        if (e.PluginData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
+        if (e.SessionData.TryGetValue(nameof(RateLimitingPlugin), out var pluginData) &&
             pluginData is List<MockResponseHeader> rateLimitingHeaders)
         {
             ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
