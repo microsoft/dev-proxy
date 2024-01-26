@@ -45,8 +45,11 @@ internal class PluginLoader
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
                 IEnumerable<UrlToWatch>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
                 ISet<UrlToWatch>? pluginUrls = null;
-                if (pluginUrlsList is not null)
-                {
+                if (pluginUrlsList is null || !pluginUrlsList.Any()){
+                    pluginUrlsList = globalUrlsToWatch.ToList();
+                }
+
+                if (pluginUrlsList.Any()){
                     pluginUrls = pluginUrlsList.ToHashSet();
                     globallyWatchedUrls.AddRange(pluginUrlsList);
                 }
