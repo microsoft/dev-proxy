@@ -119,12 +119,12 @@ public class ProxyEngine
             _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
         }
 
-        if (RunTime.IsWindows)
+        if (RunTime.IsWindows && !_config.DoNotActAsSystemProxy)
         {
             // Only explicit proxies can be set as system proxy!
             _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
         }
-        else if (RunTime.IsMac)
+        else if (RunTime.IsMac && !_config.DoNotActAsSystemProxy)
         {
             ToggleSystemProxy(ToggleSystemProxyAction.On, _config.IPAddress, _config.Port);
         }
@@ -340,7 +340,7 @@ public class ProxyEngine
                 _proxyServer.Stop();
             }
 
-            if (RunTime.IsMac)
+            if (RunTime.IsMac && !_config.DoNotActAsSystemProxy)
             {
                 ToggleSystemProxy(ToggleSystemProxyAction.Off);
             }

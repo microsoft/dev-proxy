@@ -19,6 +19,7 @@ internal class ProxyHost
     private static Option<string?>? _configFileOption;
     private Option<int?> _rateOption;
     private Option<bool?> _noFirstRunOption;
+    private Option<bool?> _doNotActAsSystemProxyOption;
     private static Option<IEnumerable<string>?>? _urlsToWatchOption;
 
     private static bool _configFileResolved = false;
@@ -216,6 +217,8 @@ internal class ProxyHost
 
         _noFirstRunOption = new Option<bool?>("--no-first-run", "Skip the first run experience");
 
+        _doNotActAsSystemProxyOption = new Option<bool?>("--do-not-act-as-system-proxy", "Do not set the proxy as system proxy");
+
         _urlsToWatchOption = new("--urls-to-watch", "The list of URLs to watch for requests")
         {
             ArgumentHelpName = "urlsToWatch",
@@ -243,6 +246,7 @@ internal class ProxyHost
             // `ProxyCommandHandler.Configuration`. As such, it's always set here
             _configFileOption!,
             _noFirstRunOption,
+            _doNotActAsSystemProxyOption,
             // _urlsToWatchOption is set while initialize the Program
             // As such, it's always set here
             _urlsToWatchOption!
@@ -256,7 +260,7 @@ internal class ProxyHost
         command.Add(msGraphDbCommand);
 
         var presetCommand = new Command("preset", "Manage Dev Proxy presets");
-        
+
         var presetGetCommand = new Command("get", "Download the specified preset from the Sample Solution Gallery");
         var presetIdArgument = new Argument<string>("preset-id", "The ID of the preset to download");
         presetGetCommand.AddArgument(presetIdArgument);
@@ -268,6 +272,6 @@ internal class ProxyHost
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, _doNotActAsSystemProxyOption, pluginEvents, urlsToWatch, logger);
 }
 
