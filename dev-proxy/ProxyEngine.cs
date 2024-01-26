@@ -86,6 +86,10 @@ public class ProxyEngine
 
         _proxyServer.CertificateManager.RootCertificateName = "Dev Proxy CA";
         _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
+        // we need to change this to a value lower than 397
+        // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
+        _proxyServer.CertificateManager.CertificateValidDays = 365;
+        _proxyServer.CertificateManager.CreateRootCertificate();
         _proxyServer.BeforeRequest += OnRequest;
         _proxyServer.BeforeResponse += OnBeforeResponse;
         _proxyServer.AfterResponse += OnAfterResponse;
@@ -95,18 +99,13 @@ public class ProxyEngine
 
         var ipAddress = string.IsNullOrEmpty(_config.IPAddress) ? IPAddress.Any : IPAddress.Parse(_config.IPAddress);
         _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
-        if (!RunTime.IsWindows)
-        {
-            // we need to change this to a value lower than 397
-            // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
-            _proxyServer.CertificateManager.CertificateValidDays = 365;
-            // we need to call it explicitly for non-Windows OSes because it's
-            // a part of the SetAsSystemHttpProxy that works only on Windows
-            _proxyServer.CertificateManager.EnsureRootCertificate();
-        }
-
         // Fired when a CONNECT request is received
         _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
+        _explicitEndPoint.GenericCertificate = _proxyServer.CertificateManager.LoadRootCertificate();
+        if (!_config.DoNotInstallSelfSignedCert)
+        {
+            _proxyServer.CertificateManager.EnsureRootCertificate();
+        }
 
         _proxyServer.AddEndPoint(_explicitEndPoint);
         _proxyServer.Start();
@@ -154,6 +153,7 @@ public class ProxyEngine
 
     private void FirstRunSetup()
     {
+        if (_config.DoNotInstallSelfSignedCert) { return; }
         if (!RunTime.IsMac ||
             _config.NoFirstRun ||
             !IsFirstRun())

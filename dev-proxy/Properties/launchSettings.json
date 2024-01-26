@@ -35,6 +35,11 @@
         "commandLineArgs": "--port 8080 --do-not-act-as-system-proxy",
         "hotReloadEnabled": true
     },
+    "Do not install self-signed certificate": {
+        "commandName": "Project",
+        "commandLineArgs": "--port 8080 --do-not-install-self-signed-cert  --do-not-act-as-system-proxy",
+        "hotReloadEnabled": true
+    },
     "Default": {
       "commandName": "Project",
       "hotReloadEnabled": true

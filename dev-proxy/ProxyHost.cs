@@ -20,6 +20,7 @@ internal class ProxyHost
     private Option<int?> _rateOption;
     private Option<bool?> _noFirstRunOption;
     private Option<bool?> _doNotActAsSystemProxyOption;
+    private Option<bool?> _doNotInstallSelfSignedCertOption;
     private static Option<IEnumerable<string>?>? _urlsToWatchOption;
 
     private static bool _configFileResolved = false;
@@ -219,6 +220,17 @@ internal class ProxyHost
 
         _doNotActAsSystemProxyOption = new Option<bool?>("--do-not-act-as-system-proxy", "Do not set the proxy as system proxy");
 
+        _doNotInstallSelfSignedCertOption = new Option<bool?>("--do-not-install-self-signed-cert", "Do not install self-signed certificate");
+        _doNotInstallSelfSignedCertOption.AddValidator((input) =>
+        {
+            var doNotActAsSystemProxy = input.GetValueForOption(_doNotActAsSystemProxyOption) ?? false;
+            var doNotInstallSelfSignedCert = input.GetValueForOption(_doNotInstallSelfSignedCertOption) ?? false;
+            if (doNotInstallSelfSignedCert && !doNotActAsSystemProxy)
+            {
+                input.ErrorMessage = "Requires option '--do-not-act-as-system-proxy' to be 'true'";
+            }
+        });
+
         _urlsToWatchOption = new("--urls-to-watch", "The list of URLs to watch for requests")
         {
             ArgumentHelpName = "urlsToWatch",
@@ -247,6 +259,7 @@ internal class ProxyHost
             _configFileOption!,
             _noFirstRunOption,
             _doNotActAsSystemProxyOption,
+            _doNotInstallSelfSignedCertOption,
             // _urlsToWatchOption is set while initialize the Program
             // As such, it's always set here
             _urlsToWatchOption!
@@ -272,6 +285,6 @@ internal class ProxyHost
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, _doNotActAsSystemProxyOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, _doNotActAsSystemProxyOption, _doNotInstallSelfSignedCertOption, pluginEvents, urlsToWatch, logger);
 }
 

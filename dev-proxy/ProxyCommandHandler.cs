@@ -19,6 +19,7 @@ public class ProxyCommandHandler : ICommandHandler
     public Option<int?> Rate { get; set; }
     public Option<bool?> NoFirstRun { get; set; }
     public Option<bool?> DoNotActAsSystemProxy { get; set; }
+    public Option<bool?> DoNotInstallSelfSignedCert { get; set; }
 
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<UrlToWatch> _urlsToWatch;
@@ -33,6 +34,7 @@ public class ProxyCommandHandler : ICommandHandler
                                Option<int?> rate,
                                Option<bool?> noFirstRun,
                                Option<bool?> doNotActAsSystemProxy,
+                               Option<bool?> doNotInstallSelfSignedCert,
                                PluginEvents pluginEvents,
                                ISet<UrlToWatch> urlsToWatch,
                                ILogger logger)
@@ -46,6 +48,7 @@ public class ProxyCommandHandler : ICommandHandler
         Rate = rate ?? throw new ArgumentNullException(nameof(rate));
         NoFirstRun = noFirstRun ?? throw new ArgumentNullException(nameof(noFirstRun));
         DoNotActAsSystemProxy = doNotActAsSystemProxy ?? throw new ArgumentNullException(nameof(doNotActAsSystemProxy));
+        DoNotInstallSelfSignedCert = doNotInstallSelfSignedCert ?? throw new ArgumentNullException(nameof(doNotInstallSelfSignedCert));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -102,6 +105,11 @@ public class ProxyCommandHandler : ICommandHandler
         if (doNotActAsSystemProxy is not null)
         {
             Configuration.DoNotActAsSystemProxy = doNotActAsSystemProxy.Value;
+        }
+        var doNotInstallSelfSignedCert = context.ParseResult.GetValueForOption(DoNotInstallSelfSignedCert);
+        if (doNotInstallSelfSignedCert is not null)
+        {
+            Configuration.DoNotInstallSelfSignedCert = doNotInstallSelfSignedCert.Value;
         }
 
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
