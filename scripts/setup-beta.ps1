@@ -10,7 +10,8 @@ Write-Host "1. Create the 'devproxy' directory in the current working folder"
 Write-Host "2. Download the latest beta Dev Proxy release"
 Write-Host "3. Unzip the release in the devproxy directory"
 Write-Host "4. Configure devproxy and its files as executable (Linux and macOS only)"
-Write-Host "5. Add the devproxy directory to your PATH environment variable in `$PROFILE.CurrentUserAllHosts"
+Write-Host "5. Configure new version notifications for the beta channel"
+Write-Host "6. Add the devproxy directory to your PATH environment variable in `$PROFILE.CurrentUserAllHosts"
 Write-Host ""
 Write-Host "Continue (y/n)? " -NoNewline
 $response = [System.Console]::ReadKey().KeyChar
@@ -79,6 +80,9 @@ if ($os -match "Linux" -or $os -match "Darwin") {
     Write-Host "Configuring devproxy and its files as executable..."
     chmod +x ./devproxy ./libe_sqlite3.dylib
 }
+
+Write-Host "Configuring new version notifications for the beta channel..."
+(Get-Content -Path devproxyrc.json) -replace '"newVersionNotification": "stable"', '"newVersionNotification": "beta"' | Set-Content -Path devproxyrc.json
 
 if (!(Test-Path $PROFILE.CurrentUserAllHosts)) {
     Write-Host "Creating `$PROFILE.CurrentUserAllHosts..."

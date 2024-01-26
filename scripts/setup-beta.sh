@@ -11,7 +11,8 @@ echo "1. Create the 'devproxy' directory in the current working folder"
 echo "2. Download the latest beta Dev Proxy release"
 echo "3. Unzip the release in the devproxy directory"
 echo "4. Configure devproxy and its files as executable"
-echo "5. Add the devproxy directory to your PATH environment variable in your shell profile"
+echo "5. Configure new version notifications for the beta channel"
+echo "6. Add the devproxy directory to your PATH environment variable in your shell profile"
 echo ""
 
 if [ -t 0 ]; then
@@ -71,6 +72,9 @@ unzip -o ./devproxy.zip -d ./
 rm ./devproxy.zip
 echo "Configuring devproxy and its files as executable..."
 chmod +x ./devproxy ./libe_sqlite3.dylib
+
+echo "Configuring new version notifications for the beta channel..."
+sed -i '' 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
 
 echo "Adding devproxy to the PATH environment variable in your shell profile..."
 
