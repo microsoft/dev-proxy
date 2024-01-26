@@ -98,7 +98,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
             return;
         }
 
-        if (e.PluginData.TryGetValue(Name, out var pluginData) &&
+        if (e.SessionData.TryGetValue(Name, out var pluginData) &&
             pluginData is List<MockResponseHeader> rateLimitingHeaders)
         {
             ProxyUtils.MergeHeaders(headers, rateLimitingHeaders);
@@ -193,7 +193,13 @@ public class RateLimitingPlugin : BaseProxyPlugin
             _logger?.LogRequest([$"Exceeded resource limit when calling {request.Url}.", "Request will be throttled"], MessageType.Failed, new LoggingContext(e.Session));
             if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Throttle)
             {
-                e.ThrottledRequests.Add(new ThrottlerInfo(
+                if (!e.GlobalData.ContainsKey(RetryAfterPlugin.ThrottledRequestsKey))
+                {
+                    e.GlobalData.Add(RetryAfterPlugin.ThrottledRequestsKey, new List<ThrottlerInfo>());
+                }
+
+                var throttledRequests = e.GlobalData[RetryAfterPlugin.ThrottledRequestsKey] as List<ThrottlerInfo>;
+                throttledRequests?.Add(new ThrottlerInfo(
                     BuildThrottleKey(request),
                     ShouldThrottle,
                     _resetTime
@@ -207,7 +213,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
                 {
                     var headersList = _configuration.CustomResponse.Headers is not null ?
                         _configuration.CustomResponse.Headers.Select(h => new HttpHeader(h.Name, h.Value)).ToList() :
-                    new List<HttpHeader>();
+                        new List<HttpHeader>();
 
                     var retryAfterHeader = headersList.FirstOrDefault(h => h.Name.Equals(_configuration.HeaderRetryAfter, StringComparison.OrdinalIgnoreCase));
                     if (retryAfterHeader is not null && retryAfterHeader.Value == "@dynamic")
@@ -222,7 +228,13 @@ public class RateLimitingPlugin : BaseProxyPlugin
                     var responseCode = (HttpStatusCode)(_configuration.CustomResponse.StatusCode ?? 200);
                     if (responseCode == HttpStatusCode.TooManyRequests)
                     {
-                        e.ThrottledRequests.Add(new ThrottlerInfo(
+                        if (!e.GlobalData.ContainsKey(RetryAfterPlugin.ThrottledRequestsKey))
+                        {
+                            e.GlobalData.Add(RetryAfterPlugin.ThrottledRequestsKey, new List<ThrottlerInfo>());
+                        }
+
+                        var throttledRequests = e.GlobalData[RetryAfterPlugin.ThrottledRequestsKey] as List<ThrottlerInfo>;
+                        throttledRequests?.Add(new ThrottlerInfo(
                             BuildThrottleKey(request),
                             ShouldThrottle,
                             _resetTime
@@ -267,7 +279,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
 
         ExposeRateLimitingForCors(headers, e);
 
-        e.PluginData.Add(Name, headers);
+        e.SessionData.Add(Name, headers);
     }
 
     private void ExposeRateLimitingForCors(IList<MockResponseHeader> headers, ProxyRequestArgs e)
