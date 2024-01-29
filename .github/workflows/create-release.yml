@@ -14,6 +14,7 @@ jobs:
           - win-x86
           - linux-x64
           - osx-x64
+          - osx-arm64
     env:
       release: 'dev-proxy-${{ matrix.architecture }}-${{ github.ref_name }}'
     steps:
