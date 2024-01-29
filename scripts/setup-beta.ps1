@@ -62,6 +62,8 @@ if ($os -match "Windows") {
 } elseif ($os -match "Darwin") {
     if ($arch -eq "X64") {
         $url = "$base_url-osx-x64-$version.zip"
+    } elseif ($arch -eq "Arm64") {
+        $url = "$base_url-osx-arm64-$version.zip"
     } else {
         Write-Host "Unsupported architecture $arch. Aborting"
         exit 1

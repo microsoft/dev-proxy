@@ -48,7 +48,7 @@ base_url="https://github.com/microsoft/dev-proxy/releases/download/$version/dev-
 if [ "$(uname)" == "Darwin" ]; then
     ARCH="$(uname -m)"
     if [ ${ARCH} == "arm64" ]; then
-        echo "unsupported architecture ${ARCH}. Aborting"; exit 1;
+        curl -sL -o ./devproxy.zip "$base_url-osx-arm64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
     elif [ ${ARCH} == "x86_64" ]; then
         curl -sL -o ./devproxy.zip "$base_url-osx-x64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
     else
