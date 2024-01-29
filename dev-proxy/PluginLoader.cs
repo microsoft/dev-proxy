@@ -52,7 +52,12 @@ internal class PluginLoader
                 }
                 // Load Plugins from assembly
                 IProxyPlugin plugin = CreatePlugin(assembly, h);
-                plugin.Register(pluginEvents,proxyContext,pluginUrls is not null && pluginUrls.Any() ? pluginUrls : defaultUrlsToWatch,h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection));
+                plugin.Register(
+                    pluginEvents,
+                    proxyContext,
+                    (pluginUrls != null && pluginUrls.Count > 0) ? pluginUrls : defaultUrlsToWatch,
+                    h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection)
+                );
                 plugins.Add(plugin);
             }
         }
