@@ -30,16 +30,6 @@
       "commandLineArgs": "--port 8080 --failure-rate 95 -a 429 --no-mocks",
       "hotReloadEnabled": true
     },
-    "Do not act as system proxy": {
-        "commandName": "Project",
-        "commandLineArgs": "--port 8080 --do-not-act-as-system-proxy",
-        "hotReloadEnabled": true
-    },
-    "Do not install self-signed certificate": {
-        "commandName": "Project",
-        "commandLineArgs": "--port 8080 --do-not-install-self-signed-cert  --do-not-act-as-system-proxy",
-        "hotReloadEnabled": true
-    },
     "Default": {
       "commandName": "Project",
       "hotReloadEnabled": true
