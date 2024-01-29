@@ -55,7 +55,7 @@ internal class PluginLoader
                 plugin.Register(
                     pluginEvents,
                     proxyContext,
-                    (pluginUrls != null && pluginUrls.Count > 0) ? pluginUrls : defaultUrlsToWatch,
+                    (pluginUrls != null && pluginUrls.Any()) ? pluginUrls : defaultUrlsToWatch,
                     h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection)
                 );
                 plugins.Add(plugin);
