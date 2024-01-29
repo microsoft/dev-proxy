@@ -18,8 +18,8 @@ public class ProxyCommandHandler : ICommandHandler
     public Option<IEnumerable<string>?> WatchProcessNames { get; set; }
     public Option<int?> Rate { get; set; }
     public Option<bool?> NoFirstRun { get; set; }
-    public Option<bool?> DoNotActAsSystemProxy { get; set; }
-    public Option<bool?> DoNotInstallSelfSignedCert { get; set; }
+    public Option<bool?> AsSystemProxy { get; set; }
+    public Option<bool?> InstallCert { get; set; }
 
     private readonly PluginEvents _pluginEvents;
     private readonly ISet<UrlToWatch> _urlsToWatch;
@@ -33,8 +33,8 @@ public class ProxyCommandHandler : ICommandHandler
                                Option<IEnumerable<string>?> watchProcessNames,
                                Option<int?> rate,
                                Option<bool?> noFirstRun,
-                               Option<bool?> doNotActAsSystemProxy,
-                               Option<bool?> doNotInstallSelfSignedCert,
+                               Option<bool?> asSystemProxy,
+                               Option<bool?> installCert,
                                PluginEvents pluginEvents,
                                ISet<UrlToWatch> urlsToWatch,
                                ILogger logger)
@@ -47,8 +47,8 @@ public class ProxyCommandHandler : ICommandHandler
         WatchProcessNames = watchProcessNames ?? throw new ArgumentNullException(nameof(watchProcessNames));
         Rate = rate ?? throw new ArgumentNullException(nameof(rate));
         NoFirstRun = noFirstRun ?? throw new ArgumentNullException(nameof(noFirstRun));
-        DoNotActAsSystemProxy = doNotActAsSystemProxy ?? throw new ArgumentNullException(nameof(doNotActAsSystemProxy));
-        DoNotInstallSelfSignedCert = doNotInstallSelfSignedCert ?? throw new ArgumentNullException(nameof(doNotInstallSelfSignedCert));
+        AsSystemProxy = asSystemProxy ?? throw new ArgumentNullException(nameof(asSystemProxy));
+        InstallCert = installCert ?? throw new ArgumentNullException(nameof(installCert));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -101,15 +101,15 @@ public class ProxyCommandHandler : ICommandHandler
         {
             Configuration.NoFirstRun = noFirstRun.Value;
         }
-        var doNotActAsSystemProxy = context.ParseResult.GetValueForOption(DoNotActAsSystemProxy);
-        if (doNotActAsSystemProxy is not null)
+        var asSystemProxy = context.ParseResult.GetValueForOption(AsSystemProxy);
+        if (asSystemProxy is not null)
         {
-            Configuration.DoNotActAsSystemProxy = doNotActAsSystemProxy.Value;
+            Configuration.AsSystemProxy = asSystemProxy.Value;
         }
-        var doNotInstallSelfSignedCert = context.ParseResult.GetValueForOption(DoNotInstallSelfSignedCert);
-        if (doNotInstallSelfSignedCert is not null)
+        var installCert = context.ParseResult.GetValueForOption(InstallCert);
+        if (installCert is not null)
         {
-            Configuration.DoNotInstallSelfSignedCert = doNotInstallSelfSignedCert.Value;
+            Configuration.InstallCert = installCert.Value;
         }
 
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));

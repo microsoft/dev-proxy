@@ -102,7 +102,7 @@ public class ProxyEngine
         // Fired when a CONNECT request is received
         _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
         _explicitEndPoint.GenericCertificate = _proxyServer.CertificateManager.LoadRootCertificate();
-        if (!_config.DoNotInstallSelfSignedCert)
+        if (_config.InstallCert)
         {
             _proxyServer.CertificateManager.EnsureRootCertificate();
         }
@@ -118,12 +118,12 @@ public class ProxyEngine
             _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
         }
 
-        if (RunTime.IsWindows && !_config.DoNotActAsSystemProxy)
+        if (RunTime.IsWindows && _config.AsSystemProxy)
         {
             // Only explicit proxies can be set as system proxy!
             _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
         }
-        else if (RunTime.IsMac && !_config.DoNotActAsSystemProxy)
+        else if (RunTime.IsMac && _config.AsSystemProxy)
         {
             ToggleSystemProxy(ToggleSystemProxyAction.On, _config.IPAddress, _config.Port);
         }
@@ -153,7 +153,7 @@ public class ProxyEngine
 
     private void FirstRunSetup()
     {
-        if (_config.DoNotInstallSelfSignedCert) { return; }
+        if (!_config.InstallCert) { return; }
         if (!RunTime.IsMac ||
             _config.NoFirstRun ||
             !IsFirstRun())
@@ -340,7 +340,7 @@ public class ProxyEngine
                 _proxyServer.Stop();
             }
 
-            if (RunTime.IsMac && !_config.DoNotActAsSystemProxy)
+            if (RunTime.IsMac && _config.AsSystemProxy)
             {
                 ToggleSystemProxy(ToggleSystemProxyAction.Off);
             }

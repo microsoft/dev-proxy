@@ -19,8 +19,8 @@ internal class ProxyHost
     private static Option<string?>? _configFileOption;
     private Option<int?> _rateOption;
     private Option<bool?> _noFirstRunOption;
-    private Option<bool?> _doNotActAsSystemProxyOption;
-    private Option<bool?> _doNotInstallSelfSignedCertOption;
+    private Option<bool?> _asSystemProxyOption;
+    private Option<bool?> _installCertOption;
     private static Option<IEnumerable<string>?>? _urlsToWatchOption;
 
     private static bool _configFileResolved = false;
@@ -218,16 +218,18 @@ internal class ProxyHost
 
         _noFirstRunOption = new Option<bool?>("--no-first-run", "Skip the first run experience");
 
-        _doNotActAsSystemProxyOption = new Option<bool?>("--do-not-act-as-system-proxy", "Do not set the proxy as system proxy");
+        _asSystemProxyOption = new Option<bool?>("--as-system-proxy", "Set the proxy as system proxy");
+        _asSystemProxyOption.SetDefaultValue(true);
 
-        _doNotInstallSelfSignedCertOption = new Option<bool?>("--do-not-install-self-signed-cert", "Do not install self-signed certificate");
-        _doNotInstallSelfSignedCertOption.AddValidator((input) =>
+        _installCertOption = new Option<bool?>("--install-cert", "Install self-signed certificate");
+        _installCertOption.SetDefaultValue(true);
+        _installCertOption.AddValidator((input) =>
         {
-            var doNotActAsSystemProxy = input.GetValueForOption(_doNotActAsSystemProxyOption) ?? false;
-            var doNotInstallSelfSignedCert = input.GetValueForOption(_doNotInstallSelfSignedCertOption) ?? false;
-            if (doNotInstallSelfSignedCert && !doNotActAsSystemProxy)
+            var asSystemProxy = input.GetValueForOption(_asSystemProxyOption) ?? true;
+            var installCert = input.GetValueForOption(_installCertOption) ?? true;
+            if (asSystemProxy && !installCert)
             {
-                input.ErrorMessage = "Requires option '--do-not-act-as-system-proxy' to be 'true'";
+                input.ErrorMessage = $"Requires option '--{_asSystemProxyOption.Name}' to be 'false'";
             }
         });
 
@@ -258,8 +260,8 @@ internal class ProxyHost
             // `ProxyCommandHandler.Configuration`. As such, it's always set here
             _configFileOption!,
             _noFirstRunOption,
-            _doNotActAsSystemProxyOption,
-            _doNotInstallSelfSignedCertOption,
+            _asSystemProxyOption,
+            _installCertOption,
             // _urlsToWatchOption is set while initialize the Program
             // As such, it's always set here
             _urlsToWatchOption!
@@ -285,6 +287,6 @@ internal class ProxyHost
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, _doNotActAsSystemProxyOption, _doNotInstallSelfSignedCertOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, _asSystemProxyOption, _installCertOption, pluginEvents, urlsToWatch, logger);
 }
 

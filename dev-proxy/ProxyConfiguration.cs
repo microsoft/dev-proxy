@@ -36,8 +36,8 @@ public class ProxyConfiguration : IProxyConfiguration
     [JsonPropertyName("rate")]
     public int Rate { get; set; } = 50;
     public bool NoFirstRun { get; set; } = false;
-    public bool DoNotActAsSystemProxy { get; set; } = false;
-    public bool DoNotInstallSelfSignedCert { get; set; } = false;
+    public bool AsSystemProxy { get; set; } = true;
+    public bool InstallCert { get; set; } = true;
     public string ConfigFile { get; set; } = "devproxyrc.json";
     [JsonPropertyName("newVersionNotification")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
