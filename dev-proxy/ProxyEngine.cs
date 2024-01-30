@@ -102,7 +102,7 @@ public class ProxyEngine
         // Fired when a CONNECT request is received
         _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
         _explicitEndPoint.GenericCertificate = _proxyServer.CertificateManager.LoadRootCertificate();
-        if (_config.InstallCert)
+        if (!RunTime.IsWindows && _config.InstallCert)
         {
             _proxyServer.CertificateManager.EnsureRootCertificate();
         }
