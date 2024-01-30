@@ -159,10 +159,10 @@ public class ProxyEngine
 
     private void FirstRunSetup()
     {
-        if (!_config.InstallCert) { return; }
         if (!RunTime.IsMac ||
             _config.NoFirstRun ||
-            !IsFirstRun())
+            !IsFirstRun() ||
+            !_config.InstallCert)
         {
             return;
         }
