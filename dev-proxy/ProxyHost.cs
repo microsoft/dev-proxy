@@ -218,7 +218,7 @@ internal class ProxyHost
 
         _noFirstRunOption = new Option<bool?>("--no-first-run", "Skip the first run experience");
 
-        _asSystemProxyOption = new Option<bool?>("--as-system-proxy", "Set the proxy as system proxy");
+        _asSystemProxyOption = new Option<bool?>("--as-system-proxy", "Set the Dev proxy as system proxy");
         _asSystemProxyOption.SetDefaultValue(true);
 
         _installCertOption = new Option<bool?>("--install-cert", "Install self-signed certificate");
