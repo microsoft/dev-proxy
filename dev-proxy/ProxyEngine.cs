@@ -104,6 +104,8 @@ public class ProxyEngine
         _explicitEndPoint.GenericCertificate = _proxyServer.CertificateManager.LoadRootCertificate();
         if (!RunTime.IsWindows && _config.InstallCert)
         {
+            // we need to call it explicitly for non-Windows OSes because it's
+            // a part of the SetAsSystemHttpProxy that works only on Windows
             _proxyServer.CertificateManager.EnsureRootCertificate();
         }
 
