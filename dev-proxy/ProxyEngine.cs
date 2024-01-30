@@ -118,18 +118,24 @@ public class ProxyEngine
             _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
         }
 
-        if (RunTime.IsWindows && _config.AsSystemProxy)
+        if (_config.AsSystemProxy)
         {
-            // Only explicit proxies can be set as system proxy!
-            _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
-        }
-        else if (RunTime.IsMac && _config.AsSystemProxy)
-        {
-            ToggleSystemProxy(ToggleSystemProxyAction.On, _config.IPAddress, _config.Port);
+            if (RunTime.IsWindows)
+            {
+                _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
+            }
+            else if (RunTime.IsMac)
+            {
+                ToggleSystemProxy(ToggleSystemProxyAction.On, _config.IPAddress, _config.Port);
+            }
+            else
+            {
+                _logger.LogWarn("Configure your operating system to use this proxy's port and address");
+            }
         }
         else
         {
-            _logger.LogWarn("Configure your operating system to use this proxy's port and address");
+            _logger.LogInfo("Configure your application to use this proxy's port and address");
         }
 
         _logger.LogInfo("Press CTRL+C to stop Dev Proxy");
