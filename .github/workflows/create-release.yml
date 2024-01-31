@@ -18,7 +18,11 @@ jobs:
     env:
       release: 'dev-proxy-${{ matrix.architecture }}-${{ github.ref_name }}'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
@@ -42,7 +46,7 @@ jobs:
         with:
           filename: '../${{ env.release }}.zip'
           directory: './${{ env.release }}'
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ env.release }}
           path: ./${{ env.release }}.zip
@@ -55,8 +59,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
           path: output
       - name: Release
