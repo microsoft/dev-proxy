@@ -59,10 +59,9 @@ if ($os -match "Windows") {
         exit 1
     }
 } elseif ($os -match "Darwin") {
-    if ($arch -eq "X64") {
+    # temporary workaround to install devproxy on Mx macs
+    if ($arch -eq "X64" -or $arch -eq "Arm64") {
         $url = "$base_url-osx-x64-$version.zip"
-    } elseif ($arch -eq "Arm64") {
-        $url = "$base_url-osx-arm64-$version.zip"
     } else {
         Write-Host "Unsupported architecture $arch. Aborting"
         exit 1
