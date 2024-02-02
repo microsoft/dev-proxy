@@ -297,6 +297,13 @@ public class ProxyEngine
                 hostToWatch = urlToWatchPattern;
             }
 
+            // remove port number if present
+            var portPos = hostToWatch.IndexOf(":");
+            if (portPos > 0)
+            {
+                hostToWatch = hostToWatch.Substring(0, portPos);
+            }
+
             var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
             Regex hostRegex = new Regex($"^{hostToWatchRegexString}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             // don't add the same host twice
