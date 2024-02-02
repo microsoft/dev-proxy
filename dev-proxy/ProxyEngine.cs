@@ -101,12 +101,13 @@ public class ProxyEngine
         _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
         // Fired when a CONNECT request is received
         _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
-        _explicitEndPoint.GenericCertificate = _proxyServer.CertificateManager.LoadRootCertificate();
-        if (!RunTime.IsWindows && _config.InstallCert)
+        if (_config.InstallCert)
         {
-            // we need to call it explicitly for non-Windows OSes because it's
-            // a part of the SetAsSystemHttpProxy that works only on Windows
             _proxyServer.CertificateManager.EnsureRootCertificate();
+        }
+        else
+        {
+            _explicitEndPoint.GenericCertificate = _proxyServer.CertificateManager.LoadRootCertificate();
         }
 
         _proxyServer.AddEndPoint(_explicitEndPoint);
