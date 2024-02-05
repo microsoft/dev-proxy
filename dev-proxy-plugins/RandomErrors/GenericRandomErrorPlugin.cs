@@ -22,6 +22,7 @@ internal enum GenericRandomErrorFailMode
 public class GenericRandomErrorConfiguration
 {
     public string? ErrorsFile { get; set; }
+    public int RetryAfterInSeconds { get; set; } = 5;
     [JsonPropertyName("responses")]
     public IEnumerable<GenericErrorResponse> Responses { get; set; } = Array.Empty<GenericErrorResponse>();
 }
@@ -34,7 +35,6 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
 
     public override string Name => nameof(GenericRandomErrorPlugin);
 
-    private const int retryAfterInSeconds = 5;
     private readonly Random _random;
 
     public GenericRandomErrorPlugin()
@@ -55,7 +55,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey)
     {
         var throttleKeyForRequest = BuildThrottleKey(request);
-        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? retryAfterInSeconds : 0, "Retry-After");
+        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? _configuration.RetryAfterInSeconds : 0, "Retry-After");
     }
 
     private void UpdateProxyResponse(ProxyRequestArgs e, GenericErrorResponse error)
@@ -72,7 +72,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             error.Headers is not null &&
             error.Headers.FirstOrDefault(h => h.Name == "Retry-After" || h.Name == "retry-after")?.Value == "@dynamic")
         {
-            var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
+            var retryAfterDate = DateTime.Now.AddSeconds(_configuration.RetryAfterInSeconds);
             if (!e.GlobalData.ContainsKey(RetryAfterPlugin.ThrottledRequestsKey))
             {
                 e.GlobalData.Add(RetryAfterPlugin.ThrottledRequestsKey, new List<ThrottlerInfo>());
@@ -82,7 +82,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             // replace the header with the @dynamic value with the actual value
             var h = headers.First(h => h.Name == "Retry-After" || h.Name == "retry-after");
             headers.Remove(h);
-            headers.Add(new("Retry-After", retryAfterInSeconds.ToString()));
+            headers.Add(new("Retry-After", _configuration.RetryAfterInSeconds.ToString()));
         }
 
         var statusCode = (HttpStatusCode)error.StatusCode;
