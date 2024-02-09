@@ -149,7 +149,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
                     var requestUrl = ProxyUtils.GetAbsoluteRequestUrlFromBatch(e.Session.HttpClient.Request.RequestUri, request.Url);
                     var throttledRequests = e.GlobalData[RetryAfterPlugin.ThrottledRequestsKey] as List<ThrottlerInfo>;
                     throttledRequests?.Add(new ThrottlerInfo(GraphUtils.BuildThrottleKey(requestUrl), ShouldThrottle, retryAfterDate));
-                    response.Headers = new List<MockResponseHeader> { new("Retry-After", retryAfterInSeconds.ToString()) };
+                    response.Headers = new Dictionary<string, string> { { "Retry-After", retryAfterInSeconds.ToString() } };
                 }
 
                 responses.Add(response);

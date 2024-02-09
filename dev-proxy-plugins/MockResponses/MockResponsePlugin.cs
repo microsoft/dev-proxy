@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Microsoft.DevProxy.Plugins.Behavior;
+using System.Text;
 
 namespace Microsoft.DevProxy.Plugins.MockResponses;
 
@@ -115,12 +116,12 @@ public class MockResponsePlugin : BaseProxyPlugin
             var matchingResponse = GetMatchingMockResponse(request);
             if (matchingResponse is not null)
             {
-                ProcessMockResponse(e, matchingResponse);
+                ProcessMockResponseInternal(e, matchingResponse);
                 state.HasBeenSet = true;
             }
             else if (_configuration.BlockUnmockedRequests)
             {
-                ProcessMockResponse(e, new MockResponse
+                ProcessMockResponseInternal(e, new MockResponse
                 {
                     Request = new()
                     {
@@ -202,7 +203,23 @@ public class MockResponsePlugin : BaseProxyPlugin
         return mockResponse.Request.Nth == nth;
     }
 
-    private void ProcessMockResponse(ProxyRequestArgs e, MockResponse matchingResponse)
+    protected virtual void ProcessMockResponse(ref byte[] body, IList<MockResponseHeader> headers, ProxyRequestArgs e, MockResponse? matchingResponse)
+    {
+    }
+
+    protected virtual void ProcessMockResponse(ref string? body, IList<MockResponseHeader> headers, ProxyRequestArgs e, MockResponse? matchingResponse)
+    {
+        if (string.IsNullOrEmpty(body))
+        {
+            return;
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(body);
+        ProcessMockResponse(ref bytes, headers, e, matchingResponse);
+        body = Encoding.UTF8.GetString(bytes);
+    }
+
+    private void ProcessMockResponseInternal(ProxyRequestArgs e, MockResponse matchingResponse)
     {
         string? body = null;
         string requestId = Guid.NewGuid().ToString();
@@ -216,10 +233,7 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         if (matchingResponse.Response?.Headers is not null)
         {
-            foreach (var header in matchingResponse.Response.Headers)
-            {
-                headers.Add(header);
-            }
+            ProxyUtils.MergeHeaders(headers, matchingResponse.Response.Headers);
         }
 
         // default the content type to application/json unless set in the mock response
@@ -254,6 +268,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                 else
                 {
                     var bodyBytes = File.ReadAllBytes(filePath);
+                    ProcessMockResponse(ref bodyBytes, headers, e, matchingResponse);
                     e.Session.GenericResponse(bodyBytes, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
                     _logger?.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
                     return;
@@ -264,6 +279,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                 body = bodyString;
             }
         }
+        ProcessMockResponse(ref body, headers, e, matchingResponse);
         e.Session.GenericResponse(body ?? string.Empty, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
 
         _logger?.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
