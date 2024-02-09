@@ -58,7 +58,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)HttpStatusCode.BadGateway,
-                    Headers = headers.ToList(),
+                    Headers = headers.ToDictionary(h => h.Name, h => h.Value),
                     Body = new GraphBatchResponsePayloadResponseBody
                     {
                         Error = new GraphBatchResponsePayloadResponseBodyError
@@ -82,11 +82,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
                 if (mockResponse.Response?.Headers is not null)
                 {
-                    // add all the mocked headers into the response we want
-                    foreach (var header in mockResponse.Response.Headers)
-                    {
-                        headers.Add(header);
-                    }
+                    ProxyUtils.MergeHeaders(headers, mockResponse.Response.Headers);
                 }
 
                 // default the content type to application/json unless set in the mock response
@@ -127,7 +123,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)statusCode,
-                    Headers = headers.ToList(),
+                    Headers = headers.ToDictionary(h => h.Name, h => h.Value),
                     Body = body
                 };
 
@@ -144,7 +140,9 @@ public class GraphMockResponsePlugin : MockResponsePlugin
         {
             Responses = responses.ToArray()
         };
-        e.Session.GenericResponse(JsonSerializer.Serialize(batchResponse), HttpStatusCode.OK, batchHeaders.Select(h => new HttpHeader(h.Name, h.Value)));
+        var batchResponseString = JsonSerializer.Serialize(batchResponse);
+        ProcessMockResponse(ref batchResponseString, batchHeaders, e, null);
+        e.Session.GenericResponse(batchResponseString ?? string.Empty, HttpStatusCode.OK, batchHeaders.Select(h => new HttpHeader(h.Name, h.Value)));
         _logger?.LogRequest([$"200 {e.Session.HttpClient.Request.RequestUri}"], MessageType.Mocked, new LoggingContext(e.Session));
         e.ResponseState.HasBeenSet = true;
     }

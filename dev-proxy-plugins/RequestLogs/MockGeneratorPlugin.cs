@@ -136,7 +136,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         // assume body is binary
         try
         {
-            var filename = $"response-{DateTime.Now:yyyyMMddHHmmss}.bin";
+            var filename = $"response-{Guid.NewGuid()}.bin";
             _logger?.LogDebug("Reading response body as bytes...");
             var body = await session.GetResponseBody();
             _logger?.LogDebug($"Writing response body to {filename}...");

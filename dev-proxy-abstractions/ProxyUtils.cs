@@ -309,7 +309,8 @@ public static class ProxyUtils
             var existingHeader = allHeaders.FirstOrDefault(h => h.Name.Equals(header.Name, StringComparison.OrdinalIgnoreCase));
             if (existingHeader is not null)
             {
-                if (header.Name.Equals("Access-Control-Expose-Headers", StringComparison.OrdinalIgnoreCase))
+                if (header.Name.Equals("Access-Control-Expose-Headers", StringComparison.OrdinalIgnoreCase) ||
+                    header.Name.Equals("Access-Control-Allow-Headers", StringComparison.OrdinalIgnoreCase))
                 {
                     var existingValues = existingHeader.Value.Split(',').Select(v => v.Trim());
                     var newValues = header.Value.Split(',').Select(v => v.Trim());
