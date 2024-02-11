@@ -39,11 +39,18 @@ if (hasGlobalOption || hasSubCommand)
 }
 
 PluginLoaderResult loaderResults = new PluginLoader(logger).LoadPlugins(pluginEvents, context);
+// have all the plugins init
+pluginEvents.RaiseInit(new InitArgs());
 
-// have all the plugins init and provide any command line options
-pluginEvents.RaiseInit(new InitArgs(rootCommand));
+var options = loaderResults.ProxyPlugins
+    .SelectMany(p => p.GetOptions())
+    // remove duplicates by comparing the option names
+    .GroupBy(o => o.Name)
+    .Select(g => g.First())
+    .ToList();
+options.ForEach(rootCommand.AddOption);
 
-rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, loaderResults.UrlsToWatch, logger);
+rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, options.ToArray(), loaderResults.UrlsToWatch, logger);
 
 // filter args to retrieve options
 var incomingOptions = args.Where(arg => arg.StartsWith("-")).ToArray();

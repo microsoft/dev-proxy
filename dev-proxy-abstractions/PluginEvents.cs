@@ -57,7 +57,7 @@ public class ThrottlingInfo
 }
 
 public class ProxyHttpEventArgsBase
-{    
+{
     internal ProxyHttpEventArgsBase(SessionEventArgs session)
     {
         Session = session ?? throw new ArgumentNullException(nameof(session));
@@ -98,21 +98,21 @@ public class ProxyResponseArgs : ProxyHttpEventArgsBase
 
 public class InitArgs
 {
-    public InitArgs(RootCommand rootCommand)
+    public InitArgs()
     {
-        RootCommand = rootCommand ?? throw new ArgumentNullException(nameof(rootCommand));
     }
-    public RootCommand RootCommand { get; set; }
-
 }
 
 public class OptionsLoadedArgs
 {
-    public OptionsLoadedArgs(InvocationContext context)
+    public InvocationContext Context { get; set; }
+    public Option[] Options { get; set; }
+
+    public OptionsLoadedArgs(InvocationContext context, Option[] options)
     {
         Context = context ?? throw new ArgumentNullException(nameof(context));
+        Options = options ?? throw new ArgumentNullException(nameof(options));
     }
-    public InvocationContext Context { get; set; }
 }
 
 public class RequestLog
