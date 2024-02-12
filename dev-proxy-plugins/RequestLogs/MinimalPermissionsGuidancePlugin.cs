@@ -42,15 +42,15 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 {
     public override string Name => nameof(MinimalPermissionsGuidancePlugin);
     private MinimalPermissionsGuidancePluginConfiguration _configuration = new();
-    private readonly Option<string?> _filePath;
+    private static readonly string _filePathOptionName = "--minimal-permissions-summary-file-path";
 
-    public MinimalPermissionsGuidancePlugin()
+    public override Option[] GetOptions()
     {
-        _filePath = new Option<string?>("--minimal-permissions-summary-file-path", "Path to the file where the permissions summary should be saved. If not specified, the summary will be printed to the console. Path can be absolute or relative to the current working directory.")
+        var filePath = new Option<string?>(_filePathOptionName, "Path to the file where the permissions summary should be saved. If not specified, the summary will be printed to the console. Path can be absolute or relative to the current working directory.")
         {
             ArgumentHelpName = "minimal-permissions-summary-file-path"
         };
-        _filePath.AddValidator(input =>
+        filePath.AddValidator(input =>
         {
             var outputFilePath = input.Tokens.First().Value;
             if (string.IsNullOrEmpty(outputFilePath))
@@ -71,6 +71,8 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
                 input.ErrorMessage = $"The directory {outputDir} does not exist.";
             }
         });
+
+        return [filePath];
     }
 
     public override void Register(IPluginEvents pluginEvents,
@@ -82,7 +84,6 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         configSection?.Bind(_configuration);
 
-        pluginEvents.Init += Init;
         pluginEvents.OptionsLoaded += OptionsLoaded;
         pluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
@@ -91,16 +92,11 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
     {
         InvocationContext context = e.Context;
 
-        var filePath = context.ParseResult.GetValueForOption(_filePath);
+        var filePath = context.ParseResult.GetValueForOption<string?>(_filePathOptionName, e.Options);
         if (filePath is not null)
         {
             _configuration.FilePath = filePath;
         }
-    }
-
-    private void Init(object? sender, InitArgs e)
-    {
-        e.RootCommand.AddOption(_filePath);
     }
 
     private async Task AfterRecordingStop(object? sender, RecordingArgs e)

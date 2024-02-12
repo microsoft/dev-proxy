@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.CommandLine;
 using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.DevProxy.Abstractions;
@@ -11,6 +12,9 @@ public abstract class BaseProxyPlugin : IProxyPlugin
     protected ILogger? _logger;
 
     public virtual string Name => throw new NotImplementedException();
+
+    public virtual Option[] GetOptions() => Array.Empty<Option>();
+
     public virtual void Register(IPluginEvents pluginEvents,
                          IProxyContext context,
                          ISet<UrlToWatch> urlsToWatch,

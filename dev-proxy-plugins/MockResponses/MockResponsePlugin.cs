@@ -35,26 +35,30 @@ public class MockResponsePlugin : BaseProxyPlugin
 {
     protected MockResponseConfiguration _configuration = new();
     private MockResponsesLoader? _loader = null;
-    private readonly Option<bool?> _noMocks;
-    private readonly Option<string?> _mocksFile;
+    private static readonly string _noMocksOptionName = "--no-mocks";
+    private static readonly string _mocksFileOptionName = "--mocks-file";
     public override string Name => nameof(MockResponsePlugin);
     private IProxyConfiguration? _proxyConfiguration;
     // tracks the number of times a mock has been applied
     // used in combination with mocks that have an Nth property
     private Dictionary<string, int> _appliedMocks = new();
 
-    public MockResponsePlugin()
+    public override Option[] GetOptions()
     {
-        _noMocks = new Option<bool?>("--no-mocks", "Disable loading mock requests");
+        var _noMocks = new Option<bool?>(_noMocksOptionName, "Disable loading mock requests")
+        {
+            ArgumentHelpName = "no mocks"
+        };
         _noMocks.AddAlias("-n");
-        _noMocks.ArgumentHelpName = "no mocks";
 
-        _mocksFile = new Option<string?>("--mocks-file", "Provide a file populated with mock responses")
+        var _mocksFile = new Option<string?>(_mocksFileOptionName, "Provide a file populated with mock responses")
         {
             ArgumentHelpName = "mocks file"
         };
-    }
 
+        return [_noMocks, _mocksFile];
+    }
+    
     public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
                             ISet<UrlToWatch> urlsToWatch,
@@ -65,25 +69,18 @@ public class MockResponsePlugin : BaseProxyPlugin
         configSection?.Bind(_configuration);
         _loader = new MockResponsesLoader(_logger!, _configuration);
 
-        pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
         pluginEvents.BeforeRequest += OnRequest;
 
         _proxyConfiguration = context.Configuration;
     }
 
-    private void OnInit(object? sender, InitArgs e)
-    {
-        e.RootCommand.AddOption(_noMocks);
-        e.RootCommand.AddOption(_mocksFile);
-    }
-
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
     {
         InvocationContext context = e.Context;
-
+        
         // allow disabling of mocks as a command line option
-        var noMocks = context.ParseResult.GetValueForOption(_noMocks);
+        var noMocks = context.ParseResult.GetValueForOption<bool?>(_noMocksOptionName, e.Options);
         if (noMocks.HasValue)
         {
             _configuration.NoMocks = noMocks.Value;
@@ -95,7 +92,7 @@ public class MockResponsePlugin : BaseProxyPlugin
         }
 
         // update the name of the mocks file to load from if supplied
-        string? mocksFile = context.ParseResult.GetValueForOption(_mocksFile);
+        var mocksFile = context.ParseResult.GetValueForOption<string?>(_mocksFileOptionName, e.Options);
         if (mocksFile is not null)
         {
             _configuration.MocksFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(mocksFile));

@@ -22,6 +22,7 @@ public class ProxyCommandHandler : ICommandHandler
     public Option<bool?> InstallCert { get; set; }
 
     private readonly PluginEvents _pluginEvents;
+    private readonly Option[] _options;
     private readonly ISet<UrlToWatch> _urlsToWatch;
     private readonly ILogger _logger;
 
@@ -36,6 +37,7 @@ public class ProxyCommandHandler : ICommandHandler
                                Option<bool?> asSystemProxy,
                                Option<bool?> installCert,
                                PluginEvents pluginEvents,
+                               Option[] options,
                                ISet<UrlToWatch> urlsToWatch,
                                ILogger logger)
     {
@@ -50,6 +52,7 @@ public class ProxyCommandHandler : ICommandHandler
         AsSystemProxy = asSystemProxy ?? throw new ArgumentNullException(nameof(asSystemProxy));
         InstallCert = installCert ?? throw new ArgumentNullException(nameof(installCert));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -114,7 +117,7 @@ public class ProxyCommandHandler : ICommandHandler
 
         CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
 
-        _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context));
+        _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context, _options));
 
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion(Configuration.NewVersionNotification);
         if (newReleaseInfo != null)
