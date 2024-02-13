@@ -41,10 +41,10 @@ class IdToken {
     public string? Ver { get; set; }
 }
 
-public class M365MockResponsePlugin : GraphMockResponsePlugin
+public class EntraMockResponsePlugin : MockResponsePlugin
 {
     private string? lastNonce;
-    public override string Name => nameof(M365MockResponsePlugin);
+    public override string Name => nameof(EntraMockResponsePlugin);
 
     protected override void ProcessMockResponse(ref byte[] body, IList<MockResponseHeader> headers, ProxyRequestArgs e, MockResponse? matchingResponse)
     {
