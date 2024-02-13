@@ -71,9 +71,6 @@ unzip -o ./devproxy.zip -d ./
 rm ./devproxy.zip
 echo "Configuring devproxy and its files as executable..."
 chmod +x ./devproxy ./libe_sqlite3.dylib
-echo "Removing quarantine attribute from devproxy and its files..."
-# don't fail if the files are not quarantined
-xattr -d com.apple.quarantine ./devproxy ./libe_sqlite3.dylib || true
 
 echo "Configuring new version notifications for the beta channel..."
 sed -i '' 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
