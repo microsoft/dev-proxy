@@ -71,7 +71,8 @@ rm ./devproxy.zip
 echo "Configuring devproxy and its files as executable..."
 chmod +x ./devproxy ./libe_sqlite3.dylib
 echo "Removing quarantine attribute from devproxy and its files..."
-xattr -d com.apple.quarantine ./devproxy ./libe_sqlite3.dylib
+# don't fail if the files are not quarantined
+xattr -d com.apple.quarantine ./devproxy ./libe_sqlite3.dylib || true
 
 echo "Adding devproxy to the PATH environment variable in your shell profile..."
 
