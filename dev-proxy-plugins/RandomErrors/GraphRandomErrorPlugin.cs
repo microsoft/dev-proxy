@@ -24,6 +24,7 @@ internal enum GraphRandomErrorFailMode
 public class GraphRandomErrorConfiguration
 {
     public List<int> AllowedErrors { get; set; } = new();
+    public int RetryAfterInSeconds { get; set; } = 5;
 }
 
 public class GraphRandomErrorPlugin : BaseProxyPlugin
@@ -34,7 +35,6 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
 
     public override string Name => nameof(GraphRandomErrorPlugin);
 
-    private const int retryAfterInSeconds = 5;
     private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new()
     {
         {
@@ -140,11 +140,11 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
 
                 if (errorStatus == HttpStatusCode.TooManyRequests)
                 {
-                    var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
+                    var retryAfterDate = DateTime.Now.AddSeconds(_configuration.RetryAfterInSeconds);
                     var requestUrl = ProxyUtils.GetAbsoluteRequestUrlFromBatch(e.Session.HttpClient.Request.RequestUri, request.Url);
                     var throttledRequests = e.GlobalData[RetryAfterPlugin.ThrottledRequestsKey] as List<ThrottlerInfo>;
                     throttledRequests?.Add(new ThrottlerInfo(GraphUtils.BuildThrottleKey(requestUrl), ShouldThrottle, retryAfterDate));
-                    response.Headers = new Dictionary<string, string> { { "Retry-After", retryAfterInSeconds.ToString() } };
+                    response.Headers = new Dictionary<string, string> { { "Retry-After", _configuration.RetryAfterInSeconds.ToString() } };
                 }
 
                 responses.Add(response);
@@ -159,7 +159,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey)
     {
         var throttleKeyForRequest = GraphUtils.BuildThrottleKey(request);
-        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? retryAfterInSeconds : 0, "Retry-After");
+        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? _configuration.RetryAfterInSeconds : 0, "Retry-After");
     }
 
     private void UpdateProxyResponse(ProxyRequestArgs e, HttpStatusCode errorStatus)
@@ -171,7 +171,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         var headers = ProxyUtils.BuildGraphResponseHeaders(request, requestId, requestDate);
         if (errorStatus == HttpStatusCode.TooManyRequests)
         {
-            var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
+            var retryAfterDate = DateTime.Now.AddSeconds(_configuration.RetryAfterInSeconds);
             if (!e.GlobalData.ContainsKey(RetryAfterPlugin.ThrottledRequestsKey))
             {
                 e.GlobalData.Add(RetryAfterPlugin.ThrottledRequestsKey, new List<ThrottlerInfo>());
@@ -179,7 +179,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
 
             var throttledRequests = e.GlobalData[RetryAfterPlugin.ThrottledRequestsKey] as List<ThrottlerInfo>;
             throttledRequests?.Add(new ThrottlerInfo(GraphUtils.BuildThrottleKey(request), ShouldThrottle, retryAfterDate));
-            headers.Add(new("Retry-After", retryAfterInSeconds.ToString()));
+            headers.Add(new("Retry-After", _configuration.RetryAfterInSeconds.ToString()));
         }
 
         string body = JsonSerializer.Serialize(new GraphErrorResponseBody(
