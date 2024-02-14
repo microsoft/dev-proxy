@@ -3,6 +3,7 @@
 
 using System.Text;
 using Microsoft.DevProxy.Abstractions;
+using MSLogging = Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
 
@@ -41,7 +42,10 @@ public class ConsoleLogger : ILogger
         Console.WriteLine(message);
     }
 
-    public void LogWarn(string message)
+    [Obsolete("Please use structured logging, LogWarning from Microsoft.Extensions.Logging.ILogger instead.")]
+    public void LogWarn(string message) => logWarn(message);
+
+    private void logWarn(string message)
     {
         if (LogLevel > LogLevel.Warn)
         {
@@ -384,4 +388,41 @@ public class ConsoleLogger : ILogger
             LogLevel = LogLevel
         }, _pluginEvents);
     }
+
+    /// <inheritdoc/>
+    public void Log<TState>(MSLogging.LogLevel logLevel, MSLogging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        if (IsEnabled(logLevel))
+        {
+            var message = formatter(state, exception).ReplaceLineEndings();
+            switch (logLevel)
+            {
+                case MSLogging.LogLevel.Debug:
+                    LogDebug(message);
+                    break;
+                case MSLogging.LogLevel.Information:
+                    LogInfo(message);
+                    break;
+                case MSLogging.LogLevel.Warning:
+                    logWarn(message);
+                    break;
+                case MSLogging.LogLevel.Error:
+                    LogError(message);
+                    break;
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public bool IsEnabled(MSLogging.LogLevel logLevel) => LogLevel switch
+    {
+        LogLevel.Debug => true,
+        LogLevel.Info => logLevel >= MSLogging.LogLevel.Information,
+        LogLevel.Warn => logLevel >= MSLogging.LogLevel.Warning,
+        LogLevel.Error => logLevel >= MSLogging.LogLevel.Error,
+        _ => false
+    };
+
+    /// <inheritdoc/>
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default!;
 }

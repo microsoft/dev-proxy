@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -84,10 +85,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         _logger?.LogInfo(string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.Item1} {e.Item2}")));
         _logger?.LogInfo("");
 
-        _logger?.LogWarn("This plugin is in preview and may not return the correct results.");
-        _logger?.LogWarn("Please review the permissions and test your app before using them in production.");
-        _logger?.LogWarn("If you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
-        _logger?.LogInfo("");
+        _logger?.LogWarning("This plugin is in preview and may not return the correct results.\nPlease review the permissions and test your app before using them in production.\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
 
         await DetermineMinimalScopes(endpoints);
     }

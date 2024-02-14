@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace Microsoft.DevProxy.Plugins.MockResponses;
 
 internal class CrudApiDefinitionLoader : IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly Abstractions.ILogger _logger;
     private readonly CrudApiConfiguration _configuration;
 
-    public CrudApiDefinitionLoader(ILogger logger, CrudApiConfiguration configuration)
+    public CrudApiDefinitionLoader(Abstractions.ILogger logger, CrudApiConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -65,8 +65,7 @@ internal class CrudApiDefinitionLoader : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError($"An error has occurred while reading {_configuration.ApiFile}:");
-            _logger.LogError(ex.Message);
+            _logger.LogError(ex, "An error has occurred while reading {configurationFile}:", _configuration.ApiFile);
         }
     }
 
@@ -80,7 +79,7 @@ internal class CrudApiDefinitionLoader : IDisposable
         string path = Path.GetDirectoryName(_configuration.ApiFile) ?? throw new InvalidOperationException($"{_configuration.ApiFile} is an invalid path");
         if (!File.Exists(_configuration.ApiFile))
         {
-            _logger.LogWarn($"File {_configuration.ApiFile} not found. No CRUD API will be provided");
+            _logger.LogWarning("File {configurationFile} not found. No CRUD API will be provided", _configuration.ApiFile);
             _configuration.Actions = Array.Empty<CrudApiAction>();
             return;
         }

@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
@@ -23,7 +23,7 @@ enum ToggleSystemProxyAction
 public class ProxyEngine
 {
     private readonly PluginEvents _pluginEvents;
-    private readonly ILogger _logger;
+    private readonly Abstractions.ILogger _logger;
     private readonly ProxyConfiguration _config;
     private ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
@@ -40,7 +40,7 @@ public class ProxyEngine
     // the key is HashObject of the SessionEventArgs object
     private Dictionary<int, Dictionary<string, object>> _pluginData = new();
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, Abstractions.ILogger logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
@@ -133,7 +133,7 @@ public class ProxyEngine
             }
             else
             {
-                _logger.LogWarn("Configure your operating system to use this proxy's port and address");
+                _logger.LogWarning("Configure your operating system to use this proxy's port and address {ipAddress}:{port}", _config.IPAddress, _config.Port);
             }
         }
         else
@@ -363,7 +363,7 @@ public class ProxyEngine
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Exception: {ex.Message}");
+            _logger.LogError(ex, "An error occurred while stopping the proxy");
         }
     }
 

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
 using System.CommandLine;
@@ -193,9 +194,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         if (string.IsNullOrEmpty(_configuration.FilePath))
         {
-            _logger?.LogWarn("This plugin is in preview and may not return the correct results.");
-            _logger?.LogWarn("Please review the permissions and test your app before using them in production.");
-            _logger?.LogWarn("If you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
+            _logger?.LogWarning("This plugin is in preview and may not return the correct results.\nPlease review the permissions and test your app before using them in production.\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
             _logger?.LogInfo("");
         }
 
@@ -387,8 +386,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
                         if (excessPermissions.Any())
                         {
-                            _logger?.LogWarn("The following permissions are unnecessary:");
-                            _logger?.LogWarn(string.Join(", ", excessPermissions));
+                            _logger?.LogWarning("The following permissions are unnecessary: {permissions}", excessPermissions);
                             _logger?.LogInfo("");
                         }
                         else
@@ -400,14 +398,13 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
                 }
                 if (errors.Any())
                 {
-                    _logger?.LogError("Couldn't determine minimal permissions for the following URLs:");
-                    _logger?.LogError(string.Join(Environment.NewLine, errors));
+                    _logger?.LogError("Couldn't determine minimal permissions for the following URLs: {errors}", errors);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(string.Format("An error has occurred while retrieving minimal permissions: {0}", ex.Message));
+            _logger?.LogError(ex, "An error has occurred while retrieving minimal permissions: {message}", ex.Message);
         }
     }
 
