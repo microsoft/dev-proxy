@@ -194,8 +194,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         if (string.IsNullOrEmpty(_configuration.FilePath))
         {
-            _logger?.LogWarning("This plugin is in preview and may not return the correct results.\nPlease review the permissions and test your app before using them in production.\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
-            _logger?.LogInfo("");
+            _logger?.LogWarning("This plugin is in preview and may not return the correct results.\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
         }
 
         if (delegatedEndpoints.Count > 0)
@@ -205,10 +204,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
             if (string.IsNullOrEmpty(_configuration.FilePath))
             {
-                _logger?.LogInfo("Evaluating delegated permissions for:");
-                _logger?.LogInfo("");
-                _logger?.LogInfo(string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
-                _logger?.LogInfo("");
+                _logger?.LogInformation("Evaluating delegated permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
             }
 
             await EvaluateMinimalScopes(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
@@ -221,10 +217,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
             if (string.IsNullOrEmpty(_configuration.FilePath))
             {
-                _logger?.LogInfo("Evaluating application permissions for:");
-                _logger?.LogInfo("");
-                _logger?.LogInfo(string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
-                _logger?.LogInfo("");
+                _logger?.LogInformation("Evaluating application permissions for:\r\n{applicationPermissions}\r\n", string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
             }
 
             await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
@@ -377,22 +370,16 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
                     if (string.IsNullOrEmpty(_configuration.FilePath))
                     {
-                        _logger?.LogInfo("Minimal permissions:");
-                        _logger?.LogInfo(string.Join(", ", minimalPermissions));
-                        _logger?.LogInfo("");
-                        _logger?.LogInfo("Permissions on the token:");
-                        _logger?.LogInfo(string.Join(", ", permissionsFromAccessToken));
-                        _logger?.LogInfo("");
+                        _logger?.LogInformation("Minimal permissions:\r\n{minimalPermissions}\r\nPermissions on the token:\r\n{tokenPermissions}", string.Join(", ", minimalPermissions), string.Join(", ", permissionsFromAccessToken));
+
 
                         if (excessPermissions.Any())
                         {
                             _logger?.LogWarning("The following permissions are unnecessary: {permissions}", excessPermissions);
-                            _logger?.LogInfo("");
                         }
                         else
                         {
-                            _logger?.LogInfo("The token has the minimal permissions required.");
-                            _logger?.LogInfo("");
+                            _logger?.LogInformation("The token has the minimal permissions required.");
                         }
                     }
                 }

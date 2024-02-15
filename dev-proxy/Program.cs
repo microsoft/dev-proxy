@@ -3,14 +3,15 @@
 
 using Microsoft.DevProxy;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.CommandLine;
 
 PluginEvents pluginEvents = new PluginEvents();
-ILogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration, pluginEvents);
+Microsoft.DevProxy.Abstractions.ILogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration, pluginEvents);
 // set the log level if specified through args
 if (ProxyHost.LogLevel is not null)
 {
-    logger.LogLevel = ProxyHost.LogLevel.Value;
+    logger.SetLogLevel(ProxyHost.LogLevel.Value);
 }
 IProxyContext context = new ProxyContext(logger, ProxyCommandHandler.Configuration);
 ProxyHost proxyHost = new();
@@ -79,9 +80,10 @@ foreach (var option in rootCommand.Options)
 // list the remaining incoming options as unknown in the output
 if (incomingOptions.Length > 0)
 {
-    logger.LogError($"Unknown option(s): {string.Join(" ", incomingOptions)}");
-    logger.LogInfo($"TIP: Use --help view available options");
-    logger.LogInfo($"TIP: Are you missing a plugin? See: https://aka.ms/devproxy/plugins");
+
+    logger.LogError("Unknown option(s): {unknownOptions}", string.Join(" ", incomingOptions));
+    logger.LogInformation("TIP: Use --help view available options");
+    logger.LogInformation("TIP: Are you missing a plugin? See: https://aka.ms/devproxy/plugins");
 }
 else
 {

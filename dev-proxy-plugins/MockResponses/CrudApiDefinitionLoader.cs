@@ -58,14 +58,14 @@ internal class CrudApiDefinitionLoader : IDisposable
                                 };
                             }
                         }
-                        _logger.LogInfo($"{configResponses.Count()} actions for CRUD API loaded from {_configuration.ApiFile}");
+                        _logger.LogInformation("{configResponseCount} actions for CRUD API loaded from {apiFile}", configResponses.Count(), _configuration.ApiFile);
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error has occurred while reading {configurationFile}:", _configuration.ApiFile);
+            _logger.LogError(ex, "An error has occurred while reading {apiFile}:", _configuration.ApiFile);
         }
     }
 

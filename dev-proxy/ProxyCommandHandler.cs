@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -12,7 +13,7 @@ public class ProxyCommandHandler : ICommandHandler
 {
     public Option<int?> Port { get; set; }
     public Option<string?> IPAddress { get; set; }
-    public Option<LogLevel?> LogLevel { get; set; }
+    public Option<Abstractions.LogLevel?> LogLevel { get; set; }
     public Option<bool?> Record { get; set; }
     public Option<IEnumerable<int>?> WatchPids { get; set; }
     public Option<IEnumerable<string>?> WatchProcessNames { get; set; }
@@ -24,11 +25,11 @@ public class ProxyCommandHandler : ICommandHandler
     private readonly PluginEvents _pluginEvents;
     private readonly Option[] _options;
     private readonly ISet<UrlToWatch> _urlsToWatch;
-    private readonly ILogger _logger;
+    private readonly Abstractions.ILogger _logger;
 
     public ProxyCommandHandler(Option<int?> port,
                                Option<string?> ipAddress,
-                               Option<LogLevel?> logLevel,
+                               Option<Abstractions.LogLevel?> logLevel,
                                Option<bool?> record,
                                Option<IEnumerable<int>?> watchPids,
                                Option<IEnumerable<string>?> watchProcessNames,
@@ -39,7 +40,7 @@ public class ProxyCommandHandler : ICommandHandler
                                PluginEvents pluginEvents,
                                Option[] options,
                                ISet<UrlToWatch> urlsToWatch,
-                               ILogger logger)
+                               Abstractions.ILogger logger)
     {
         Port = port ?? throw new ArgumentNullException(nameof(port));
         IPAddress = ipAddress ?? throw new ArgumentNullException(nameof(ipAddress));
@@ -77,7 +78,7 @@ public class ProxyCommandHandler : ICommandHandler
         var logLevel = context.ParseResult.GetValueForOption(LogLevel);
         if (logLevel is not null)
         {
-            _logger.LogLevel = logLevel.Value;
+            _logger.SetLogLevel(logLevel.Value);
         }
         var record = context.ParseResult.GetValueForOption(Record);
         if (record is not null)
@@ -122,9 +123,7 @@ public class ProxyCommandHandler : ICommandHandler
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion(Configuration.NewVersionNotification);
         if (newReleaseInfo != null)
         {
-            _logger.LogError($"New Dev Proxy version {newReleaseInfo.Version} is available.");
-            _logger.LogError($"See https://aka.ms/devproxy/upgrade for more information.");
-            _logger.LogError(string.Empty);
+            _logger.LogError("New Dev Proxy version {version} is available.\r\nSee https://aka.ms/devproxy/upgrade for more information.", newReleaseInfo.Version);
         }
 
         try
@@ -134,16 +133,13 @@ public class ProxyCommandHandler : ICommandHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError("An error occurred while running Dev Proxy");
-            _logger.LogError(ex.Message.ToString());
-            _logger.LogError(ex.StackTrace?.ToString() ?? string.Empty);
+            _logger.LogError(ex, "An error occurred while running Dev Proxy");
             var inner = ex.InnerException;
 
             while (inner is not null)
             {
-                _logger.LogError("============ Inner exception ============");
-                _logger.LogError(inner.Message.ToString());
-                _logger.LogError(inner.StackTrace?.ToString() ?? string.Empty);
+                // Not sure if this is even needed, I guess the inner exception is logged by the outer exception
+                _logger.LogError(inner, "============ Inner exception ============");
                 inner = inner.InnerException;
             }
 #if DEBUG

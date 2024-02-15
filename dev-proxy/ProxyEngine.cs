@@ -76,7 +76,7 @@ public class ProxyEngine
     {
         if (!_urlsToWatch.Any())
         {
-            _logger.LogInfo("No URLs to watch configured. Please add URLs to watch in the devproxyrc.json config file.");
+            _logger.LogInformation("No URLs to watch configured. Please add URLs to watch in the devproxyrc.json config file.");
             return;
         }
 
@@ -118,7 +118,7 @@ public class ProxyEngine
 
         foreach (var endPoint in _proxyServer.ProxyEndPoints)
         {
-            _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
+            _logger.LogInformation("Listening on {ipAddress}:{port}...", endPoint.IpAddress, endPoint.Port);
         }
 
         if (_config.AsSystemProxy)
@@ -138,11 +138,10 @@ public class ProxyEngine
         }
         else
         {
-            _logger.LogInfo("Configure your application to use this proxy's port and address");
+            _logger.LogInformation("Configure your application to use this proxy's port and address");
         }
 
-        _logger.LogInfo("Press CTRL+C to stop Dev Proxy");
-        _logger.LogInfo("");
+        _logger.LogInformation("Press CTRL+C to stop Dev Proxy\r\n");
         Console.CancelKeyPress += Console_CancelKeyPress;
 
         if (_config.Record)

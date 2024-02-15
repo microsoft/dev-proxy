@@ -20,7 +20,7 @@ public class ConsoleLogger : ILogger
 
     public static readonly object ConsoleLock = new object();
 
-    public LogLevel LogLevel { get; set; }
+    private LogLevel LogLevel { get; set; }
 
     public ConsoleLogger(ProxyConfiguration configuration, PluginEvents pluginEvents)
     {
@@ -32,7 +32,7 @@ public class ConsoleLogger : ILogger
         LogLevel = configuration.LogLevel;
     }
 
-    public void LogInfo(string message)
+    private void LogInfo(string message)
     {
         if (LogLevel > LogLevel.Info)
         {
@@ -42,10 +42,7 @@ public class ConsoleLogger : ILogger
         Console.WriteLine(message);
     }
 
-    [Obsolete("Please use structured logging, LogWarning from Microsoft.Extensions.Logging.ILogger instead.")]
-    public void LogWarn(string message) => logWarn(message);
-
-    private void logWarn(string message)
+    private void LogWarn(string message)
     {
         if (LogLevel > LogLevel.Warn)
         {
@@ -57,7 +54,7 @@ public class ConsoleLogger : ILogger
         Console.ForegroundColor = _color;
     }
 
-    public void LogError(string message)
+    private void LogError(string message)
     {
         if (LogLevel > LogLevel.Error)
         {
@@ -69,7 +66,7 @@ public class ConsoleLogger : ILogger
         Console.ForegroundColor = _color;
     }
 
-    public void LogDebug(string message)
+    private void LogDebug(string message)
     {
         if (LogLevel > LogLevel.Debug)
         {
@@ -77,7 +74,7 @@ public class ConsoleLogger : ILogger
         }
 
         Console.ForegroundColor = ConsoleColor.Gray;
-        Console.Error.WriteLine(message);
+        Console.WriteLine(message);
         Console.ForegroundColor = _color;
     }
 
@@ -220,51 +217,29 @@ public class ConsoleLogger : ILogger
     {
         var iconSpacing = "  ";
         var noIconSpacing = "   ";
-        var interceptedRequest = $"← ←";
-        var passedThrough = "↑ ↑";
-        var chaos = "× →";
-        var warning = "/!\\";
-        var mock = "o →";
-        var normal = "   ";
-        var fail = "! →";
-        var tip = "(i)";
 
-        var icon = normal;
-        var fgColor = Console.ForegroundColor;
-
-        switch (messageType)
+        var icon = messageType switch
         {
-            case MessageType.InterceptedRequest:
-                icon = interceptedRequest;
-                break;
-            case MessageType.PassedThrough:
-                icon = passedThrough;
-                fgColor = ConsoleColor.Gray;
-                break;
-            case MessageType.Chaos:
-                icon = chaos;
-                fgColor = ConsoleColor.DarkRed;
-                break;
-            case MessageType.Warning:
-                icon = warning;
-                fgColor = ConsoleColor.Yellow;
-                break;
-            case MessageType.Mocked:
-                icon = mock;
-                fgColor = ConsoleColor.DarkYellow;
-                break;
-            case MessageType.Failed:
-                icon = fail;
-                fgColor = ConsoleColor.Red;
-                break;
-            case MessageType.Tip:
-                icon = tip;
-                fgColor = ConsoleColor.Blue;
-                break;
-            case MessageType.Normal:
-                icon = normal;
-                break;
-        }
+            MessageType.InterceptedRequest => "← ←",
+            MessageType.PassedThrough => "↑ ↑",
+            MessageType.Chaos => "× →",
+            MessageType.Warning => "/!\\",
+            MessageType.Mocked => "o →",
+            MessageType.Failed => "! →",
+            MessageType.Tip => "(i)",
+            MessageType.Normal => "   ",
+            _ => "   "
+        };
+        var fgColor = messageType switch
+        {
+            MessageType.PassedThrough => ConsoleColor.Gray,
+            MessageType.Chaos => ConsoleColor.DarkRed,
+            MessageType.Warning => ConsoleColor.Yellow,
+            MessageType.Mocked => ConsoleColor.DarkYellow,
+            MessageType.Failed => ConsoleColor.Red,
+            MessageType.Tip => ConsoleColor.Blue,
+            _ => Console.ForegroundColor
+        };
 
         Console.ForegroundColor = fgColor;
 
@@ -302,51 +277,28 @@ public class ConsoleLogger : ILogger
     {
         var iconSpacing = "  ";
         var noIconSpacing = " ";
-        var interceptedRequest = "\uf441";
-        var passedThrough = "\ue33c";
-        var chaos = "\uf188";
-        var warning = "\uf421";
-        var mock = "\uf064";
-        var normal = " ";
-        var fail = "\uf65b";
-        var tip = "\ufbe6";
 
-        var icon = normal;
-        var fgColor = Console.ForegroundColor;
-
-        switch (messageType)
+        var icon = messageType switch
         {
-            case MessageType.InterceptedRequest:
-                icon = interceptedRequest;
-                break;
-            case MessageType.PassedThrough:
-                icon = passedThrough;
-                fgColor = ConsoleColor.Gray;
-                break;
-            case MessageType.Chaos:
-                icon = chaos;
-                fgColor = ConsoleColor.DarkRed;
-                break;
-            case MessageType.Warning:
-                icon = warning;
-                fgColor = ConsoleColor.Yellow;
-                break;
-            case MessageType.Mocked:
-                icon = mock;
-                fgColor = ConsoleColor.DarkYellow;
-                break;
-            case MessageType.Failed:
-                icon = fail;
-                fgColor = ConsoleColor.Red;
-                break;
-            case MessageType.Tip:
-                icon = tip;
-                fgColor = ConsoleColor.Blue;
-                break;
-            case MessageType.Normal:
-                icon = normal;
-                break;
-        }
+            MessageType.InterceptedRequest => "\uf441",
+            MessageType.PassedThrough => "\ue33c",
+            MessageType.Chaos => "\uf188",
+            MessageType.Warning => "\uf421",
+            MessageType.Mocked => "\uf064",
+            MessageType.Failed => "\uf65b",
+            MessageType.Tip => "\ufbe6",
+            _ => " "
+        };
+        var fgColor = messageType switch
+        {
+            MessageType.PassedThrough => ConsoleColor.Gray,
+            MessageType.Chaos => ConsoleColor.DarkRed,
+            MessageType.Warning => ConsoleColor.Yellow,
+            MessageType.Mocked => ConsoleColor.DarkYellow,
+            MessageType.Failed => ConsoleColor.Red,
+            MessageType.Tip => ConsoleColor.Blue,
+            _ => Console.ForegroundColor
+        };
 
         Console.ForegroundColor = fgColor;
 
@@ -404,7 +356,7 @@ public class ConsoleLogger : ILogger
                     LogInfo(message);
                     break;
                 case MSLogging.LogLevel.Warning:
-                    logWarn(message);
+                    LogWarn(message);
                     break;
                 case MSLogging.LogLevel.Error:
                     LogError(message);
@@ -425,4 +377,9 @@ public class ConsoleLogger : ILogger
 
     /// <inheritdoc/>
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default!;
+
+    public void SetLogLevel(LogLevel logLevel)
+    {
+        LogLevel = logLevel;
+    }
 }

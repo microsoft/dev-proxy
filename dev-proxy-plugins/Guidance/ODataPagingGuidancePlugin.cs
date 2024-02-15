@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using System.Text.Json;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
@@ -96,7 +97,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
         }
         catch (Exception e)
         {
-            _logger?.LogDebug($"An error has occurred while parsing the response body: {e.Message}. {e.StackTrace}");
+            _logger?.LogDebug(e, "An error has occurred while parsing the response body");
         }
 
         return nextLink;

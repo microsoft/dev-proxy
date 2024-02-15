@@ -42,7 +42,7 @@ internal class MockResponsesLoader : IDisposable
                     if (configResponses is not null)
                     {
                         _configuration.Mocks = configResponses;
-                        _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from {_configuration.MocksFile}");
+                        _logger.LogInformation("Mock responses for {configResponseCount} url patterns loaded from {mockFile}", configResponses.Count(), _configuration.MocksFile);
                     }
                 }
             }

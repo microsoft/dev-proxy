@@ -46,21 +46,15 @@ public enum LogLevel
 /// </summary>
 /// <remarks>
 /// Please use structured logging as much as possible.
-/// <see cref="ILogger.LogDebug(string)"/> becomes <see cref="Microsoft.Extensions.Logging.ILogger.LogDebug(string, object[])"/>
-/// <see cref="ILogger.LogInfo(string)"/> becomes <see cref="Microsoft.Extensions.Logging.ILogger.LogInformation(string, object[])"/>
-/// <see cref="ILogger.LogWarn(string)"/> becomes <see cref="Microsoft.Extensions.Logging.ILogger.LogWarning(string, object[])"/>
-/// <see cref="ILogger.LogError(string)"/> becomes <see cref="Microsoft.Extensions.Logging.ILogger.LogError(string, object[])"/> or <see cref="Microsoft.Extensions.Logging.ILogger.LogError(Exception, string, object[])"/>
+/// Log Debug information with <see cref="Microsoft.Extensions.Logging.ILogger.LogDebug(string, object[])"/>
+/// Log Information with <see cref="Microsoft.Extensions.Logging.ILogger.LogInformation(string, object[])"/>
+/// Log Warnings with <see cref="Microsoft.Extensions.Logging.ILogger.LogWarning(string, object[])"/>
+/// Log Errors with <see cref="Microsoft.Extensions.Logging.ILogger.LogError(Exception, string, object[])"/> or <see cref="Microsoft.Extensions.Logging.ILogger.LogError(string, object[])"/>
 /// </remarks>
 public interface ILogger : ICloneable, MSLogging.ILogger
 {
-    public LogLevel LogLevel { get; set; }
+    public void SetLogLevel(LogLevel logLevel);
+    //public LogLevel LogLevel { get; set; }
 
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null);
-
-    // Logging methods for non-traffic related messages
-    public void LogInfo(string message);
-    [Obsolete("Moved to structured logging.")]
-    public void LogWarn(string message);
-    public void LogError(string message);
-    public void LogDebug(string message);
 }
