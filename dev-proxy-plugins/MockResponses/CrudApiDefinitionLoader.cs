@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
@@ -8,10 +9,10 @@ namespace Microsoft.DevProxy.Plugins.MockResponses;
 
 internal class CrudApiDefinitionLoader : IDisposable
 {
-    private readonly Abstractions.ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly CrudApiConfiguration _configuration;
 
-    public CrudApiDefinitionLoader(Abstractions.ILogger logger, CrudApiConfiguration configuration)
+    public CrudApiDefinitionLoader(IProxyLogger logger, CrudApiConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));

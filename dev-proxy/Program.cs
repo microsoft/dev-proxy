@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using System.CommandLine;
 
 PluginEvents pluginEvents = new PluginEvents();
-Microsoft.DevProxy.Abstractions.ILogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration, pluginEvents);
+IProxyLogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration, pluginEvents);
 // set the log level if specified through args
 if (ProxyHost.LogLevel is not null)
 {

@@ -25,7 +25,7 @@ public class ProxyCommandHandler : ICommandHandler
     private readonly PluginEvents _pluginEvents;
     private readonly Option[] _options;
     private readonly ISet<UrlToWatch> _urlsToWatch;
-    private readonly Abstractions.ILogger _logger;
+    private readonly IProxyLogger _logger;
 
     public ProxyCommandHandler(Option<int?> port,
                                Option<string?> ipAddress,
@@ -40,7 +40,7 @@ public class ProxyCommandHandler : ICommandHandler
                                PluginEvents pluginEvents,
                                Option[] options,
                                ISet<UrlToWatch> urlsToWatch,
-                               Abstractions.ILogger logger)
+                               IProxyLogger logger)
     {
         Port = port ?? throw new ArgumentNullException(nameof(port));
         IPAddress = ipAddress ?? throw new ArgumentNullException(nameof(ipAddress));

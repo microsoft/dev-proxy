@@ -194,7 +194,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         if (string.IsNullOrEmpty(_configuration.FilePath))
         {
-            _logger?.LogWarning("This plugin is in preview and may not return the correct results.\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
+            _logger?.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
         }
 
         if (delegatedEndpoints.Count > 0)

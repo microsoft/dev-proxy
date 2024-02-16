@@ -51,7 +51,7 @@ public enum LogLevel
 /// Log Warnings with <see cref="Microsoft.Extensions.Logging.ILogger.LogWarning(string, object[])"/>
 /// Log Errors with <see cref="Microsoft.Extensions.Logging.ILogger.LogError(Exception, string, object[])"/> or <see cref="Microsoft.Extensions.Logging.ILogger.LogError(string, object[])"/>
 /// </remarks>
-public interface ILogger : ICloneable, MSLogging.ILogger
+public interface IProxyLogger : ICloneable, MSLogging.ILogger
 {
     public void SetLogLevel(LogLevel logLevel);
     //public LogLevel LogLevel { get; set; }

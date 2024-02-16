@@ -22,7 +22,7 @@ internal class PluginLoaderResult
 
 internal class PluginLoader
 {
-    public PluginLoader(Abstractions.ILogger logger)
+    public PluginLoader(IProxyLogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -84,7 +84,7 @@ internal class PluginLoader
 
         string availableTypes = string.Join(",", assembly.GetTypes().Select(t => t.FullName));
         throw new ApplicationException(
-            $"Can't find plugin {h.Name} which implements IProxyPlugin in {assembly} from {AppContext.BaseDirectory}.\n" +
+            $"Can't find plugin {h.Name} which implements IProxyPlugin in {assembly} from {AppContext.BaseDirectory}.\r\n" +
             $"Available types: {availableTypes}");
     }
 
@@ -104,7 +104,7 @@ internal class PluginLoader
     }
 
     private PluginConfig? _pluginConfig;
-    private Abstractions.ILogger _logger;
+    private IProxyLogger _logger;
 
     private PluginConfig PluginConfig
     {

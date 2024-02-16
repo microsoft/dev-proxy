@@ -9,10 +9,10 @@ namespace Microsoft.DevProxy.Plugins.MockResponses;
 
 internal class MockResponsesLoader : IDisposable
 {
-    private readonly Abstractions.ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly MockResponseConfiguration _configuration;
 
-    public MockResponsesLoader(Abstractions.ILogger logger, MockResponseConfiguration configuration)
+    public MockResponsesLoader(IProxyLogger logger, MockResponseConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));

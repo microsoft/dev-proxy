@@ -7,7 +7,7 @@ using MSLogging = Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
 
-public class ConsoleLogger : ILogger
+public class ConsoleLogger : IProxyLogger
 {
     private readonly ConsoleColor _color;
     private readonly LabelMode _labelMode;
@@ -20,7 +20,7 @@ public class ConsoleLogger : ILogger
 
     public static readonly object ConsoleLock = new object();
 
-    private LogLevel LogLevel { get; set; }
+    private LogLevel CurrentLogLevel { get; set; }
 
     public ConsoleLogger(ProxyConfiguration configuration, PluginEvents pluginEvents)
     {
@@ -29,52 +29,32 @@ public class ConsoleLogger : ILogger
         _color = Console.ForegroundColor;
         _labelMode = configuration.LabelMode;
         _pluginEvents = pluginEvents;
-        LogLevel = configuration.LogLevel;
+        CurrentLogLevel = configuration.LogLevel;
     }
 
-    private void LogInfo(string message)
+    private void WriteLog(string message)
     {
-        if (LogLevel > LogLevel.Info)
-        {
-            return;
-        }
-
         Console.WriteLine(message);
     }
 
-    private void LogWarn(string message)
+    private void WriteWarning(string message)
     {
-        if (LogLevel > LogLevel.Warn)
-        {
-            return;
-        }
-
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Error.WriteLine($"  WARNING: {message}");
         Console.ForegroundColor = _color;
     }
 
-    private void LogError(string message)
+    private void WriteError(string message)
     {
-        if (LogLevel > LogLevel.Error)
-        {
-            return;
-        }
-
         Console.ForegroundColor = ConsoleColor.Red;
         Console.Error.WriteLine(message);
         Console.ForegroundColor = _color;
     }
 
-    private void LogDebug(string message)
+    private void WriteDebug(string message)
     {
-        if (LogLevel > LogLevel.Debug)
-        {
-            return;
-        }
-
         Console.ForegroundColor = ConsoleColor.Gray;
-        Console.WriteLine(message);
+        Console.Error.WriteLine(message);
         Console.ForegroundColor = _color;
     }
 
@@ -218,6 +198,7 @@ public class ConsoleLogger : ILogger
         var iconSpacing = "  ";
         var noIconSpacing = "   ";
 
+        // Set the icon based on the provided message type, using this switch statement
         var icon = messageType switch
         {
             MessageType.InterceptedRequest => "← ←",
@@ -230,6 +211,7 @@ public class ConsoleLogger : ILogger
             MessageType.Normal => "   ",
             _ => "   "
         };
+        // Set the foreground color based on the provided message type, using this switch statement
         var fgColor = messageType switch
         {
             MessageType.PassedThrough => ConsoleColor.Gray,
@@ -278,6 +260,7 @@ public class ConsoleLogger : ILogger
         var iconSpacing = "  ";
         var noIconSpacing = " ";
 
+        // Set the icon based on the provided message type, using this switch statement
         var icon = messageType switch
         {
             MessageType.InterceptedRequest => "\uf441",
@@ -289,6 +272,7 @@ public class ConsoleLogger : ILogger
             MessageType.Tip => "\ufbe6",
             _ => " "
         };
+        // Set the foreground color based on the provided message type, using this switch statement
         var fgColor = messageType switch
         {
             MessageType.PassedThrough => ConsoleColor.Gray,
@@ -337,41 +321,49 @@ public class ConsoleLogger : ILogger
         return new ConsoleLogger(new ProxyConfiguration
         {
             LabelMode = _labelMode,
-            LogLevel = LogLevel
+            LogLevel = CurrentLogLevel
         }, _pluginEvents);
     }
 
     /// <inheritdoc/>
     public void Log<TState>(MSLogging.LogLevel logLevel, MSLogging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
-        if (IsEnabled(logLevel))
+        if (!IsEnabled(logLevel))
         {
-            var message = formatter(state, exception).ReplaceLineEndings();
-            switch (logLevel)
-            {
-                case MSLogging.LogLevel.Debug:
-                    LogDebug(message);
-                    break;
-                case MSLogging.LogLevel.Information:
-                    LogInfo(message);
-                    break;
-                case MSLogging.LogLevel.Warning:
-                    LogWarn(message);
-                    break;
-                case MSLogging.LogLevel.Error:
-                    LogError(message);
-                    break;
-            }
+            return;
         }
+
+        var message = formatter(state, exception).ReplaceLineEndings();
+        switch (logLevel)
+        {
+            case MSLogging.LogLevel.Debug:
+                WriteDebug(message);
+                break;
+            case MSLogging.LogLevel.Information:
+                WriteLog(message);
+                break;
+            case MSLogging.LogLevel.Warning:
+                WriteWarning(message);
+                break;
+            case MSLogging.LogLevel.Error:
+                WriteError(message);
+                break;
+        }
+        
     }
 
     /// <inheritdoc/>
-    public bool IsEnabled(MSLogging.LogLevel logLevel) => LogLevel switch
+    public bool IsEnabled(MSLogging.LogLevel logLevel) => CurrentLogLevel switch
     {
+        // Current log level is Debug, so all log levels are enabled
         LogLevel.Debug => true,
+        // Current log level is Info, so only Info, Warning, and Error log levels are enabled
         LogLevel.Info => logLevel >= MSLogging.LogLevel.Information,
+        // Current log level is Warn, so only Warning and Error log levels are enabled
         LogLevel.Warn => logLevel >= MSLogging.LogLevel.Warning,
+        // Current log level is Error, so only Error log level is enabled
         LogLevel.Error => logLevel >= MSLogging.LogLevel.Error,
+        // Current log level is not recognized, so no log levels are enabled
         _ => false
     };
 
@@ -380,6 +372,6 @@ public class ConsoleLogger : ILogger
 
     public void SetLogLevel(LogLevel logLevel)
     {
-        LogLevel = logLevel;
+        CurrentLogLevel = logLevel;
     }
 }

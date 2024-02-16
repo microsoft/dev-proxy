@@ -10,10 +10,10 @@ namespace Microsoft.DevProxy.Plugins.Behavior;
 
 internal class RateLimitingCustomResponseLoader : IDisposable
 {
-    private readonly Abstractions.ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly RateLimitConfiguration _configuration;
 
-    public RateLimitingCustomResponseLoader(Abstractions.ILogger logger, RateLimitConfiguration configuration)
+    public RateLimitingCustomResponseLoader(IProxyLogger logger, RateLimitConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));

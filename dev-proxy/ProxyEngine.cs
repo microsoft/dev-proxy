@@ -23,7 +23,7 @@ enum ToggleSystemProxyAction
 public class ProxyEngine
 {
     private readonly PluginEvents _pluginEvents;
-    private readonly Abstractions.ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly ProxyConfiguration _config;
     private ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
@@ -40,7 +40,7 @@ public class ProxyEngine
     // the key is HashObject of the SessionEventArgs object
     private Dictionary<int, Dictionary<string, object>> _pluginData = new();
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, Abstractions.ILogger logger)
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, IProxyLogger logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));

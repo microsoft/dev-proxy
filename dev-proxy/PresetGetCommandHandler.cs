@@ -33,7 +33,7 @@ class GitHubTreeItem
 
 public static class PresetGetCommandHandler
 {
-    public static async Task DownloadPreset(string presetId, Abstractions.ILogger logger)
+    public static async Task DownloadPreset(string presetId, IProxyLogger logger)
     {
         try
         {
@@ -111,7 +111,7 @@ public static class PresetGetCommandHandler
     /// </remarks>
     /// <param name="presetFolder">Full path to the folder with preset files</param>
     /// <returns>Array of files that can be used to start proxy with</returns>
-    private static ProxyPresetInfo GetPresetInfo(string presetFolder, Abstractions.ILogger logger)
+    private static ProxyPresetInfo GetPresetInfo(string presetFolder, IProxyLogger logger)
     {
         var presetInfo = new ProxyPresetInfo();
 
@@ -167,7 +167,7 @@ public static class PresetGetCommandHandler
         return newFolder;
     }
 
-    private static async Task<string[]> GetFilesToDownload(string sampleFolderName, Abstractions.ILogger logger)
+    private static async Task<string[]> GetFilesToDownload(string sampleFolderName, IProxyLogger logger)
     {
         logger.LogDebug("Getting list of files in Dev Proxy samples repo...");
         var url = $"https://api.github.com/repos/pnp/proxy-samples/git/trees/main?recursive=1";
@@ -206,7 +206,7 @@ public static class PresetGetCommandHandler
         }
     }
 
-    private static async Task DownloadFile(string filePath, string targetFolderPath, string presetId, Abstractions.ILogger logger)
+    private static async Task DownloadFile(string filePath, string targetFolderPath, string presetId, IProxyLogger logger)
     {
         var url = $"https://raw.githubusercontent.com/pnp/proxy-samples/main/{filePath.Replace("#", "%23")}";
         logger.LogDebug("Downloading file {filePath}...", filePath);

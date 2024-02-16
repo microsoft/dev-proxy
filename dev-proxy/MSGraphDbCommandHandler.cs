@@ -8,9 +8,9 @@ namespace Microsoft.DevProxy;
 
 public class MSGraphDbCommandHandler : ICommandHandler
 {
-    private readonly ILogger _logger;
+    private readonly IProxyLogger _logger;
 
-    public MSGraphDbCommandHandler(ILogger logger)
+    public MSGraphDbCommandHandler(IProxyLogger logger)
     {
         _logger = logger;
     }

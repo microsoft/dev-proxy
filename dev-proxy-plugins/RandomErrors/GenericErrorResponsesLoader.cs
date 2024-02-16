@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
@@ -8,10 +9,10 @@ namespace Microsoft.DevProxy.Plugins.RandomErrors;
 
 internal class GenericErrorResponsesLoader : IDisposable
 {
-    private readonly Abstractions.ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly GenericRandomErrorConfiguration _configuration;
 
-    public GenericErrorResponsesLoader(Abstractions.ILogger logger, GenericRandomErrorConfiguration configuration)
+    public GenericErrorResponsesLoader(IProxyLogger logger, GenericRandomErrorConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));

@@ -84,7 +84,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         _logger?.LogInformation("Retrieving minimal permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.Item1} {e.Item2}")));
 
 
-        _logger?.LogWarning("This plugin is in preview and may not return the correct results.\nPlease review the permissions and test your app before using them in production.\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
+        _logger?.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
 
         await DetermineMinimalScopes(endpoints);
     }
