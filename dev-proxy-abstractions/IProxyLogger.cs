@@ -41,20 +41,8 @@ public enum LogLevel
     Error
 }
 
-/// <summary>
-/// Custom interface for logging, extending <see cref="Microsoft.Extensions.Logging.ILogger"/>
-/// </summary>
-/// <remarks>
-/// Please use structured logging as much as possible.
-/// Log Debug information with <see cref="Microsoft.Extensions.Logging.ILogger.LogDebug(string, object[])"/>
-/// Log Information with <see cref="Microsoft.Extensions.Logging.ILogger.LogInformation(string, object[])"/>
-/// Log Warnings with <see cref="Microsoft.Extensions.Logging.ILogger.LogWarning(string, object[])"/>
-/// Log Errors with <see cref="Microsoft.Extensions.Logging.ILogger.LogError(Exception, string, object[])"/> or <see cref="Microsoft.Extensions.Logging.ILogger.LogError(string, object[])"/>
-/// </remarks>
 public interface IProxyLogger : ICloneable, MSLogging.ILogger
 {
     public void SetLogLevel(LogLevel logLevel);
-    //public LogLevel LogLevel { get; set; }
-
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null);
 }

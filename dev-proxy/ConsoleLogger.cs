@@ -12,15 +12,15 @@ public class ConsoleLogger : IProxyLogger
     private readonly ConsoleColor _color;
     private readonly LabelMode _labelMode;
     private readonly PluginEvents _pluginEvents;
-    private readonly string _boxTopLeft = "\u256d ";
-    private readonly string _boxLeft = "\u2502 ";
-    private readonly string _boxBottomLeft = "\u2570 ";
+    private const string _boxTopLeft = "\u256d ";
+    private const string _boxLeft = "\u2502 ";
+    private const string _boxBottomLeft = "\u2570 ";
     // used to align single-line messages
-    private readonly string _boxSpacing = "  ";
+    private const string _boxSpacing = "  ";
 
     public static readonly object ConsoleLock = new object();
 
-    private LogLevel CurrentLogLevel { get; set; }
+    private MSLogging.LogLevel CurrentLogLevel { get; set; }
 
     public ConsoleLogger(ProxyConfiguration configuration, PluginEvents pluginEvents)
     {
@@ -29,7 +29,7 @@ public class ConsoleLogger : IProxyLogger
         _color = Console.ForegroundColor;
         _labelMode = configuration.LabelMode;
         _pluginEvents = pluginEvents;
-        CurrentLogLevel = configuration.LogLevel;
+        SetLogLevel(configuration.LogLevel);
     }
 
     private void WriteLog(string message)
@@ -95,15 +95,15 @@ public class ConsoleLogger : IProxyLogger
 
     public void WriteBoxedWithInvertedLabels(string[] message, MessageType messageType)
     {
-        var labelSpacing = "  ";
-        var interceptedRequest = "request";
-        var passedThrough = "api";
-        var chaos = "chaos";
-        var warning = "warning";
-        var mock = "mock";
-        var normal = "log";
-        var fail = "fail";
-        var tip = "tip";
+        const string labelSpacing = "  ";
+        const string interceptedRequest = "request";
+        const string passedThrough = "api";
+        const string chaos = "chaos";
+        const string warning = "warning";
+        const string mock = "mock";
+        const string normal = "log";
+        const string fail = "fail";
+        const string tip = "tip";
         var allLabels = new[] { interceptedRequest, passedThrough, chaos, warning, mock, normal, fail, tip };
         var maxLabelLength = allLabels.Max(l => l.Length);
         var noLabelSpacing = new string(' ', maxLabelLength + 2);
@@ -195,8 +195,8 @@ public class ConsoleLogger : IProxyLogger
 
     public void WriteBoxedWithAsciiIcons(string[] message, MessageType messageType)
     {
-        var iconSpacing = "  ";
-        var noIconSpacing = "   ";
+        const string iconSpacing = "  ";
+        const string noIconSpacing = "   ";
 
         // Set the icon based on the provided message type, using this switch statement
         var icon = messageType switch
@@ -257,8 +257,8 @@ public class ConsoleLogger : IProxyLogger
 
     public void WriteBoxedWithNerdFontIcons(string[] message, MessageType messageType)
     {
-        var iconSpacing = "  ";
-        var noIconSpacing = " ";
+        const string iconSpacing = "  ";
+        const string noIconSpacing = " ";
 
         // Set the icon based on the provided message type, using this switch statement
         var icon = messageType switch
@@ -321,7 +321,7 @@ public class ConsoleLogger : IProxyLogger
         return new ConsoleLogger(new ProxyConfiguration
         {
             LabelMode = _labelMode,
-            LogLevel = CurrentLogLevel
+            LogLevel = GetLogLevel()
         }, _pluginEvents);
     }
 
@@ -356,13 +356,13 @@ public class ConsoleLogger : IProxyLogger
     public bool IsEnabled(MSLogging.LogLevel logLevel) => CurrentLogLevel switch
     {
         // Current log level is Debug, so all log levels are enabled
-        LogLevel.Debug => true,
+        MSLogging.LogLevel.Debug => true,
         // Current log level is Info, so only Info, Warning, and Error log levels are enabled
-        LogLevel.Info => logLevel >= MSLogging.LogLevel.Information,
+        MSLogging.LogLevel.Information => logLevel >= MSLogging.LogLevel.Information,
         // Current log level is Warn, so only Warning and Error log levels are enabled
-        LogLevel.Warn => logLevel >= MSLogging.LogLevel.Warning,
+        MSLogging.LogLevel.Warning => logLevel >= MSLogging.LogLevel.Warning,
         // Current log level is Error, so only Error log level is enabled
-        LogLevel.Error => logLevel >= MSLogging.LogLevel.Error,
+        MSLogging.LogLevel.Error => logLevel >= MSLogging.LogLevel.Error,
         // Current log level is not recognized, so no log levels are enabled
         _ => false
     };
@@ -372,6 +372,22 @@ public class ConsoleLogger : IProxyLogger
 
     public void SetLogLevel(LogLevel logLevel)
     {
-        CurrentLogLevel = logLevel;
+        CurrentLogLevel = logLevel switch
+        {
+            LogLevel.Debug => MSLogging.LogLevel.Debug,
+            LogLevel.Info => MSLogging.LogLevel.Information,
+            LogLevel.Warn => MSLogging.LogLevel.Warning,
+            LogLevel.Error => MSLogging.LogLevel.Error,
+            _ => throw new ArgumentOutOfRangeException(nameof(logLevel), logLevel, null)
+        };
     }
+
+    public LogLevel GetLogLevel() => CurrentLogLevel switch
+    {
+        MSLogging.LogLevel.Debug => LogLevel.Debug,
+        MSLogging.LogLevel.Information => LogLevel.Info,
+        MSLogging.LogLevel.Warning => LogLevel.Warn,
+        MSLogging.LogLevel.Error => LogLevel.Error,
+        _ => throw new ArgumentOutOfRangeException()
+    };
 }
