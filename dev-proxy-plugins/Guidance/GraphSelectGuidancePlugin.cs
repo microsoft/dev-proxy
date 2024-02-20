@@ -24,7 +24,7 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
         // for background db refresh, let's use a separate logger
         // that only logs warnings and errors
         var _logger2 = (IProxyLogger)context.Logger.Clone();
-        _logger2.SetLogLevel(Abstractions.LogLevel.Warn);
+        _logger2.LogLevel = LogLevel.Warning;
         // let's not await so that it doesn't block the proxy startup
         _ = MSGraphDbUtils.GenerateMSGraphDb(_logger2, true);
     }

@@ -21,6 +21,6 @@
   },
   "rate": 50,
   "labelMode": "text",
-  "logLevel": "info",
+  "logLevel": "Information",
   "newVersionNotification": "stable"
 }

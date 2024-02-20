@@ -13,7 +13,7 @@ public class ProxyCommandHandler : ICommandHandler
 {
     public Option<int?> Port { get; set; }
     public Option<string?> IPAddress { get; set; }
-    public Option<Abstractions.LogLevel?> LogLevel { get; set; }
+    public Option<LogLevel?> LogLevel { get; set; }
     public Option<bool?> Record { get; set; }
     public Option<IEnumerable<int>?> WatchPids { get; set; }
     public Option<IEnumerable<string>?> WatchProcessNames { get; set; }
@@ -29,7 +29,7 @@ public class ProxyCommandHandler : ICommandHandler
 
     public ProxyCommandHandler(Option<int?> port,
                                Option<string?> ipAddress,
-                               Option<Abstractions.LogLevel?> logLevel,
+                               Option<LogLevel?> logLevel,
                                Option<bool?> record,
                                Option<IEnumerable<int>?> watchPids,
                                Option<IEnumerable<string>?> watchProcessNames,
@@ -78,7 +78,7 @@ public class ProxyCommandHandler : ICommandHandler
         var logLevel = context.ParseResult.GetValueForOption(LogLevel);
         if (logLevel is not null)
         {
-            _logger.SetLogLevel(logLevel.Value);
+            _logger.LogLevel = logLevel.Value;
         }
         var record = context.ParseResult.GetValueForOption(Record);
         if (record is not null)

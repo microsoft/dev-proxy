@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Net;

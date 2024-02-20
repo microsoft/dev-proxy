@@ -11,7 +11,7 @@ IProxyLogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration, plugi
 // set the log level if specified through args
 if (ProxyHost.LogLevel is not null)
 {
-    logger.SetLogLevel(ProxyHost.LogLevel.Value);
+    logger.LogLevel = ProxyHost.LogLevel.Value;
 }
 IProxyContext context = new ProxyContext(logger, ProxyCommandHandler.Configuration);
 ProxyHost proxyHost = new();

@@ -3,7 +3,7 @@
 
 using System.Text;
 using Microsoft.DevProxy.Abstractions;
-using MSLogging = Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
 
@@ -20,7 +20,7 @@ public class ConsoleLogger : IProxyLogger
 
     public static readonly object ConsoleLock = new object();
 
-    private MSLogging.LogLevel CurrentLogLevel { get; set; }
+    private LogLevel _currentLogLevel { get; set; }
 
     public ConsoleLogger(ProxyConfiguration configuration, PluginEvents pluginEvents)
     {
@@ -29,7 +29,7 @@ public class ConsoleLogger : IProxyLogger
         _color = Console.ForegroundColor;
         _labelMode = configuration.LabelMode;
         _pluginEvents = pluginEvents;
-        SetLogLevel(configuration.LogLevel);
+        _currentLogLevel = configuration.LogLevel;
     }
 
     private void WriteLog(string message)
@@ -321,12 +321,12 @@ public class ConsoleLogger : IProxyLogger
         return new ConsoleLogger(new ProxyConfiguration
         {
             LabelMode = _labelMode,
-            LogLevel = GetLogLevel()
+            LogLevel = _currentLogLevel
         }, _pluginEvents);
     }
 
     /// <inheritdoc/>
-    public void Log<TState>(MSLogging.LogLevel logLevel, MSLogging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
         if (!IsEnabled(logLevel))
         {
@@ -336,16 +336,16 @@ public class ConsoleLogger : IProxyLogger
         var message = formatter(state, exception).ReplaceLineEndings();
         switch (logLevel)
         {
-            case MSLogging.LogLevel.Debug:
+            case LogLevel.Debug:
                 WriteDebug(message);
                 break;
-            case MSLogging.LogLevel.Information:
+            case LogLevel.Information:
                 WriteLog(message);
                 break;
-            case MSLogging.LogLevel.Warning:
+            case LogLevel.Warning:
                 WriteWarning(message);
                 break;
-            case MSLogging.LogLevel.Error:
+            case LogLevel.Error:
                 WriteError(message);
                 break;
         }
@@ -353,41 +353,14 @@ public class ConsoleLogger : IProxyLogger
     }
 
     /// <inheritdoc/>
-    public bool IsEnabled(MSLogging.LogLevel logLevel) => CurrentLogLevel switch
-    {
-        // Current log level is Debug, so all log levels are enabled
-        MSLogging.LogLevel.Debug => true,
-        // Current log level is Info, so only Info, Warning, and Error log levels are enabled
-        MSLogging.LogLevel.Information => logLevel >= MSLogging.LogLevel.Information,
-        // Current log level is Warn, so only Warning and Error log levels are enabled
-        MSLogging.LogLevel.Warning => logLevel >= MSLogging.LogLevel.Warning,
-        // Current log level is Error, so only Error log level is enabled
-        MSLogging.LogLevel.Error => logLevel >= MSLogging.LogLevel.Error,
-        // Current log level is not recognized, so no log levels are enabled
-        _ => false
-    };
+    public bool IsEnabled(LogLevel logLevel) => logLevel >= _currentLogLevel; // only log if the log level is greater than or equal to the current log level
 
     /// <inheritdoc/>
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default!;
 
-    public void SetLogLevel(LogLevel logLevel)
+    public LogLevel LogLevel
     {
-        CurrentLogLevel = logLevel switch
-        {
-            LogLevel.Debug => MSLogging.LogLevel.Debug,
-            LogLevel.Info => MSLogging.LogLevel.Information,
-            LogLevel.Warn => MSLogging.LogLevel.Warning,
-            LogLevel.Error => MSLogging.LogLevel.Error,
-            _ => throw new ArgumentOutOfRangeException(nameof(logLevel), logLevel, null)
-        };
+        get => _currentLogLevel;
+        set => _currentLogLevel = value;
     }
-
-    public LogLevel GetLogLevel() => CurrentLogLevel switch
-    {
-        MSLogging.LogLevel.Debug => LogLevel.Debug,
-        MSLogging.LogLevel.Information => LogLevel.Info,
-        MSLogging.LogLevel.Warning => LogLevel.Warn,
-        MSLogging.LogLevel.Error => LogLevel.Error,
-        _ => throw new ArgumentOutOfRangeException()
-    };
 }
