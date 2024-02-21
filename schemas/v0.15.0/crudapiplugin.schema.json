@@ -82,7 +82,7 @@
               "validateLifetime": {
                 "type": "boolean"
               },
-              "validateToken": {
+              "validateSigningKey": {
                 "type": "boolean"
               }
             }
@@ -130,7 +130,7 @@
         "validateLifetime": {
           "type": "boolean"
         },
-        "validateToken": {
+        "validateSigningKey": {
           "type": "boolean"
         }
       }

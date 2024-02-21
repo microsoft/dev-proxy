@@ -50,8 +50,8 @@ public class CrudApiEntraAuth
     public string[] Roles { get; set; } = Array.Empty<string>();
     [JsonPropertyName("validateLifetime")]
     public bool ValidateLifetime { get; set; } = false;
-    [JsonPropertyName("validateToken")]
-    public bool ValidateToken { get; set; } = false;
+    [JsonPropertyName("validateSigningKey")]
+    public bool ValidateSigningKey { get; set; } = false;
 }
 
 public class CrudApiAction
@@ -227,9 +227,9 @@ public class CrudApiPlugin : BaseProxyPlugin
             ValidateAudience = !string.IsNullOrEmpty(authConfig.Audience),
             ValidAudience = authConfig.Audience,
             ValidateLifetime = authConfig.ValidateLifetime,
-            ValidateIssuerSigningKey = authConfig.ValidateToken
+            ValidateIssuerSigningKey = authConfig.ValidateSigningKey
         };
-        if (!authConfig.ValidateToken)
+        if (!authConfig.ValidateSigningKey)
         {
             // suppress token validation
             validationParameters.SignatureValidator = delegate (string token, TokenValidationParameters parameters)
