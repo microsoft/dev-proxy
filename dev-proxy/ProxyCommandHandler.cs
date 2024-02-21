@@ -138,7 +138,6 @@ public class ProxyCommandHandler : ICommandHandler
 
             while (inner is not null)
             {
-                // Not sure if this is even needed, I guess the inner exception is logged by the outer exception
                 _logger.LogError(inner, "============ Inner exception ============");
                 inner = inner.InnerException;
             }
