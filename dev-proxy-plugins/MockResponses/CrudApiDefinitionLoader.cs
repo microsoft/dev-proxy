@@ -37,6 +37,8 @@ internal class CrudApiDefinitionLoader : IDisposable
                     var apiDefinitionConfig = JsonSerializer.Deserialize<CrudApiConfiguration>(apiDefinitionString);
                     _configuration.BaseUrl = apiDefinitionConfig?.BaseUrl ?? string.Empty;
                     _configuration.DataFile = apiDefinitionConfig?.DataFile ?? string.Empty;
+                    _configuration.Auth = apiDefinitionConfig?.Auth ?? CrudApiAuthType.None;
+                    _configuration.EntraAuthConfig = apiDefinitionConfig?.EntraAuthConfig;
 
                     IEnumerable<CrudApiAction>? configResponses = apiDefinitionConfig?.Actions;
                     if (configResponses is not null)

@@ -45,12 +45,94 @@
               "PATCH",
               "DELETE"
             ]
+          },
+          "auth": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "None",
+                  "Entra"
+                ]
+              }
+            }
+          },
+          "entraAuthConfig": {
+            "type": "object",
+            "properties": {
+              "audience": {
+                "type": "string"
+              },
+              "issuer": {
+                "type": "string"
+              },
+              "scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "validateLifetime": {
+                "type": "boolean"
+              },
+              "validateToken": {
+                "type": "boolean"
+              }
+            }
           }
         },
         "required": [
           "action"
         ],
         "additionalProperties": false
+      }
+    },
+    "auth": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Entra"
+          ]
+        }
+      }
+    },
+    "entraAuthConfig": {
+      "type": "object",
+      "properties": {
+        "audience": {
+          "type": "string"
+        },
+        "issuer": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "validateLifetime": {
+          "type": "boolean"
+        },
+        "validateToken": {
+          "type": "boolean"
+        }
       }
     }
   },
