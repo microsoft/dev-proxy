@@ -257,6 +257,8 @@ public class CrudApiPlugin : BaseProxyPlugin
                     _logger?.LogRequest(["401 Unauthorized", $"The specified token does not have the necessary role(s). Required one of: {rolesRequired}, found: {rolesFromTheToken}"], MessageType.Failed, new LoggingContext(e.Session));
                     return false;
                 }
+
+                return true;
             }
             if (authConfig.Scopes.Any())
             {
@@ -271,6 +273,8 @@ public class CrudApiPlugin : BaseProxyPlugin
                     _logger?.LogRequest(["401 Unauthorized", $"The specified token does not have the necessary scope(s). Required one of: {scopesRequired}, found: {scopesFromTheToken}"], MessageType.Failed, new LoggingContext(e.Session));
                     return false;
                 }
+
+                return true;
             }
         }
         catch (Exception ex)
