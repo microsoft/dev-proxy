@@ -20,7 +20,7 @@ public class ConsoleLogger : IProxyLogger
 
     public static readonly object ConsoleLock = new object();
 
-    private LogLevel _currentLogLevel { get; set; }
+    public LogLevel LogLevel { get; set; }
 
     public ConsoleLogger(ProxyConfiguration configuration, PluginEvents pluginEvents)
     {
@@ -29,7 +29,7 @@ public class ConsoleLogger : IProxyLogger
         _color = Console.ForegroundColor;
         _labelMode = configuration.LabelMode;
         _pluginEvents = pluginEvents;
-        _currentLogLevel = configuration.LogLevel;
+        LogLevel = configuration.LogLevel;
     }
 
     private void WriteLog(string message)
@@ -321,7 +321,7 @@ public class ConsoleLogger : IProxyLogger
         return new ConsoleLogger(new ProxyConfiguration
         {
             LabelMode = _labelMode,
-            LogLevel = _currentLogLevel
+            LogLevel = LogLevel
         }, _pluginEvents);
     }
 
@@ -353,14 +353,8 @@ public class ConsoleLogger : IProxyLogger
     }
 
     /// <inheritdoc/>
-    public bool IsEnabled(LogLevel logLevel) => logLevel >= _currentLogLevel; // only log if the log level is greater than or equal to the current log level
+    public bool IsEnabled(LogLevel logLevelToTest) => logLevelToTest >= LogLevel; // only log if the log level is greater than or equal to the current log level
 
     /// <inheritdoc/>
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default!;
-
-    public LogLevel LogLevel
-    {
-        get => _currentLogLevel;
-        set => _currentLogLevel = value;
-    }
 }
