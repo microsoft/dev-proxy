@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 using System.Runtime.Serialization;
 using Titanium.Web.Proxy.EventArguments;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Abstractions;
 
@@ -28,27 +29,8 @@ public class LoggingContext
     }
 }
 
-public enum LogLevel
-{
-    [EnumMember(Value = "debug")]
-    Debug,
-    [EnumMember(Value = "info")]
-    Info,
-    [EnumMember(Value = "warn")]
-    Warn,
-    [EnumMember(Value = "error")]
-    Error
-}
-
-public interface ILogger : ICloneable
+public interface IProxyLogger : ICloneable, ILogger
 {
     public LogLevel LogLevel { get; set; }
-
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null);
-
-    // Logging methods for non-traffic related messages
-    public void LogInfo(string message);
-    public void LogWarn(string message);
-    public void LogError(string message);
-    public void LogDebug(string message);
 }

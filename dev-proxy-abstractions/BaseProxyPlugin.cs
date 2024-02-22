@@ -9,7 +9,7 @@ namespace Microsoft.DevProxy.Abstractions;
 public abstract class BaseProxyPlugin : IProxyPlugin
 {
     protected ISet<UrlToWatch>? _urlsToWatch;
-    protected ILogger? _logger;
+    protected IProxyLogger? _logger;
 
     public virtual string Name => throw new NotImplementedException();
 

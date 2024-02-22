@@ -2,16 +2,17 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace Microsoft.DevProxy.Plugins.RandomErrors;
 
 internal class GenericErrorResponsesLoader : IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly GenericRandomErrorConfiguration _configuration;
 
-    public GenericErrorResponsesLoader(ILogger logger, GenericRandomErrorConfiguration configuration)
+    public GenericErrorResponsesLoader(IProxyLogger logger, GenericRandomErrorConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -24,7 +25,7 @@ internal class GenericErrorResponsesLoader : IDisposable
     {
         if (!File.Exists(_errorsFile))
         {
-            _logger.LogWarn($"File {_configuration.ErrorsFile} not found in the current directory. No error responses will be loaded");
+            _logger.LogWarning("File {configurationFile} not found in the current directory. No error responses will be loaded", _configuration.ErrorsFile);
             _configuration.Responses = Array.Empty<GenericErrorResponse>();
             return;
         }
@@ -41,15 +42,14 @@ internal class GenericErrorResponsesLoader : IDisposable
                     if (configResponses is not null)
                     {
                         _configuration.Responses = configResponses;
-                        _logger.LogInfo($"Error responses for {configResponses.Count()} url patterns loaded from {_configuration.ErrorsFile}");
+                        _logger.LogInformation("Error responses for {configResponseCount} url patterns loaded from {errorFile}", configResponses.Count(), _configuration.ErrorsFile);
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError($"An error has occurred while reading {_configuration.ErrorsFile}:");
-            _logger.LogError(ex.Message);
+            _logger.LogError(ex, "An error has occurred while reading {configurationFile}:", _configuration.ErrorsFile);
         }
     }
 
