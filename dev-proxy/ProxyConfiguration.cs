@@ -4,6 +4,7 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
 
@@ -30,7 +31,7 @@ public class ProxyConfiguration : IProxyConfiguration
     public bool Record { get; set; } = false;
     [JsonPropertyName("logLevel")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public LogLevel LogLevel { get; set; } = LogLevel.Info;
+    public LogLevel LogLevel { get; set; } = LogLevel.Information;
     public IEnumerable<int> WatchPids { get; set; } = new List<int>();
     public IEnumerable<string> WatchProcessNames { get; set; } = new List<string>();
     [JsonPropertyName("rate")]

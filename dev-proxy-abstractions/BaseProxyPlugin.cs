@@ -9,11 +9,12 @@ namespace Microsoft.DevProxy.Abstractions;
 public abstract class BaseProxyPlugin : IProxyPlugin
 {
     protected ISet<UrlToWatch>? _urlsToWatch;
-    protected ILogger? _logger;
+    protected IProxyLogger? _logger;
 
     public virtual string Name => throw new NotImplementedException();
 
     public virtual Option[] GetOptions() => Array.Empty<Option>();
+    public virtual Command[] GetCommands() => Array.Empty<Command>();
 
     public virtual void Register(IPluginEvents pluginEvents,
                          IProxyContext context,

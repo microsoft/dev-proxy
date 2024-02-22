@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -10,47 +11,16 @@ namespace Microsoft.DevProxy;
 
 public class ProxyCommandHandler : ICommandHandler
 {
-    public Option<int?> Port { get; set; }
-    public Option<string?> IPAddress { get; set; }
-    public Option<LogLevel?> LogLevel { get; set; }
-    public Option<bool?> Record { get; set; }
-    public Option<IEnumerable<int>?> WatchPids { get; set; }
-    public Option<IEnumerable<string>?> WatchProcessNames { get; set; }
-    public Option<int?> Rate { get; set; }
-    public Option<bool?> NoFirstRun { get; set; }
-    public Option<bool?> AsSystemProxy { get; set; }
-    public Option<bool?> InstallCert { get; set; }
-
     private readonly PluginEvents _pluginEvents;
     private readonly Option[] _options;
     private readonly ISet<UrlToWatch> _urlsToWatch;
-    private readonly ILogger _logger;
+    private readonly IProxyLogger _logger;
 
-    public ProxyCommandHandler(Option<int?> port,
-                               Option<string?> ipAddress,
-                               Option<LogLevel?> logLevel,
-                               Option<bool?> record,
-                               Option<IEnumerable<int>?> watchPids,
-                               Option<IEnumerable<string>?> watchProcessNames,
-                               Option<int?> rate,
-                               Option<bool?> noFirstRun,
-                               Option<bool?> asSystemProxy,
-                               Option<bool?> installCert,
-                               PluginEvents pluginEvents,
+    public ProxyCommandHandler(PluginEvents pluginEvents,
                                Option[] options,
                                ISet<UrlToWatch> urlsToWatch,
-                               ILogger logger)
+                               IProxyLogger logger)
     {
-        Port = port ?? throw new ArgumentNullException(nameof(port));
-        IPAddress = ipAddress ?? throw new ArgumentNullException(nameof(ipAddress));
-        LogLevel = logLevel ?? throw new ArgumentNullException(nameof(logLevel));
-        Record = record ?? throw new ArgumentNullException(nameof(record));
-        WatchPids = watchPids ?? throw new ArgumentNullException(nameof(watchPids));
-        WatchProcessNames = watchProcessNames ?? throw new ArgumentNullException(nameof(watchProcessNames));
-        Rate = rate ?? throw new ArgumentNullException(nameof(rate));
-        NoFirstRun = noFirstRun ?? throw new ArgumentNullException(nameof(noFirstRun));
-        AsSystemProxy = asSystemProxy ?? throw new ArgumentNullException(nameof(asSystemProxy));
-        InstallCert = installCert ?? throw new ArgumentNullException(nameof(installCert));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
@@ -64,52 +34,52 @@ public class ProxyCommandHandler : ICommandHandler
 
     public async Task<int> InvokeAsync(InvocationContext context)
     {
-        var port = context.ParseResult.GetValueForOption(Port);
+        var port = context.ParseResult.GetValueForOption<int?>(ProxyHost.PortOptionName, _options);
         if (port is not null)
         {
             Configuration.Port = port.Value;
         }
-        var ipAddress = context.ParseResult.GetValueForOption(IPAddress);
+        var ipAddress = context.ParseResult.GetValueForOption<string?>(ProxyHost.IpAddressOptionName, _options);
         if (ipAddress is not null)
         {
             Configuration.IPAddress = ipAddress;
         }
-        var logLevel = context.ParseResult.GetValueForOption(LogLevel);
+        var logLevel = context.ParseResult.GetValueForOption<LogLevel?>(ProxyHost.LogLevelOptionName, _options);
         if (logLevel is not null)
         {
             _logger.LogLevel = logLevel.Value;
         }
-        var record = context.ParseResult.GetValueForOption(Record);
+        var record = context.ParseResult.GetValueForOption<bool?>(ProxyHost.RecordOptionName, _options);
         if (record is not null)
         {
             Configuration.Record = record.Value;
         }
-        var watchPids = context.ParseResult.GetValueForOption(WatchPids);
+        var watchPids = context.ParseResult.GetValueForOption<IEnumerable<int>?>(ProxyHost.WatchPidsOptionName, _options);
         if (watchPids is not null)
         {
             Configuration.WatchPids = watchPids;
         }
-        var watchProcessNames = context.ParseResult.GetValueForOption(WatchProcessNames);
+        var watchProcessNames = context.ParseResult.GetValueForOption<IEnumerable<string>?>(ProxyHost.WatchProcessNamesOptionName, _options);
         if (watchProcessNames is not null)
         {
             Configuration.WatchProcessNames = watchProcessNames;
         }
-        var rate = context.ParseResult.GetValueForOption(Rate);
+        var rate = context.ParseResult.GetValueForOption<int?>(ProxyHost.RateOptionName, _options);
         if (rate is not null)
         {
             Configuration.Rate = rate.Value;
         }
-        var noFirstRun = context.ParseResult.GetValueForOption(NoFirstRun);
+        var noFirstRun = context.ParseResult.GetValueForOption<bool?>(ProxyHost.NoFirstRunOptionName, _options);
         if (noFirstRun is not null)
         {
             Configuration.NoFirstRun = noFirstRun.Value;
         }
-        var asSystemProxy = context.ParseResult.GetValueForOption(AsSystemProxy);
+        var asSystemProxy = context.ParseResult.GetValueForOption<bool?>(ProxyHost.AsSystemProxyOptionName, _options);
         if (asSystemProxy is not null)
         {
             Configuration.AsSystemProxy = asSystemProxy.Value;
         }
-        var installCert = context.ParseResult.GetValueForOption(InstallCert);
+        var installCert = context.ParseResult.GetValueForOption<bool?>(ProxyHost.InstallCertOptionName, _options);
         if (installCert is not null)
         {
             Configuration.InstallCert = installCert.Value;
@@ -122,9 +92,7 @@ public class ProxyCommandHandler : ICommandHandler
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion(Configuration.NewVersionNotification);
         if (newReleaseInfo != null)
         {
-            _logger.LogError($"New Dev Proxy version {newReleaseInfo.Version} is available.");
-            _logger.LogError($"See https://aka.ms/devproxy/upgrade for more information.");
-            _logger.LogError(string.Empty);
+            _logger.LogError("New Dev Proxy version {version} is available.\r\nSee https://aka.ms/devproxy/upgrade for more information.", newReleaseInfo.Version);
         }
 
         try
@@ -134,16 +102,12 @@ public class ProxyCommandHandler : ICommandHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError("An error occurred while running Dev Proxy");
-            _logger.LogError(ex.Message.ToString());
-            _logger.LogError(ex.StackTrace?.ToString() ?? string.Empty);
+            _logger.LogError(ex, "An error occurred while running Dev Proxy");
             var inner = ex.InnerException;
 
             while (inner is not null)
             {
-                _logger.LogError("============ Inner exception ============");
-                _logger.LogError(inner.Message.ToString());
-                _logger.LogError(inner.StackTrace?.ToString() ?? string.Empty);
+                _logger.LogError(inner, "============ Inner exception ============");
                 inner = inner.InnerException;
             }
 #if DEBUG

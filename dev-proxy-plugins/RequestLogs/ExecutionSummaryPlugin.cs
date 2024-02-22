@@ -6,6 +6,7 @@ using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -121,7 +122,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 
         if (string.IsNullOrEmpty(_configuration.FilePath))
         {
-            _logger?.LogInfo(string.Join(Environment.NewLine, report));
+            _logger?.LogInformation("Report:\r\n{report}", string.Join(Environment.NewLine, report));
         }
         else
         {

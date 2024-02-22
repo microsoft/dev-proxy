@@ -11,6 +11,7 @@ using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.MockResponses;
 
@@ -96,8 +97,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError($"An error has occurred while reading {_configuration.DataFile}:");
-            _logger?.LogError(ex.Message);
+            _logger?.LogError(ex, "An error has occured while reading {configFile}", _configuration.DataFile);
         }
     }
 
