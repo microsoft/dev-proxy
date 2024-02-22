@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
@@ -23,7 +23,7 @@ enum ToggleSystemProxyAction
 public class ProxyEngine
 {
     private readonly PluginEvents _pluginEvents;
-    private readonly ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly ProxyConfiguration _config;
     private ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
@@ -40,7 +40,7 @@ public class ProxyEngine
     // the key is HashObject of the SessionEventArgs object
     private Dictionary<int, Dictionary<string, object>> _pluginData = new();
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, IProxyLogger logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
@@ -76,7 +76,7 @@ public class ProxyEngine
     {
         if (!_urlsToWatch.Any())
         {
-            _logger.LogInfo("No URLs to watch configured. Please add URLs to watch in the devproxyrc.json config file.");
+            _logger.LogInformation("No URLs to watch configured. Please add URLs to watch in the devproxyrc.json config file.");
             return;
         }
 
@@ -118,7 +118,7 @@ public class ProxyEngine
 
         foreach (var endPoint in _proxyServer.ProxyEndPoints)
         {
-            _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
+            _logger.LogInformation("Listening on {ipAddress}:{port}...", endPoint.IpAddress, endPoint.Port);
         }
 
         if (_config.AsSystemProxy)
@@ -133,16 +133,15 @@ public class ProxyEngine
             }
             else
             {
-                _logger.LogWarn("Configure your operating system to use this proxy's port and address");
+                _logger.LogWarning("Configure your operating system to use this proxy's port and address {ipAddress}:{port}", _config.IPAddress, _config.Port);
             }
         }
         else
         {
-            _logger.LogInfo("Configure your application to use this proxy's port and address");
+            _logger.LogInformation("Configure your application to use this proxy's port and address");
         }
 
-        _logger.LogInfo("Press CTRL+C to stop Dev Proxy");
-        _logger.LogInfo("");
+        _logger.LogInformation("Press CTRL+C to stop Dev Proxy\r\n");
         Console.CancelKeyPress += Console_CancelKeyPress;
 
         if (_config.Record)
@@ -363,7 +362,7 @@ public class ProxyEngine
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Exception: {ex.Message}");
+            _logger.LogError(ex, "An error occurred while stopping the proxy");
         }
     }
 
