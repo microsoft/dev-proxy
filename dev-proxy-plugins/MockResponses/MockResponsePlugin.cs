@@ -13,6 +13,7 @@ using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Microsoft.DevProxy.Plugins.Behavior;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.MockResponses;
 
@@ -259,7 +260,8 @@ public class MockResponsePlugin : BaseProxyPlugin
                 var filePath = Path.Combine(Path.GetDirectoryName(_configuration.MocksFile) ?? "", ProxyUtils.ReplacePathTokens(bodyString.Trim('"').Substring(1)));
                 if (!File.Exists(filePath))
                 {
-                    _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
+                    
+                    _logger?.LogError("File {filePath} not found. Serving file path in the mock response", filePath);
                     body = bodyString;
                 }
                 else

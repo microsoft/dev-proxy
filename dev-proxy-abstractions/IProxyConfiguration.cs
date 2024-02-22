@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Runtime.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Abstractions;
 
