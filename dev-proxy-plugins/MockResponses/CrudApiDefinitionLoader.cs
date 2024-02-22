@@ -68,7 +68,7 @@ internal class CrudApiDefinitionLoader : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error has occurred while reading {apiFile}:", _configuration.ApiFile);
+            _logger.LogError(ex, "An error has occurred while reading {apiFile}", _configuration.ApiFile);
         }
     }
 

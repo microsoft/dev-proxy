@@ -137,7 +137,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError($"An error has occurred while loading OpenIdConnectConfiguration:" + ex.Message);
+            _logger?.LogError(ex, "An error has occurred while loading OpenIdConnectConfiguration");
         }
     }
 
@@ -157,7 +157,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occured while reading {configFile}", _configuration.DataFile);
+            _logger?.LogError(ex, "An error has occurred while reading {configFile}", _configuration.DataFile);
         }
     }
 
