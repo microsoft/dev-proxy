@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Readers;
 
@@ -31,12 +32,12 @@ public static class MSGraphDbUtils
         }
     }
 
-    public static async Task<int> GenerateMSGraphDb(ILogger logger, bool skipIfUpdatedToday = false)
+    public static async Task<int> GenerateMSGraphDb(IProxyLogger logger, bool skipIfUpdatedToday = false)
     {
         var appFolder = ProxyUtils.AppFolder;
         if (string.IsNullOrEmpty(appFolder))
         {
-            logger.LogError("App folder not found");
+            logger.LogError("App folder {appFolder} not found", appFolder);
             return 1;
         }
 
@@ -46,7 +47,7 @@ public static class MSGraphDbUtils
             var modifiedToday = dbFileInfo.Exists && dbFileInfo.LastWriteTime.Date == DateTime.Now.Date;
             if (modifiedToday && skipIfUpdatedToday)
             {
-                logger.LogInfo("Microsoft Graph database already updated today");
+                logger.LogInformation("Microsoft Graph database already updated today");
                 return 1;
             }
 
@@ -62,21 +63,21 @@ public static class MSGraphDbUtils
             CreateDb(dbConnection, logger);
             FillData(dbConnection, logger);
 
-            logger.LogInfo("Microsoft Graph database successfully updated");
+            logger.LogInformation("Microsoft Graph database successfully updated");
 
             return 0;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.Message);
+            logger.LogError(ex, "Error generating Microsoft Graph database");
             return 1;
         }
 
     }
 
-    private static void CreateDb(SqliteConnection dbConnection, ILogger logger)
+    private static void CreateDb(SqliteConnection dbConnection, IProxyLogger logger)
     {
-        logger.LogInfo("Creating database...");
+        logger.LogInformation("Creating database...");
 
         logger.LogDebug("Dropping endpoints table...");
         var dropTable = dbConnection.CreateCommand();
@@ -96,9 +97,9 @@ public static class MSGraphDbUtils
         createIndex.ExecuteNonQuery();
     }
 
-    private static void FillData(SqliteConnection dbConnection, ILogger logger)
+    private static void FillData(SqliteConnection dbConnection, IProxyLogger logger)
     {
-        logger.LogInfo("Filling database...");
+        logger.LogInformation("Filling database...");
 
         var i = 0;
 
@@ -107,7 +108,7 @@ public static class MSGraphDbUtils
             var graphVersion = openApiDocument.Key;
             var document = openApiDocument.Value;
 
-            logger.LogDebug($"Filling database for {graphVersion}...");
+            logger.LogDebug("Filling database for {graphVersion}...", graphVersion);
 
             var insertEndpoint = dbConnection.CreateCommand();
             insertEndpoint.CommandText = "INSERT INTO endpoints (path, graphVersion, hasSelect) VALUES (@path, @graphVersion, @hasSelect)";
@@ -117,20 +118,20 @@ public static class MSGraphDbUtils
 
             foreach (var path in document.Paths)
             {
-                logger.LogDebug($"Endpoint {graphVersion}{path.Key}...");
+                logger.LogDebug("Endpoint {graphVersion}{key}...", graphVersion, path.Key);
 
                 // Get the GET operation for this path
                 var getOperation = path.Value.Operations.FirstOrDefault(o => o.Key == OperationType.Get).Value;
                 if (getOperation == null)
                 {
-                    logger.LogDebug($"No GET operation found for {graphVersion}{path.Key}");
+                    logger.LogDebug("No GET operation found for {graphVersion}{key}", graphVersion, path.Key);
                     continue;
                 }
 
                 // Check if the GET operation has a $select parameter
                 var hasSelect = getOperation.Parameters.Any(p => p.Name == "$select");
 
-                logger.LogDebug($"Inserting endpoint {graphVersion}{path.Key} with hasSelect={hasSelect}...");
+                logger.LogDebug("Inserting endpoint {graphVersion}{key} with hasSelect={hasSelect}...", graphVersion, path.Key, hasSelect);
                 insertEndpoint.Parameters["@path"].Value = path.Key;
                 insertEndpoint.Parameters["@graphVersion"].Value = graphVersion;
                 insertEndpoint.Parameters["@hasSelect"].Value = hasSelect;
@@ -139,54 +140,55 @@ public static class MSGraphDbUtils
             }
         }
 
-        logger.LogInfo($"Inserted {i} endpoints in the database");
+        logger.LogInformation("Inserted {endpointCount} endpoints in the database", i);
     }
 
-    private static async Task UpdateOpenAPIGraphFilesIfNecessary(string folder, ILogger logger)
+    private static async Task UpdateOpenAPIGraphFilesIfNecessary(string folder, IProxyLogger logger)
     {
-        logger.LogInfo("Checking for updated OpenAPI files...");
+        logger.LogInformation("Checking for updated OpenAPI files...");
 
         foreach (var version in graphVersions)
         {
             try
             {
                 var file = new FileInfo(Path.Combine(folder, GetGraphOpenApiYamlFileName(version)));
-                logger.LogDebug($"Checking for updated OpenAPI file {file}...");
+                logger.LogDebug("Checking for updated OpenAPI file {file}...", file);
                 if (file.Exists && file.LastWriteTime.Date == DateTime.Now.Date)
                 {
-                    logger.LogInfo($"File {file} already updated today");
+                    logger.LogInformation("File {file} already updated today", file);
                     continue;
                 }
 
                 var url = $"https://raw.githubusercontent.com/microsoftgraph/msgraph-metadata/master/openapi/{version}/openapi.yaml";
-                logger.LogInfo($"Downloading OpenAPI file from {url}...");
+                logger.LogInformation("Downloading OpenAPI file from {url}...", url);
 
                 var client = new HttpClient();
                 var response = await client.GetStringAsync(url);
                 File.WriteAllText(file.FullName, response);
 
-                logger.LogDebug($"Downloaded OpenAPI file from {url} to {file}");
+                logger.LogDebug("Downloaded OpenAPI file from {url} to {file}", url, file);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.Message);
+                logger.LogError(ex, "Error updating OpenAPI files");
+                
             }
         }
     }
 
-    private static async Task LoadOpenAPIFiles(string folder, ILogger logger)
+    private static async Task LoadOpenAPIFiles(string folder, IProxyLogger logger)
     {
-        logger.LogInfo("Loading OpenAPI files...");
+        logger.LogInformation("Loading OpenAPI files...");
 
         foreach (var version in graphVersions)
         {
             var filePath = Path.Combine(folder, GetGraphOpenApiYamlFileName(version));
             var file = new FileInfo(filePath);
-            logger.LogDebug($"Loading OpenAPI file for {filePath}...");
+            logger.LogDebug("Loading OpenAPI file for {filePath}...", filePath);
 
             if (!file.Exists)
             {
-                logger.LogDebug($"File {filePath} does not exist");
+                logger.LogDebug("File {filePath} does not exist", filePath);
                 continue;
             }
 
@@ -195,11 +197,11 @@ public static class MSGraphDbUtils
                 var openApiDocument = await new OpenApiStreamReader().ReadAsync(file.OpenRead());
                 _openApiDocuments[version] = openApiDocument.OpenApiDocument;
 
-                logger.LogDebug($"Added OpenAPI file {filePath} for {version}");
+                logger.LogDebug("Added OpenAPI file {filePath} for {version}", filePath, version);
             }
             catch (Exception ex)
             {
-                logger.LogError($"Error loading OpenAPI file {filePath}: {ex.Message}");
+                logger.LogError(ex, "Error loading OpenAPI file {filePath}", filePath);
             }
         }
     }

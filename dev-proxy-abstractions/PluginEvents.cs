@@ -11,7 +11,7 @@ namespace Microsoft.DevProxy.Abstractions;
 public interface IProxyContext
 {
     IProxyConfiguration Configuration { get; }
-    ILogger Logger { get; }
+    IProxyLogger Logger { get; }
 }
 
 public class ThrottlerInfo

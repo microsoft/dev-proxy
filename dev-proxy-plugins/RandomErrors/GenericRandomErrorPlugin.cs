@@ -10,6 +10,7 @@ using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Microsoft.DevProxy.Plugins.Behavior;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RandomErrors;
 internal enum GenericRandomErrorFailMode
@@ -98,7 +99,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             var filePath = Path.Combine(Path.GetDirectoryName(_configuration.ErrorsFile) ?? "", ProxyUtils.ReplacePathTokens(body.Trim('"').Substring(1)));
             if (!File.Exists(filePath))
             {
-                _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
+                _logger?.LogError("File {filePath} not found. Serving file path in the mock response", (string?)filePath);
                 session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
             }
             else
