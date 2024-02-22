@@ -14,6 +14,7 @@ public abstract class BaseProxyPlugin : IProxyPlugin
     public virtual string Name => throw new NotImplementedException();
 
     public virtual Option[] GetOptions() => Array.Empty<Option>();
+    public virtual Command[] GetCommands() => Array.Empty<Command>();
 
     public virtual void Register(IPluginEvents pluginEvents,
                          IProxyContext context,

@@ -10,6 +10,7 @@ public interface IProxyPlugin
 {
     string Name { get; }
     Option[] GetOptions();
+    Command[] GetCommands();
     void Register(IPluginEvents pluginEvents,
                   IProxyContext context,
                   ISet<UrlToWatch> urlsToWatch,

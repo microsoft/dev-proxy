@@ -50,6 +50,11 @@ var options = loaderResults.ProxyPlugins
     .Select(g => g.First())
     .ToList();
 options.ForEach(rootCommand.AddOption);
+// register all plugin commands
+loaderResults.ProxyPlugins
+    .SelectMany(p => p.GetCommands())
+    .ToList()
+    .ForEach(rootCommand.AddCommand);
 
 rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, options.ToArray(), loaderResults.UrlsToWatch, logger);
 
