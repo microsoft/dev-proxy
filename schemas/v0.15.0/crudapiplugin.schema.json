@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "$schema": {
-    	"type":"string"
+      "type": "string"
     },
     "baseUrl": {
       "type": "string"
@@ -45,12 +45,84 @@
               "PATCH",
               "DELETE"
             ]
+          },
+          "auth": {
+            "type": "string",
+            "enum": [
+              "none",
+              "entra"
+            ]
+          },
+          "entraAuthConfig": {
+            "type": "object",
+            "properties": {
+              "audience": {
+                "type": "string"
+              },
+              "issuer": {
+                "type": "string"
+              },
+              "scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "validateLifetime": {
+                "type": "boolean"
+              },
+              "validateSigningKey": {
+                "type": "boolean"
+              }
+            }
           }
         },
         "required": [
           "action"
         ],
         "additionalProperties": false
+      }
+    },
+    "auth": {
+      "type": "string",
+      "enum": [
+        "none",
+        "entra"
+      ]
+    },
+    "entraAuthConfig": {
+      "type": "object",
+      "properties": {
+        "audience": {
+          "type": "string"
+        },
+        "issuer": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "validateLifetime": {
+          "type": "boolean"
+        },
+        "validateSigningKey": {
+          "type": "boolean"
+        }
       }
     }
   },
