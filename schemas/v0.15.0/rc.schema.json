@@ -24,8 +24,8 @@
       "type": "string",
       "enum": [
         "debug",
-        "info",
-        "warn",
+        "information",
+        "warning",
         "error"
       ]
     },
