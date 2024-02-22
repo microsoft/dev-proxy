@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "$schema": {
-    	"type":"string"
+      "type": "string"
     },
     "baseUrl": {
       "type": "string"
@@ -47,16 +47,11 @@
             ]
           },
           "auth": {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "None",
-                  "Entra"
-                ]
-              }
-            }
+            "type": "string",
+            "enum": [
+              "none",
+              "entra"
+            ]
           },
           "entraAuthConfig": {
             "type": "object",
@@ -95,16 +90,11 @@
       }
     },
     "auth": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "None",
-            "Entra"
-          ]
-        }
-      }
+      "type": "string",
+      "enum": [
+        "none",
+        "entra"
+      ]
     },
     "entraAuthConfig": {
       "type": "object",

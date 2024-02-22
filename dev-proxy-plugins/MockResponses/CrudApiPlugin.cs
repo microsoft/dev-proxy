@@ -129,9 +129,16 @@ public class CrudApiPlugin : BaseProxyPlugin
 
     private async Task SetupOpenIdConnectConfiguration()
     {
-        var retriever = new OpenIdConnectConfigurationRetriever();
-        var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>("https://login.microsoftonline.com/organizations/v2.0/.well-known/openid-configuration", retriever);
-        _openIdConnectConfiguration = await configurationManager.GetConfigurationAsync();
+        try
+        {
+            var retriever = new OpenIdConnectConfigurationRetriever();
+            var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>("https://login.microsoftonline.com/organizations/v2.0/.well-known/openid-configuration", retriever);
+            _openIdConnectConfiguration = await configurationManager.GetConfigurationAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError($"An error has occurred while loading OpenIdConnectConfiguration:" + ex.Message);
+        }
     }
 
     private void LoadData()
