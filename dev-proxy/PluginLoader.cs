@@ -1,8 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -21,7 +22,7 @@ internal class PluginLoaderResult
 
 internal class PluginLoader
 {
-    public PluginLoader(ILogger logger)
+    public PluginLoader(IProxyLogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -41,7 +42,7 @@ internal class PluginLoader
                 // Load Handler Assembly if enabled
                 string pluginLocation = Path.GetFullPath(Path.Combine(configFileDirectory, ProxyUtils.ReplacePathTokens(h.PluginPath.Replace('\\', Path.DirectorySeparatorChar))));
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
-                _logger.LogDebug($"Loading plugin {h.Name} from: {pluginLocation}");
+                _logger.LogDebug("Loading plugin {pluginName} from: {pluginLocation}", h.Name, pluginLocation);
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
                 IEnumerable<UrlToWatch>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
                 ISet<UrlToWatch>? pluginUrls = null;
@@ -83,7 +84,7 @@ internal class PluginLoader
 
         string availableTypes = string.Join(",", assembly.GetTypes().Select(t => t.FullName));
         throw new ApplicationException(
-            $"Can't find plugin {h.Name} which implements IProxyPlugin in {assembly} from {AppContext.BaseDirectory}.\n" +
+            $"Can't find plugin {h.Name} which implements IProxyPlugin in {assembly} from {AppContext.BaseDirectory}.\r\n" +
             $"Available types: {availableTypes}");
     }
 
@@ -103,7 +104,7 @@ internal class PluginLoader
     }
 
     private PluginConfig? _pluginConfig;
-    private ILogger _logger;
+    private IProxyLogger _logger;
 
     private PluginConfig PluginConfig
     {

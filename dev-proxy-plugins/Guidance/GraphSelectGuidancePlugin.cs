@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using Titanium.Web.Proxy.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
@@ -22,8 +23,8 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
 
         // for background db refresh, let's use a separate logger
         // that only logs warnings and errors
-        var _logger2 = (ILogger)context.Logger.Clone();
-        _logger2.LogLevel = LogLevel.Warn;
+        var _logger2 = (IProxyLogger)context.Logger.Clone();
+        _logger2.LogLevel = LogLevel.Warning;
         // let's not await so that it doesn't block the proxy startup
         _ = MSGraphDbUtils.GenerateMSGraphDb(_logger2, true);
     }
@@ -80,7 +81,7 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex.Message);
+            _logger?.LogError(ex, "Error looking up endpoint in database");
             return fallback;
         }
     }
