@@ -145,9 +145,10 @@ public class CrudApiPlugin : BaseProxyPlugin
     {
         try
         {
-            var dataFilePath = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.DataFile), Path.GetDirectoryName(_proxyConfiguration?.ConfigFile ?? string.Empty) ?? string.Empty);
+            var dataFilePath = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.DataFile), Path.GetDirectoryName(_configuration.ApiFile) ?? string.Empty);
             if (!File.Exists(dataFilePath))
             {
+                _logger?.LogError($"Data file '{dataFilePath}' does not exist. The {_configuration.BaseUrl} API will be disabled.");
                 _configuration.Actions = Array.Empty<CrudApiAction>();
                 return;
             }
