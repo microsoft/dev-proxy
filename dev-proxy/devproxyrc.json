@@ -4,12 +4,12 @@
     {
       "name": "RetryAfterPlugin",
       "enabled": true,
-      "pluginPath": "plugins\\dev-proxy-plugins.dll"
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll"
     },
     {
       "name": "GenericRandomErrorPlugin",
       "enabled": true,
-      "pluginPath": "plugins\\dev-proxy-plugins.dll",
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll",
       "configSection": "genericRandomErrorPlugin"
     }
   ],
@@ -21,6 +21,6 @@
   },
   "rate": 50,
   "labelMode": "text",
-  "logLevel": "Information",
+  "logLevel": "information",
   "newVersionNotification": "stable"
 }
