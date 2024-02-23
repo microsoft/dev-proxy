@@ -42,7 +42,7 @@ internal class GenericErrorResponsesLoader : IDisposable
                     if (configResponses is not null)
                     {
                         _configuration.Responses = configResponses;
-                        _logger.LogInformation("Error responses for {configResponseCount} url patterns loaded from {errorFile}", configResponses.Count(), _configuration.ErrorsFile);
+                        _logger.LogInformation("{configResponseCount} error responses loaded from {errorFile}", configResponses.Count(), _configuration.ErrorsFile);
                     }
                 }
             }
