@@ -583,6 +583,12 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
                     continue;
                 }
 
+                if (openApiResponse.Headers.ContainsKey(header.Name))
+                {
+                    _logger?.LogDebug("    Header {headerName} already exists in response", header.Name);
+                    continue;
+                }
+
                 openApiResponse.Headers.Add(header.Name, new OpenApiHeader
                 {
                     Schema = new OpenApiSchema { Type = "string" }
