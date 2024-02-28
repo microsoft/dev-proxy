@@ -142,7 +142,7 @@ public class ProxyEngine
             _logger.LogInformation("Configure your application to use this proxy's port and address");
         }
 
-        _logger.LogInformation("Press CTRL+C to stop Dev Proxy\r\n");
+        LogHotkeysInstructions();
         Console.CancelKeyPress += Console_CancelKeyPress;
 
         if (_config.Record)
@@ -229,8 +229,7 @@ public class ProxyEngine
             if (key == ConsoleKey.C)
             {
                 Console.Clear();
-                Console.WriteLine("Press CTRL+C to stop Dev Proxy");
-                Console.WriteLine("");
+                LogHotkeysInstructions();
             }
         } while (key != ConsoleKey.Escape);
     }
@@ -577,5 +576,11 @@ public class ProxyEngine
     {
         // set e.clientCertificate to override
         return Task.CompletedTask;
+    }
+    
+    private void LogHotkeysInstructions()
+    {
+        _logger.LogInformation("Hotkeys: (r)ecord, (s)top recording, (c)lear screen");
+        _logger.LogInformation("Press CTRL+C to stop Dev Proxy\r\n");
     }
 }
