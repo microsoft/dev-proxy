@@ -125,6 +125,7 @@ public class ProxyEngine
         {
             if (RunTime.IsWindows)
             {
+                _proxyServer.SetAsSystemHttpProxy(_explicitEndPoint);
                 _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
             }
             else if (RunTime.IsMac)
