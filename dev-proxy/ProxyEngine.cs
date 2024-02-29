@@ -580,7 +580,7 @@ public class ProxyEngine
     
     private void LogHotkeysInstructions()
     {
-        _logger.LogInformation("Hotkeys: (r)ecord, (s)top recording, (c)lear screen");
-        _logger.LogInformation("Press CTRL+C to stop Dev Proxy\r\n");
+        Console.WriteLine("Hotkeys: (r)ecord, (s)top recording, (c)lear screen");
+        Console.WriteLine("Press CTRL+C to stop Dev Proxy");
     }
 }
