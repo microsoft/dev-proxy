@@ -5,7 +5,7 @@ using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace Microsoft.DevProxy.Plugins.MockResponses;
+namespace Microsoft.DevProxy.Plugins.Mocks;
 
 internal class CrudApiDefinitionLoader : IDisposable
 {
