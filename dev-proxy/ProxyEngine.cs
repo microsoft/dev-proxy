@@ -5,6 +5,7 @@ using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
@@ -25,7 +26,7 @@ public class ProxyEngine
     private readonly PluginEvents _pluginEvents;
     private readonly IProxyLogger _logger;
     private readonly ProxyConfiguration _config;
-    private ProxyServer? _proxyServer;
+    private static ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
     // lists of URLs to watch, used for intercepting requests
     private ISet<UrlToWatch> _urlsToWatch = new HashSet<UrlToWatch>();
@@ -39,6 +40,19 @@ public class ProxyEngine
     // Dictionary for plugins to store data between requests
     // the key is HashObject of the SessionEventArgs object
     private Dictionary<int, Dictionary<string, object>> _pluginData = new();
+
+    public static X509Certificate2? Certificate => _proxyServer?.CertificateManager.RootCertificate;
+
+    static ProxyEngine()
+    {
+        _proxyServer = new ProxyServer();
+        _proxyServer.CertificateManager.RootCertificateName = "Dev Proxy CA";
+        _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
+        // we need to change this to a value lower than 397
+        // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
+        _proxyServer.CertificateManager.CertificateValidDays = 365;
+        _proxyServer.CertificateManager.CreateRootCertificate();
+    }
 
     public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, IProxyLogger logger)
     {
@@ -74,6 +88,8 @@ public class ProxyEngine
 
     public async Task Run(CancellationToken? cancellationToken)
     {
+        Debug.Assert(_proxyServer is not null, "Proxy server is not initialized");
+
         if (!_urlsToWatch.Any())
         {
             _logger.LogInformation("No URLs to watch configured. Please add URLs to watch in the devproxyrc.json config file.");
@@ -82,14 +98,6 @@ public class ProxyEngine
 
         LoadHostNamesFromUrls();
 
-        _proxyServer = new ProxyServer();
-
-        _proxyServer.CertificateManager.RootCertificateName = "Dev Proxy CA";
-        _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
-        // we need to change this to a value lower than 397
-        // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
-        _proxyServer.CertificateManager.CertificateValidDays = 365;
-        _proxyServer.CertificateManager.CreateRootCertificate();
         _proxyServer.BeforeRequest += OnRequest;
         _proxyServer.BeforeResponse += OnBeforeResponse;
         _proxyServer.AfterResponse += OnAfterResponse;
@@ -231,6 +239,10 @@ public class ProxyEngine
                 Console.Clear();
                 Console.WriteLine("Press CTRL+C to stop Dev Proxy");
                 Console.WriteLine("");
+            }
+            if (key == ConsoleKey.W)
+            {
+                _pluginEvents.RaiseMockRequest(new EventArgs()).GetAwaiter().GetResult();
             }
         } while (key != ConsoleKey.Escape);
     }

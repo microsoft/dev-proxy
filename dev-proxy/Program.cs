@@ -13,7 +13,7 @@ if (ProxyHost.LogLevel is not null)
 {
     logger.LogLevel = ProxyHost.LogLevel.Value;
 }
-IProxyContext context = new ProxyContext(logger, ProxyCommandHandler.Configuration);
+IProxyContext context = new ProxyContext(logger, ProxyCommandHandler.Configuration, ProxyEngine.Certificate);
 ProxyHost proxyHost = new();
 
 // this is where the root command is created which contains all commands and subcommands
@@ -85,7 +85,6 @@ foreach (var option in rootCommand.Options)
 // list the remaining incoming options as unknown in the output
 if (incomingOptions.Length > 0)
 {
-
     logger.LogError("Unknown option(s): {unknownOptions}", string.Join(" ", incomingOptions));
     logger.LogInformation("TIP: Use --help view available options");
     logger.LogInformation("TIP: Are you missing a plugin? See: https://aka.ms/devproxy/plugins");

@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-using System.Runtime.Serialization;
 using Titanium.Web.Proxy.EventArguments;
 using Microsoft.Extensions.Logging;
 
@@ -33,4 +32,5 @@ public interface IProxyLogger : ICloneable, ILogger
 {
     public LogLevel LogLevel { get; set; }
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null);
+    public void LogRequest(string[] message, MessageType messageType, string method, string url);
 }

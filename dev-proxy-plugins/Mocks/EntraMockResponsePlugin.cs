@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -8,9 +9,10 @@ using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.DevProxy.Abstractions;
 
-namespace Microsoft.DevProxy.Plugins.MockResponses;
+namespace Microsoft.DevProxy.Plugins.Mocks;
 
-class IdToken {
+class IdToken
+{
     [JsonPropertyName("aud")]
     public string? Aud { get; set; }
     [JsonPropertyName("iss")]
@@ -56,11 +58,36 @@ public class EntraMockResponsePlugin : MockResponsePlugin
         StoreLastNonce(e);
         UpdateMsalState(ref bodyString, e, ref changed);
         UpdateIdToken(ref bodyString, e, ref changed);
+        UpdateDevProxyKeyId(ref bodyString, ref changed);
+        UpdateDevProxyCertificateChain(ref bodyString, ref changed);
 
         if (changed)
         {
             body = Encoding.UTF8.GetBytes(bodyString);
         }
+    }
+
+    private void UpdateDevProxyCertificateChain(ref string bodyString, ref bool changed)
+    {
+        if (!bodyString.Contains("@dynamic.devProxyCertificateChain"))
+        {
+            return;
+        }
+
+        var certificateChain = GetCertificateChain().First();
+        bodyString = bodyString.Replace("@dynamic.devProxyCertificateChain", certificateChain);
+        changed = true;
+    }
+
+    private void UpdateDevProxyKeyId(ref string bodyString, ref bool changed)
+    {
+        if (!bodyString.Contains("@dynamic.devProxyKeyId"))
+        {
+            return;
+        }
+
+        bodyString = bodyString.Replace("@dynamic.devProxyKeyId", GetKeyId());
+        changed = true;
     }
 
     private void StoreLastNonce(ProxyRequestArgs e)
@@ -94,7 +121,7 @@ public class EntraMockResponsePlugin : MockResponsePlugin
         {
             return;
         }
-        
+
         token.Nonce = lastNonce;
 
         tokenChunks[1] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(token)));
@@ -120,5 +147,32 @@ public class EntraMockResponsePlugin : MockResponsePlugin
         var msalState = queryString["state"];
         body = body.Replace("state=@dynamic", $"state={msalState}");
         changed = true;
+    }
+
+    private string GetKeyId()
+    {
+        return _context?.Certificate?.Thumbprint ?? "";
+    }
+
+    private List<string> GetCertificateChain()
+    {
+        if (_context?.Certificate is null)
+        {
+            return new List<string>();
+        }
+
+        var collection = new X509Certificate2Collection
+        {
+            _context.Certificate
+        };
+
+        var certificateChain = new List<string>();
+        foreach (var certificate in collection)
+        {
+            var base64String = Convert.ToBase64String(certificate.RawData);
+            certificateChain.Add(base64String);
+        }
+
+        return certificateChain;
     }
 }
