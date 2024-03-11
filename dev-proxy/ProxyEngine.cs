@@ -150,7 +150,7 @@ public class ProxyEngine
             _logger.LogInformation("Configure your application to use this proxy's port and address");
         }
 
-        LogHotkeysInstructions();
+        PrintHotkeys();
         Console.CancelKeyPress += Console_CancelKeyPress;
 
         if (_config.Record)
@@ -237,7 +237,7 @@ public class ProxyEngine
             if (key == ConsoleKey.C)
             {
                 Console.Clear();
-                LogHotkeysInstructions();
+                PrintHotkeys();
             }
             if (key == ConsoleKey.W)
             {
@@ -590,9 +590,11 @@ public class ProxyEngine
         return Task.CompletedTask;
     }
     
-    private void LogHotkeysInstructions()
+    private void PrintHotkeys()
     {
+        Console.WriteLine("");
         Console.WriteLine("Hotkeys: (r)ecord, (s)top recording, (c)lear screen");
         Console.WriteLine("Press CTRL+C to stop Dev Proxy");
+        Console.WriteLine("");
     }
 }
