@@ -592,7 +592,6 @@ public class ProxyEngine
     
     private void PrintHotkeys()
     {
-        Console.WriteLine("");
         Console.WriteLine("Hotkeys: (r)ecord, (s)top recording, (c)lear screen");
         Console.WriteLine("Press CTRL+C to stop Dev Proxy");
         Console.WriteLine("");
