@@ -30,11 +30,28 @@
         },
         "body": {
           "type": "object"
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ]
+          }
         }
       },
       "required": [
-        "url",
-        "method"
+        "url"
       ]
     }
   },
