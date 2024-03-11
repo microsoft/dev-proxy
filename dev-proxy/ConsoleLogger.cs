@@ -60,6 +60,18 @@ public class ConsoleLogger : IProxyLogger
 
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null)
     {
+        var method = context?.Session.HttpClient.Request.Method;
+        var url = context?.Session.HttpClient.Request.Url;
+        LogRequest(message, messageType, method, url, context);
+    }
+
+    public void LogRequest(string[] message, MessageType messageType, string method, string url)
+    {
+        LogRequest(message, messageType, method, url, null);
+    }
+
+    private void LogRequest(string[] message, MessageType messageType, string? method, string? url, LoggingContext? context = null)
+    {
         var messageLines = new List<string>(message);
 
         // don't log intercepted response to console
@@ -68,9 +80,10 @@ public class ConsoleLogger : IProxyLogger
             // add request context information to the message for messages
             // that are not intercepted requests and have a context
             if (messageType != MessageType.InterceptedRequest &&
-                context is not null)
+                method is not null &&
+                url is not null)
             {
-                messageLines.Add($"{context.Session.HttpClient.Request.Method} {context.Session.HttpClient.Request.Url}");
+                messageLines.Add($"{method} {url}");
             }
 
             lock (ConsoleLock)

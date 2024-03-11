@@ -9,7 +9,7 @@ using Microsoft.DevProxy.Plugins.Behavior;
 using Microsoft.Extensions.Logging;
 using Titanium.Web.Proxy.Models;
 
-namespace Microsoft.DevProxy.Plugins.MockResponses;
+namespace Microsoft.DevProxy.Plugins.Mocks;
 
 public class GraphMockResponsePlugin : MockResponsePlugin
 {

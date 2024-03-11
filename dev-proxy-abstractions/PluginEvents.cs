@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Security.Cryptography.X509Certificates;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 
@@ -12,6 +13,7 @@ public interface IProxyContext
 {
     IProxyConfiguration Configuration { get; }
     IProxyLogger Logger { get; }
+    X509Certificate2? Certificate { get; }
 }
 
 public class ThrottlerInfo
@@ -182,6 +184,10 @@ public interface IPluginEvents
     /// Raised after recording request logs has stopped.
     /// </summary>
     event AsyncEventHandler<RecordingArgs>? AfterRecordingStop;
+    /// <summary>
+    /// Raised when user requested issuing mock requests.
+    /// </summary>
+    event AsyncEventHandler<EventArgs>? MockRequest;
 }
 
 public class PluginEvents : IPluginEvents
@@ -200,6 +206,7 @@ public class PluginEvents : IPluginEvents
     public event EventHandler<RequestLogArgs>? AfterRequestLog;
     /// <inheritdoc />
     public event AsyncEventHandler<RecordingArgs>? AfterRecordingStop;
+    public event AsyncEventHandler<EventArgs>? MockRequest;
 
     public void RaiseInit(InitArgs args)
     {
@@ -245,6 +252,14 @@ public class PluginEvents : IPluginEvents
         if (AfterRecordingStop is not null)
         {
             await AfterRecordingStop.InvokeAsync(this, args, null);
+        }
+    }
+
+    public async Task RaiseMockRequest(EventArgs args)
+    {
+        if (MockRequest is not null)
+        {
+            await MockRequest.InvokeAsync(this, args, null);
         }
     }
 }

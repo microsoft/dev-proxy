@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.MockResponses;
+using Microsoft.DevProxy.Plugins.Mocks;
 using System.Text.Json;
 
 namespace Microsoft.DevProxy.Plugins.Behavior;
