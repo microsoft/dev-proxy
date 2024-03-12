@@ -90,7 +90,7 @@ internal class ProxyHost
             {
                 // if there's no config file in the current working folder
                 // fall back to the default config file in the app folder
-                if (!File.Exists(_configFile))
+                if (!File.Exists(_configFile) && !File.Exists("devproxyrc.jsonc"))
                 {
                     _configFile = "~appFolder/devproxyrc.json";
                 }

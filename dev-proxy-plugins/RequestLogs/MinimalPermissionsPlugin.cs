@@ -100,7 +100,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
 
         try
         {
-            var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody);
+            var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody, ProxyUtils.JsonSerializerOptions);
             if (batch == null)
             {
                 return requests.ToArray();
@@ -142,7 +142,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
             var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString()}";
             using (var client = new HttpClient())
             {
-                var stringPayload = JsonSerializer.Serialize(payload);
+                var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
                 _logger?.LogDebug("Calling {url} with payload\r\n{stringPayload}", url, stringPayload);
 
                 var response = await client.PostAsJsonAsync(url, payload);
@@ -150,7 +150,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
 
                 _logger?.LogDebug("Response:\r\n{content}", content);
 
-                var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content);
+                var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
                 var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
                 var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
                 if (minimalScopes.Any())

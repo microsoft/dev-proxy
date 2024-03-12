@@ -5,7 +5,6 @@ using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy;
 
@@ -17,17 +16,13 @@ class ProxyPresetInfo
 
 class GitHubTreeResponse
 {
-    [JsonPropertyName("tree")]
     public GitHubTreeItem[] Tree { get; set; } = Array.Empty<GitHubTreeItem>();
-    [JsonPropertyName("truncated")]
     public bool Truncated { get; set; }
 }
 
 class GitHubTreeItem
 {
-    [JsonPropertyName("path")]
     public string Path { get; set; } = string.Empty;
-    [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
 }
 
@@ -179,7 +174,7 @@ public static class PresetGetCommandHandler
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var tree = JsonSerializer.Deserialize<GitHubTreeResponse>(content);
+                var tree = JsonSerializer.Deserialize<GitHubTreeResponse>(content, ProxyUtils.JsonSerializerOptions);
                 if (tree is null)
                 {
                     throw new Exception("Failed to get list of files from GitHub");

@@ -225,10 +225,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         if (!string.IsNullOrEmpty(_configuration.FilePath))
         {
-            var json = JsonSerializer.Serialize(minimalPermissionsInfo, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(minimalPermissionsInfo, ProxyUtils.JsonSerializerOptions);
             await File.WriteAllTextAsync(_configuration.FilePath, json);
         }
     }
@@ -244,7 +241,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         try
         {
-            var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody);
+            var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody, ProxyUtils.JsonSerializerOptions);
             if (batch == null)
             {
                 return requests.ToArray();
@@ -348,7 +345,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
             var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString(scopeType)}";
             using (var client = new HttpClient())
             {
-                var stringPayload = JsonSerializer.Serialize(payload);
+                var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
                 _logger?.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
 
                 var response = await client.PostAsJsonAsync(url, payload);
@@ -356,7 +353,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
                 _logger?.LogDebug(string.Format("Response:{0}{1}", Environment.NewLine, content));
 
-                var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content);
+                var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
                 var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
                 var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
                 if (minimalPermissions.Any())

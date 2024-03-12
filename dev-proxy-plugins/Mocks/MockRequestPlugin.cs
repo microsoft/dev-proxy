@@ -15,7 +15,6 @@ public class MockRequestConfiguration
 {
     [JsonIgnore]
     public string MockFile { get; set; } = "mock-request.json";
-    [JsonPropertyName("request")]
     public MockRequest? Request { get; set; }
 }
 
@@ -83,7 +82,7 @@ public class MockRequestPlugin : BaseProxyPlugin
             }
             else
             {
-                requestMessage.Content = new StringContent(JsonSerializer.Serialize(_configuration.Request.Body), Encoding.UTF8, "application/json");
+                requestMessage.Content = new StringContent(JsonSerializer.Serialize(_configuration.Request.Body, ProxyUtils.JsonSerializerOptions), Encoding.UTF8, "application/json");
             }
         }
 

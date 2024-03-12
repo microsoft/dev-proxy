@@ -114,7 +114,7 @@ public class DevToolsPlugin : BaseProxyPlugin
 
         try
         {
-            var message = JsonSerializer.Deserialize<GetResponseBodyMessage>(msg);
+            var message = JsonSerializer.Deserialize<GetResponseBodyMessage>(msg, ProxyUtils.JsonSerializerOptions);
             if (message?.Method == "Network.getResponseBody")
             {
                 var requestId = message.Params?.RequestId;

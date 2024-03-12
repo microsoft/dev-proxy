@@ -40,52 +40,34 @@ public enum CrudApiAuthType
 
 public class CrudApiEntraAuth
 {
-    [JsonPropertyName("audience")]
     public string Audience { get; set; } = string.Empty;
-    [JsonPropertyName("issuer")]
     public string Issuer { get; set; } = string.Empty;
-    [JsonPropertyName("scopes")]
     public string[] Scopes { get; set; } = Array.Empty<string>();
-    [JsonPropertyName("roles")]
     public string[] Roles { get; set; } = Array.Empty<string>();
-    [JsonPropertyName("validateLifetime")]
     public bool ValidateLifetime { get; set; } = false;
-    [JsonPropertyName("validateSigningKey")]
     public bool ValidateSigningKey { get; set; } = false;
 }
 
 public class CrudApiAction
 {
-    [JsonPropertyName("action")]
     [System.Text.Json.Serialization.JsonConverter(typeof(JsonStringEnumConverter))]
     public CrudApiActionType Action { get; set; } = CrudApiActionType.GetAll;
-    [JsonPropertyName("url")]
     public string Url { get; set; } = string.Empty;
-    [JsonPropertyName("method")]
     public string? Method { get; set; }
-    [JsonPropertyName("query")]
     public string Query { get; set; } = string.Empty;
-    [JsonPropertyName("auth")]
     [System.Text.Json.Serialization.JsonConverter(typeof(JsonStringEnumConverter))]
     public CrudApiAuthType Auth { get; set; } = CrudApiAuthType.None;
-    [JsonPropertyName("entraAuthConfig")]
     public CrudApiEntraAuth? EntraAuthConfig { get; set; }
 }
 
 public class CrudApiConfiguration
 {
-    [JsonPropertyName("apiFile")]
     public string ApiFile { get; set; } = "api.json";
-    [JsonPropertyName("baseUrl")]
     public string BaseUrl { get; set; } = string.Empty;
-    [JsonPropertyName("dataFile")]
     public string DataFile { get; set; } = string.Empty;
-    [JsonPropertyName("actions")]
     public IEnumerable<CrudApiAction> Actions { get; set; } = Array.Empty<CrudApiAction>();
-    [JsonPropertyName("auth")]
     [System.Text.Json.Serialization.JsonConverter(typeof(JsonStringEnumConverter))]
     public CrudApiAuthType Auth { get; set; } = CrudApiAuthType.None;
-    [JsonPropertyName("entraAuthConfig")]
     public CrudApiEntraAuth? EntraAuthConfig { get; set; }
 }
 

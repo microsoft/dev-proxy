@@ -28,7 +28,6 @@ public class MockResponseConfiguration
 
     [JsonPropertyName("$schema")]
     public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.16.0/mockresponseplugin.schema.json";
-    [JsonPropertyName("mocks")]
     public IEnumerable<MockResponse> Mocks { get; set; } = Array.Empty<MockResponse>();
 }
 
@@ -252,7 +251,7 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         if (matchingResponse.Response?.Body is not null)
         {
-            var bodyString = JsonSerializer.Serialize(matchingResponse.Response.Body) as string;
+            var bodyString = JsonSerializer.Serialize(matchingResponse.Response.Body, ProxyUtils.JsonSerializerOptions) as string;
             // we get a JSON string so need to start with the opening quote
             if (bodyString?.StartsWith("\"@") ?? false)
             {

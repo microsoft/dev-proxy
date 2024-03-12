@@ -34,7 +34,7 @@ internal class CrudApiDefinitionLoader : IDisposable
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     var apiDefinitionString = reader.ReadToEnd();
-                    var apiDefinitionConfig = JsonSerializer.Deserialize<CrudApiConfiguration>(apiDefinitionString);
+                    var apiDefinitionConfig = JsonSerializer.Deserialize<CrudApiConfiguration>(apiDefinitionString, ProxyUtils.JsonSerializerOptions);
                     _configuration.BaseUrl = apiDefinitionConfig?.BaseUrl ?? string.Empty;
                     _configuration.DataFile = apiDefinitionConfig?.DataFile ?? string.Empty;
                     _configuration.Auth = apiDefinitionConfig?.Auth ?? CrudApiAuthType.None;

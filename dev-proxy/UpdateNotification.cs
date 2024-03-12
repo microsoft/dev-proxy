@@ -135,7 +135,7 @@ internal static class UpdateNotification
         // GitHub API requires user agent to be set
         http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("dev-proxy", ProxyUtils.ProductVersion));
         var response = await http.GetStringAsync(releasesUrl);
-        var releases = JsonSerializer.Deserialize<ReleaseInfo[]>(response);
+        var releases = JsonSerializer.Deserialize<ReleaseInfo[]>(response, ProxyUtils.JsonSerializerOptions);
 
         if (releases == null || releaseType == ReleaseType.None)
         {

@@ -37,7 +37,7 @@ internal class MockRequestLoader : IDisposable
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     var requestString = reader.ReadToEnd();
-                    var requestConfig = JsonSerializer.Deserialize<MockRequestConfiguration>(requestString);
+                    var requestConfig = JsonSerializer.Deserialize<MockRequestConfiguration>(requestString, ProxyUtils.JsonSerializerOptions);
                     var configRequest = requestConfig?.Request;
                     if (configRequest is not null)
                     {
