@@ -346,7 +346,14 @@ public class ConsoleLogger : IProxyLogger
             return;
         }
 
-        var message = formatter(state, exception).ReplaceLineEndings();
+        var message = formatter(state, exception);
+        // temporary fix to log exceptions
+        // long term we should move this to the formatter
+        if (exception is not null)
+        {
+            message += Environment.NewLine + exception;
+        }
+        message = message.ReplaceLineEndings();
         switch (logLevel)
         {
             case LogLevel.Debug:

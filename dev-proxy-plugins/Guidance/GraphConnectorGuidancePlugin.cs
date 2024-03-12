@@ -3,8 +3,8 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
-using Titanium.Web.Proxy.Http;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
@@ -54,30 +54,62 @@ public class GraphConnectorGuidancePlugin : BaseProxyPlugin
             var schemaString = e.Session.HttpClient.Request.BodyString;
             if (string.IsNullOrEmpty(schemaString))
             {
+                _logger?.LogRequest([ "No schema found in the request body." ], MessageType.Failed, new LoggingContext(e.Session));
                 return Task.CompletedTask;
             }
 
             var schema = JsonSerializer.Deserialize<ExternalConnectionSchema>(schemaString, ProxyUtils.JsonSerializerOptions);
+            if (schema is null || schema.Properties is null)
+            {
+                _logger?.LogRequest([ "Invalid schema found in the request body." ], MessageType.Failed, new LoggingContext(e.Session));
+                return Task.CompletedTask;
+            }
+
+            bool hasTitle = false, hasIconUrl = false, hasUrl = false;
+            foreach (var property in schema.Properties)
+            {
+                if (property.Labels is null)
+                {
+                    continue;
+                }
+
+                if (property.Labels.Contains("title", StringComparer.OrdinalIgnoreCase))
+                {
+                    hasTitle = true;
+                }
+                if (property.Labels.Contains("iconUrl", StringComparer.OrdinalIgnoreCase))
+                {
+                    hasIconUrl = true;
+                }
+                if (property.Labels.Contains("url", StringComparer.OrdinalIgnoreCase))
+                {
+                    hasUrl = true;
+                }
+            }
+
+            if (!hasTitle || !hasIconUrl || !hasUrl)
+            {
+                string[] missingLabels = [
+                    !hasTitle ? "title" : "",
+                    !hasIconUrl ? "iconUrl" : "",
+                    !hasUrl ? "url" : ""
+                ];
+
+                _logger?.LogRequest(
+                    [
+                        $"The schema is missing the following semantic labels: {string.Join(", ", missingLabels.Where(s => s != ""))}.",
+                        "Ingested content won't show up in Microsoft Copilot for Microsoft 365.",
+                        "More information: https://aka.ms/devproxy/guidance/gc/ux"
+                    ],
+                    MessageType.Warning, new LoggingContext(e.Session)
+                );
+            }
         }
-        catch
+        catch (Exception ex)
         {
-
+            _logger?.LogError(ex, "An error has occurred while deserializing the request body");
         }
 
         return Task.CompletedTask;
     }
-
-    private Task AfterResponse(object? sender, ProxyResponseArgs e)
-    {
-        Request request = e.Session.HttpClient.Request;
-        if (_urlsToWatch is not null &&
-            e.HasRequestUrlMatch(_urlsToWatch) &&
-            e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
-            ProxyUtils.IsGraphBetaRequest(request))
-            _logger?.LogRequest(BuildBetaSupportMessage(request), MessageType.Warning, new LoggingContext(e.Session));
-        return Task.CompletedTask;
-    }
-
-    private static string GetBetaSupportGuidanceUrl() => "https://aka.ms/devproxy/guidance/beta-support";
-    private static string[] BuildBetaSupportMessage(Request r) => new[] { $"Don't use beta APIs in production because they can change or be deprecated.", $"More info at {GetBetaSupportGuidanceUrl()}" };
 }
