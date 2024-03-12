@@ -7,7 +7,6 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
@@ -108,7 +107,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
     {
         var batchResponse = new GraphBatchResponsePayload();
 
-        var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString);
+        var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString, ProxyUtils.JsonSerializerOptions);
         if (batch == null)
         {
             UpdateProxyBatchResponse(e, batchResponse);
@@ -192,7 +191,8 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
                     RequestId = requestId,
                     Date = requestDate
                 }
-            })
+            }),
+            ProxyUtils.JsonSerializerOptions
         );
         _logger?.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(e.Session));
         session.GenericResponse(body ?? string.Empty, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)));
@@ -209,11 +209,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         Request request = session.HttpClient.Request;
         var headers = ProxyUtils.BuildGraphResponseHeaders(request, requestId, requestDate);
 
-        var options = new JsonSerializerOptions
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-        string body = JsonSerializer.Serialize(response, options);
+        string body = JsonSerializer.Serialize(response, ProxyUtils.JsonSerializerOptions);
         _logger?.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
         session.GenericResponse(body, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)));
     }

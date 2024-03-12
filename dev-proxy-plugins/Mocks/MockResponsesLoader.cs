@@ -37,7 +37,7 @@ internal class MockResponsesLoader : IDisposable
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     var responsesString = reader.ReadToEnd();
-                    var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString);
+                    var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
                     IEnumerable<MockResponse>? configResponses = responsesConfig?.Mocks;
                     if (configResponses is not null)
                     {

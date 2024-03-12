@@ -13,33 +13,20 @@ namespace Microsoft.DevProxy.Plugins.Mocks;
 
 class IdToken
 {
-    [JsonPropertyName("aud")]
     public string? Aud { get; set; }
-    [JsonPropertyName("iss")]
     public string? Iss { get; set; }
-    [JsonPropertyName("iat")]
     public int? Iat { get; set; }
-    [JsonPropertyName("nbf")]
     public int? Nbf { get; set; }
-    [JsonPropertyName("exp")]
     public int? Exp { get; set; }
-    [JsonPropertyName("name")]
     public string? Name { get; set; }
-    [JsonPropertyName("nonce")]
     public string? Nonce { get; set; }
-    [JsonPropertyName("oid")]
     public string? Oid { get; set; }
     [JsonPropertyName("preferred_username")]
     public string? PreferredUsername { get; set; }
-    [JsonPropertyName("rh")]
     public string? Rh { get; set; }
-    [JsonPropertyName("sub")]
     public string? Sub { get; set; }
-    [JsonPropertyName("tid")]
     public string? Tid { get; set; }
-    [JsonPropertyName("uti")]
     public string? Uti { get; set; }
-    [JsonPropertyName("ver")]
     public string? Ver { get; set; }
 }
 
@@ -101,13 +88,14 @@ public class EntraMockResponsePlugin : MockResponsePlugin
 
     private void UpdateIdToken(ref string body, ProxyRequestArgs e, ref bool changed)
     {
-        if (!body.Contains("id_token\":\"@dynamic") ||
+        if ((!body.Contains("id_token\":\"@dynamic") &&
+            !body.Contains("id_token\": \"@dynamic")) ||
             string.IsNullOrEmpty(lastNonce))
         {
             return;
         }
 
-        var idTokenRegex = new Regex("id_token\":\"([^\"]+)\"");
+        var idTokenRegex = new Regex("id_token\":\\s?\"([^\"]+)\"");
 
         var idToken = idTokenRegex.Match(body).Groups[1].Value;
         idToken = idToken.Replace("@dynamic.", "");
@@ -116,7 +104,7 @@ public class EntraMockResponsePlugin : MockResponsePlugin
         // before decoding, we need to pad the base64 to a multiple of 4
         // or Convert.FromBase64String will throw an exception
         var decodedToken = Encoding.UTF8.GetString(Convert.FromBase64String(PadBase64(tokenChunks[1])));
-        var token = JsonSerializer.Deserialize<IdToken>(decodedToken);
+        var token = JsonSerializer.Deserialize<IdToken>(decodedToken, ProxyUtils.JsonSerializerOptions);
         if (token is null)
         {
             return;
@@ -124,7 +112,7 @@ public class EntraMockResponsePlugin : MockResponsePlugin
 
         token.Nonce = lastNonce;
 
-        tokenChunks[1] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(token)));
+        tokenChunks[1] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(token, ProxyUtils.JsonSerializerOptions)));
         body = idTokenRegex.Replace(body, $"id_token\":\"{string.Join('.', tokenChunks)}\"");
         changed = true;
     }

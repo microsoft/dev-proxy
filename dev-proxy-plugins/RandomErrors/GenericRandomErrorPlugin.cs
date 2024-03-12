@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
@@ -24,7 +23,6 @@ public class GenericRandomErrorConfiguration
 {
     public string? ErrorsFile { get; set; }
     public int RetryAfterInSeconds { get; set; } = 5;
-    [JsonPropertyName("responses")]
     public IEnumerable<GenericErrorResponse> Responses { get; set; } = Array.Empty<GenericErrorResponse>();
 }
 
@@ -87,7 +85,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
         }
 
         var statusCode = (HttpStatusCode)error.StatusCode;
-        var body = error.Body is null ? string.Empty : JsonSerializer.Serialize(error.Body);
+        var body = error.Body is null ? string.Empty : JsonSerializer.Serialize(error.Body, ProxyUtils.JsonSerializerOptions);
         // we get a JSON string so need to start with the opening quote
         if (body.StartsWith("\"@"))
         {

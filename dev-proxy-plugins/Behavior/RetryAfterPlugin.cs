@@ -103,7 +103,8 @@ public class RetryAfterPlugin : BaseProxyPlugin
                         RequestId = requestId,
                         Date = requestDate
                     }
-                })
+                }),
+                ProxyUtils.JsonSerializerOptions
             );
         }
         else

@@ -37,7 +37,7 @@ internal class GenericErrorResponsesLoader : IDisposable
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     var responsesString = reader.ReadToEnd();
-                    var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString);
+                    var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
                     IEnumerable<GenericErrorResponse>? configResponses = responsesConfig?.Responses;
                     if (configResponses is not null)
                     {

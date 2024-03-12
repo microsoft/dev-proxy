@@ -30,7 +30,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
             return;
         }
 
-        var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString);
+        var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString, ProxyUtils.JsonSerializerOptions);
         if (batch == null)
         {
             await base.OnRequest(sender, e);
@@ -94,7 +94,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
                 if (mockResponse.Response?.Body is not null)
                 {
-                    var bodyString = JsonSerializer.Serialize(mockResponse.Response.Body) as string;
+                    var bodyString = JsonSerializer.Serialize(mockResponse.Response.Body, ProxyUtils.JsonSerializerOptions) as string;
                     // we get a JSON string so need to start with the opening quote
                     if (bodyString?.StartsWith("\"@") ?? false)
                     {
@@ -141,7 +141,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
         {
             Responses = responses.ToArray()
         };
-        var batchResponseString = JsonSerializer.Serialize(batchResponse);
+        var batchResponseString = JsonSerializer.Serialize(batchResponse, ProxyUtils.JsonSerializerOptions);
         ProcessMockResponse(ref batchResponseString, batchHeaders, e, null);
         e.Session.GenericResponse(batchResponseString ?? string.Empty, HttpStatusCode.OK, batchHeaders.Select(h => new HttpHeader(h.Name, h.Value)));
         _logger?.LogRequest([$"200 {e.Session.HttpClient.Request.RequestUri}"], MessageType.Mocked, new LoggingContext(e.Session));

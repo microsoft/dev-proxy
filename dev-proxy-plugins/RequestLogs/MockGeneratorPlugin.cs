@@ -86,7 +86,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         var mocksFile = new MockResponseConfiguration { Mocks = mocks };
 
         _logger?.LogDebug("Serializing mocks...");
-        var mocksFileJson = JsonSerializer.Serialize(mocksFile, new JsonSerializerOptions { WriteIndented = true });
+        var mocksFileJson = JsonSerializer.Serialize(mocksFile, ProxyUtils.JsonSerializerOptions);
         var fileName = $"mocks-{DateTime.Now:yyyyMMddHHmmss}.json";
 
         _logger?.LogDebug("Writing mocks to {fileName}...", fileName);
@@ -124,7 +124,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
                 var body = response.IsBodyRead ? response.BodyString : await session.GetResponseBodyAsString();
                 _logger?.LogDebug("Body: {body}", body);
                 _logger?.LogDebug("Deserializing response body...");
-                return JsonSerializer.Deserialize<dynamic>(body);
+                return JsonSerializer.Deserialize<dynamic>(body, ProxyUtils.JsonSerializerOptions);
             }
             catch (Exception ex)
             {

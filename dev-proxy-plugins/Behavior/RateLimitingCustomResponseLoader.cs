@@ -3,7 +3,6 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.Mocks;
 using System.Text.Json;
 
 namespace Microsoft.DevProxy.Plugins.Behavior;
@@ -37,7 +36,7 @@ internal class RateLimitingCustomResponseLoader : IDisposable
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     var responseString = reader.ReadToEnd();
-                    var response = JsonSerializer.Deserialize<MockResponseResponse>(responseString);
+                    var response = JsonSerializer.Deserialize<MockResponseResponse>(responseString, ProxyUtils.JsonSerializerOptions);
                     if (response is not null)
                     {
                         _configuration.CustomResponse = response;

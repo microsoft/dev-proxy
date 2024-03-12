@@ -83,7 +83,8 @@ public class RateLimitingPlugin : BaseProxyPlugin
                             RequestId = requestId,
                             Date = requestDate
                         }
-                    })
+                    }),
+                    ProxyUtils.JsonSerializerOptions
                 );
             }
 
@@ -242,7 +243,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
                     }
 
                     string body = _configuration.CustomResponse.Body is not null ?
-                        JsonSerializer.Serialize(_configuration.CustomResponse.Body, new JsonSerializerOptions { WriteIndented = true }) :
+                        JsonSerializer.Serialize(_configuration.CustomResponse.Body, ProxyUtils.JsonSerializerOptions) :
                         "";
                     e.Session.GenericResponse(body, responseCode, headers);
                     state.HasBeenSet = true;
