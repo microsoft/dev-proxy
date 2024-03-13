@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy;
 
@@ -16,35 +16,31 @@ class ProxyPresetInfo
 
 class GitHubTreeResponse
 {
-    [JsonPropertyName("tree")]
     public GitHubTreeItem[] Tree { get; set; } = Array.Empty<GitHubTreeItem>();
-    [JsonPropertyName("truncated")]
     public bool Truncated { get; set; }
 }
 
 class GitHubTreeItem
 {
-    [JsonPropertyName("path")]
     public string Path { get; set; } = string.Empty;
-    [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
 }
 
 public static class PresetGetCommandHandler
 {
-    public static async Task DownloadPreset(string presetId, ILogger logger)
+    public static async Task DownloadPreset(string presetId, IProxyLogger logger)
     {
         try
         {
             var appFolder = ProxyUtils.AppFolder;
             if (string.IsNullOrEmpty(appFolder) || !Directory.Exists(appFolder))
             {
-                logger.LogError("App folder not found");
+                logger.LogError("App folder {appFolder} not found", appFolder);
                 return;
             }
 
             var presetsFolderPath = Path.Combine(appFolder, "presets");
-            logger.LogDebug($"Checking if presets folder {presetsFolderPath} exists...");
+            logger.LogDebug("Checking if presets folder {presetsFolderPath} exists...", presetsFolderPath);
             if (!Directory.Exists(presetsFolderPath))
             {
                 logger.LogDebug("Presets folder not found, creating it...");
@@ -52,12 +48,12 @@ public static class PresetGetCommandHandler
                 logger.LogDebug("Presets folder created");
             }
 
-            logger.LogDebug($"Getting target folder path for preset {presetId}...");
+            logger.LogDebug("Getting target folder path for preset {presetId}...", presetId);
             var targetFolderPath = GetTargetFolderPath(appFolder, presetId);
-            logger.LogDebug($"Creating target folder {targetFolderPath}...");
+            logger.LogDebug("Creating target folder {targetFolderPath}...", targetFolderPath);
             Directory.CreateDirectory(targetFolderPath);
 
-            logger.LogInfo($"Downloading preset {presetId}...");
+            logger.LogInformation("Downloading preset {presetId}...", presetId);
 
             var sampleFiles = await GetFilesToDownload(presetId, logger);
             foreach (var sampleFile in sampleFiles)
@@ -65,34 +61,33 @@ public static class PresetGetCommandHandler
                 await DownloadFile(sampleFile, targetFolderPath, presetId, logger);
             }
 
-            logger.LogInfo($"Preset saved in {targetFolderPath}");
+            logger.LogInformation("Preset saved in {targetFolderPath}\r\n", targetFolderPath);
             var presetInfo = GetPresetInfo(targetFolderPath, logger);
             if (!presetInfo.ConfigFiles.Any() && !presetInfo.MockFiles.Any())
             {
                 return;
             }
 
-            logger.LogInfo("");
             if (presetInfo.ConfigFiles.Any())
             {
-                logger.LogInfo("To start Dev Proxy with the preset, run:");
+                logger.LogInformation("To start Dev Proxy with the preset, run:");
                 foreach (var configFile in presetInfo.ConfigFiles)
                 {
-                    logger.LogInfo($"  devproxy --config-file \"{configFile.Replace(appFolder, "~appFolder")}\"");
+                    logger.LogInformation("  devproxy --config-file \"{configFile}\"", configFile.Replace(appFolder, "~appFolder"));
                 }
             }
             else
             {
-                logger.LogInfo("To start Dev Proxy with the mock file, enable the MockResponsePlugin or GraphMockResponsePlugin and run:");
+                logger.LogInformation("To start Dev Proxy with the mock file, enable the MockResponsePlugin or GraphMockResponsePlugin and run:");
                 foreach (var mockFile in presetInfo.MockFiles)
                 {
-                    logger.LogInfo($"  devproxy --mock-file \"{mockFile.Replace(appFolder, "~appFolder")}\"");
+                    logger.LogInformation("  devproxy --mock-file \"{mockFile}\"", mockFile.Replace(appFolder, "~appFolder"));
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.Message);
+            logger.LogError(ex, "Error downloading presets");
         }
     }
 
@@ -111,11 +106,11 @@ public static class PresetGetCommandHandler
     /// </remarks>
     /// <param name="presetFolder">Full path to the folder with preset files</param>
     /// <returns>Array of files that can be used to start proxy with</returns>
-    private static ProxyPresetInfo GetPresetInfo(string presetFolder, ILogger logger)
+    private static ProxyPresetInfo GetPresetInfo(string presetFolder, IProxyLogger logger)
     {
         var presetInfo = new ProxyPresetInfo();
 
-        logger.LogDebug($"Getting list of JSON files in {presetFolder}...");
+        logger.LogDebug("Getting list of JSON files in {presetFolder}...", presetFolder);
         var jsonFiles = Directory.GetFiles(presetFolder, "*.json");
         if (!jsonFiles.Any())
         {
@@ -125,29 +120,29 @@ public static class PresetGetCommandHandler
 
         foreach (var jsonFile in jsonFiles)
         {
-            logger.LogDebug($"Reading file {jsonFile}...");
+            logger.LogDebug("Reading file {jsonFile}...", jsonFile);
 
             var fileContents = File.ReadAllText(jsonFile);
             if (fileContents.Contains("\"plugins\":"))
             {
-                logger.LogDebug($"File {jsonFile} contains proxy config");
+                logger.LogDebug("File {jsonFile} contains proxy config", jsonFile);
                 presetInfo.ConfigFiles.Add(jsonFile);
                 continue;
             }
 
             if (fileContents.Contains("\"responses\":"))
             {
-                logger.LogDebug($"File {jsonFile} contains mock data");
+                logger.LogDebug("File {jsonFile} contains mock data", jsonFile);
                 presetInfo.MockFiles.Add(jsonFile);
                 continue;
             }
 
-            logger.LogDebug($"File {jsonFile} is not a proxy config or mock data");
+            logger.LogDebug("File {jsonFile} is not a proxy config or mock data", jsonFile);
         }
 
         if (presetInfo.ConfigFiles.Any())
         {
-            logger.LogDebug($"Found {presetInfo.ConfigFiles.Count} proxy config files. Clearing mocks...");
+            logger.LogDebug("Found {configFilesCount} proxy config files. Clearing mocks...", presetInfo.ConfigFiles.Count);
             presetInfo.MockFiles.Clear();
         }
 
@@ -167,9 +162,9 @@ public static class PresetGetCommandHandler
         return newFolder;
     }
 
-    private static async Task<string[]> GetFilesToDownload(string sampleFolderName, ILogger logger)
+    private static async Task<string[]> GetFilesToDownload(string sampleFolderName, IProxyLogger logger)
     {
-        logger.LogDebug($"Getting list of files in Dev Proxy samples repo...");
+        logger.LogDebug("Getting list of files in Dev Proxy samples repo...");
         var url = $"https://api.github.com/repos/pnp/proxy-samples/git/trees/main?recursive=1";
         using (var client = new HttpClient())
         {
@@ -179,7 +174,7 @@ public static class PresetGetCommandHandler
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var tree = JsonSerializer.Deserialize<GitHubTreeResponse>(content);
+                var tree = JsonSerializer.Deserialize<GitHubTreeResponse>(content, ProxyUtils.JsonSerializerOptions);
                 if (tree is null)
                 {
                     throw new Exception("Failed to get list of files from GitHub");
@@ -194,7 +189,7 @@ public static class PresetGetCommandHandler
 
                 foreach (var file in filesToDownload)
                 {
-                    logger.LogDebug($"Found file {file}");
+                    logger.LogDebug("Found file {file}", file);
                 }
 
                 return filesToDownload;
@@ -206,10 +201,10 @@ public static class PresetGetCommandHandler
         }
     }
 
-    private static async Task DownloadFile(string filePath, string targetFolderPath, string presetId, ILogger logger)
+    private static async Task DownloadFile(string filePath, string targetFolderPath, string presetId, IProxyLogger logger)
     {
         var url = $"https://raw.githubusercontent.com/pnp/proxy-samples/main/{filePath.Replace("#", "%23")}";
-        logger.LogDebug($"Downloading file {filePath}...");
+        logger.LogDebug("Downloading file {filePath}...", filePath);
 
         using (var client = new HttpClient())
         {
@@ -231,7 +226,7 @@ public static class PresetGetCommandHandler
                     await contentStream.CopyToAsync(fileStream);
                 }
 
-                logger.LogDebug($"File downloaded successfully to {localFilePath}");
+                logger.LogDebug("File downloaded successfully to {localFilePath}", localFilePath);
             }
             else
             {

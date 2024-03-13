@@ -4,6 +4,7 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
 
@@ -30,12 +31,14 @@ public class ProxyConfiguration : IProxyConfiguration
     public bool Record { get; set; } = false;
     [JsonPropertyName("logLevel")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public LogLevel LogLevel { get; set; } = LogLevel.Info;
+    public LogLevel LogLevel { get; set; } = LogLevel.Information;
     public IEnumerable<int> WatchPids { get; set; } = new List<int>();
     public IEnumerable<string> WatchProcessNames { get; set; } = new List<string>();
     [JsonPropertyName("rate")]
     public int Rate { get; set; } = 50;
     public bool NoFirstRun { get; set; } = false;
+    public bool AsSystemProxy { get; set; } = true;
+    public bool InstallCert { get; set; } = true;
     public string ConfigFile { get; set; } = "devproxyrc.json";
     [JsonPropertyName("newVersionNotification")]
     [JsonConverter(typeof(JsonStringEnumConverter))]

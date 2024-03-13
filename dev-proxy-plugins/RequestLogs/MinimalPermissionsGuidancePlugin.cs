@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
 using System.CommandLine;
@@ -42,15 +43,15 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 {
     public override string Name => nameof(MinimalPermissionsGuidancePlugin);
     private MinimalPermissionsGuidancePluginConfiguration _configuration = new();
-    private readonly Option<string?> _filePath;
+    private static readonly string _filePathOptionName = "--minimal-permissions-summary-file-path";
 
-    public MinimalPermissionsGuidancePlugin()
+    public override Option[] GetOptions()
     {
-        _filePath = new Option<string?>("--minimal-permissions-summary-file-path", "Path to the file where the permissions summary should be saved. If not specified, the summary will be printed to the console. Path can be absolute or relative to the current working directory.")
+        var filePath = new Option<string?>(_filePathOptionName, "Path to the file where the permissions summary should be saved. If not specified, the summary will be printed to the console. Path can be absolute or relative to the current working directory.")
         {
             ArgumentHelpName = "minimal-permissions-summary-file-path"
         };
-        _filePath.AddValidator(input =>
+        filePath.AddValidator(input =>
         {
             var outputFilePath = input.Tokens.First().Value;
             if (string.IsNullOrEmpty(outputFilePath))
@@ -71,6 +72,8 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
                 input.ErrorMessage = $"The directory {outputDir} does not exist.";
             }
         });
+
+        return [filePath];
     }
 
     public override void Register(IPluginEvents pluginEvents,
@@ -82,7 +85,6 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         configSection?.Bind(_configuration);
 
-        pluginEvents.Init += Init;
         pluginEvents.OptionsLoaded += OptionsLoaded;
         pluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
@@ -91,16 +93,11 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
     {
         InvocationContext context = e.Context;
 
-        var filePath = context.ParseResult.GetValueForOption(_filePath);
+        var filePath = context.ParseResult.GetValueForOption<string?>(_filePathOptionName, e.Options);
         if (filePath is not null)
         {
             _configuration.FilePath = filePath;
         }
-    }
-
-    private void Init(object? sender, InitArgs e)
-    {
-        e.RootCommand.AddOption(_filePath);
     }
 
     private async Task AfterRecordingStop(object? sender, RecordingArgs e)
@@ -197,10 +194,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         if (string.IsNullOrEmpty(_configuration.FilePath))
         {
-            _logger?.LogWarn("This plugin is in preview and may not return the correct results.");
-            _logger?.LogWarn("Please review the permissions and test your app before using them in production.");
-            _logger?.LogWarn("If you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
-            _logger?.LogInfo("");
+            _logger?.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
         }
 
         if (delegatedEndpoints.Count > 0)
@@ -210,10 +204,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
             if (string.IsNullOrEmpty(_configuration.FilePath))
             {
-                _logger?.LogInfo("Evaluating delegated permissions for:");
-                _logger?.LogInfo("");
-                _logger?.LogInfo(string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
-                _logger?.LogInfo("");
+                _logger?.LogInformation("Evaluating delegated permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
             }
 
             await EvaluateMinimalScopes(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
@@ -226,10 +217,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
             if (string.IsNullOrEmpty(_configuration.FilePath))
             {
-                _logger?.LogInfo("Evaluating application permissions for:");
-                _logger?.LogInfo("");
-                _logger?.LogInfo(string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
-                _logger?.LogInfo("");
+                _logger?.LogInformation("Evaluating application permissions for:\r\n{applicationPermissions}\r\n", string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
             }
 
             await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
@@ -237,10 +225,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         if (!string.IsNullOrEmpty(_configuration.FilePath))
         {
-            var json = JsonSerializer.Serialize(minimalPermissionsInfo, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(minimalPermissionsInfo, ProxyUtils.JsonSerializerOptions);
             await File.WriteAllTextAsync(_configuration.FilePath, json);
         }
     }
@@ -256,7 +241,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
         try
         {
-            var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody);
+            var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody, ProxyUtils.JsonSerializerOptions);
             if (batch == null)
             {
                 return requests.ToArray();
@@ -360,7 +345,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
             var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString(scopeType)}";
             using (var client = new HttpClient())
             {
-                var stringPayload = JsonSerializer.Serialize(payload);
+                var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
                 _logger?.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
 
                 var response = await client.PostAsJsonAsync(url, payload);
@@ -368,7 +353,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
                 _logger?.LogDebug(string.Format("Response:{0}{1}", Environment.NewLine, content));
 
-                var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content);
+                var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
                 var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
                 var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
                 if (minimalPermissions.Any())
@@ -382,36 +367,28 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
                     if (string.IsNullOrEmpty(_configuration.FilePath))
                     {
-                        _logger?.LogInfo("Minimal permissions:");
-                        _logger?.LogInfo(string.Join(", ", minimalPermissions));
-                        _logger?.LogInfo("");
-                        _logger?.LogInfo("Permissions on the token:");
-                        _logger?.LogInfo(string.Join(", ", permissionsFromAccessToken));
-                        _logger?.LogInfo("");
+                        _logger?.LogInformation("Minimal permissions:\r\n{minimalPermissions}\r\nPermissions on the token:\r\n{tokenPermissions}", string.Join(", ", minimalPermissions), string.Join(", ", permissionsFromAccessToken));
+
 
                         if (excessPermissions.Any())
                         {
-                            _logger?.LogWarn("The following permissions are unnecessary:");
-                            _logger?.LogWarn(string.Join(", ", excessPermissions));
-                            _logger?.LogInfo("");
+                            _logger?.LogWarning("The following permissions are unnecessary: {permissions}", excessPermissions);
                         }
                         else
                         {
-                            _logger?.LogInfo("The token has the minimal permissions required.");
-                            _logger?.LogInfo("");
+                            _logger?.LogInformation("The token has the minimal permissions required.");
                         }
                     }
                 }
                 if (errors.Any())
                 {
-                    _logger?.LogError("Couldn't determine minimal permissions for the following URLs:");
-                    _logger?.LogError(string.Join(Environment.NewLine, errors));
+                    _logger?.LogError("Couldn't determine minimal permissions for the following URLs: {errors}", errors);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(string.Format("An error has occurred while retrieving minimal permissions: {0}", ex.Message));
+            _logger?.LogError(ex, "An error has occurred while retrieving minimal permissions: {message}", ex.Message);
         }
     }
 

@@ -2,23 +2,37 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Net;
 
 namespace Microsoft.DevProxy;
 
 internal class ProxyHost
 {
+    internal static readonly string PortOptionName = "--port";
     private Option<int?> _portOption;
+    internal static readonly string IpAddressOptionName = "--ip-address";
     private Option<string?> _ipAddressOption;
+    internal static readonly string LogLevelOptionName = "--log-level";
     private static Option<LogLevel?>? _logLevelOption;
+    internal static readonly string RecordOptionName = "--record";
     private Option<bool?> _recordOption;
+    internal static readonly string WatchPidsOptionName = "--watch-pids";
     private Option<IEnumerable<int>?> _watchPidsOption;
+    internal static readonly string WatchProcessNamesOptionName = "--watch-process-names";
     private Option<IEnumerable<string>?> _watchProcessNamesOption;
+    internal static readonly string ConfigFileOptionName = "--config-file";
     private static Option<string?>? _configFileOption;
+    internal static readonly string RateOptionName = "--failure-rate";
     private Option<int?> _rateOption;
+    internal static readonly string NoFirstRunOptionName = "--no-first-run";
     private Option<bool?> _noFirstRunOption;
+    internal static readonly string AsSystemProxyOptionName = "--as-system-proxy";
+    private Option<bool?> _asSystemProxyOption;
+    internal static readonly string InstallCertOptionName = "--install-cert";
+    private Option<bool?> _installCertOption;
+    internal static readonly string UrlsToWatchOptionName = "--urls-to-watch";
     private static Option<IEnumerable<string>?>? _urlsToWatchOption;
 
     private static bool _configFileResolved = false;
@@ -76,7 +90,7 @@ internal class ProxyHost
             {
                 // if there's no config file in the current working folder
                 // fall back to the default config file in the app folder
-                if (!File.Exists(_configFile))
+                if (!File.Exists(_configFile) && !File.Exists("devproxyrc.jsonc"))
                 {
                     _configFile = "~appFolder/devproxyrc.json";
                 }
@@ -176,11 +190,11 @@ internal class ProxyHost
 
     public ProxyHost()
     {
-        _portOption = new Option<int?>("--port", "The port for the proxy to listen on");
+        _portOption = new Option<int?>(PortOptionName, "The port for the proxy to listen on");
         _portOption.AddAlias("-p");
         _portOption.ArgumentHelpName = "port";
 
-        _ipAddressOption = new Option<string?>("--ip-address", "The IP address for the proxy to bind to")
+        _ipAddressOption = new Option<string?>(IpAddressOptionName, "The IP address for the proxy to bind to")
         {
             ArgumentHelpName = "ipAddress"
         };
@@ -192,17 +206,21 @@ internal class ProxyHost
             }
         });
 
-        _recordOption = new Option<bool?>("--record", "Use this option to record all request logs");
+        _recordOption = new Option<bool?>(RecordOptionName, "Use this option to record all request logs");
 
-        _watchPidsOption = new Option<IEnumerable<int>?>("--watch-pids", "The IDs of processes to watch for requests");
-        _watchPidsOption.ArgumentHelpName = "pids";
-        _watchPidsOption.AllowMultipleArgumentsPerToken = true;
+        _watchPidsOption = new Option<IEnumerable<int>?>(WatchPidsOptionName, "The IDs of processes to watch for requests")
+        {
+            ArgumentHelpName = "pids",
+            AllowMultipleArgumentsPerToken = true
+        };
 
-        _watchProcessNamesOption = new Option<IEnumerable<string>?>("--watch-process-names", "The names of processes to watch for requests");
-        _watchProcessNamesOption.ArgumentHelpName = "processNames";
-        _watchProcessNamesOption.AllowMultipleArgumentsPerToken = true;
+        _watchProcessNamesOption = new Option<IEnumerable<string>?>(WatchProcessNamesOptionName, "The names of processes to watch for requests")
+        {
+            ArgumentHelpName = "processNames",
+            AllowMultipleArgumentsPerToken = true
+        };
 
-        _rateOption = new Option<int?>("--failure-rate", "The percentage of chance that a request will fail");
+        _rateOption = new Option<int?>(RateOptionName, "The percentage of chance that a request will fail");
         _rateOption.AddAlias("-f");
         _rateOption.ArgumentHelpName = "failure rate";
         _rateOption.AddValidator((input) =>
@@ -214,9 +232,24 @@ internal class ProxyHost
             }
         });
 
-        _noFirstRunOption = new Option<bool?>("--no-first-run", "Skip the first run experience");
+        _noFirstRunOption = new Option<bool?>(NoFirstRunOptionName, "Skip the first run experience");
 
-        _urlsToWatchOption = new("--urls-to-watch", "The list of URLs to watch for requests")
+        _asSystemProxyOption = new Option<bool?>(AsSystemProxyOptionName, "Set Dev Proxy as the system proxy");
+        _asSystemProxyOption.SetDefaultValue(true);
+
+        _installCertOption = new Option<bool?>(InstallCertOptionName, "Install self-signed certificate");
+        _installCertOption.SetDefaultValue(true);
+        _installCertOption.AddValidator((input) =>
+        {
+            var asSystemProxy = input.GetValueForOption(_asSystemProxyOption) ?? true;
+            var installCert = input.GetValueForOption(_installCertOption) ?? true;
+            if (asSystemProxy && !installCert)
+            {
+                input.ErrorMessage = $"Requires option '--{_asSystemProxyOption.Name}' to be 'false'";
+            }
+        });
+
+        _urlsToWatchOption = new(UrlsToWatchOptionName, "The list of URLs to watch for requests")
         {
             ArgumentHelpName = "urlsToWatch",
             AllowMultipleArgumentsPerToken = true,
@@ -227,7 +260,7 @@ internal class ProxyHost
         ProxyCommandHandler.Configuration.ConfigFile = ConfigFile;
     }
 
-    public RootCommand GetRootCommand(ILogger logger)
+    public RootCommand GetRootCommand(IProxyLogger logger)
     {
         var command = new RootCommand {
             _portOption,
@@ -243,6 +276,8 @@ internal class ProxyHost
             // `ProxyCommandHandler.Configuration`. As such, it's always set here
             _configFileOption!,
             _noFirstRunOption,
+            _asSystemProxyOption,
+            _installCertOption,
             // _urlsToWatchOption is set while initialize the Program
             // As such, it's always set here
             _urlsToWatchOption!
@@ -256,7 +291,7 @@ internal class ProxyHost
         command.Add(msGraphDbCommand);
 
         var presetCommand = new Command("preset", "Manage Dev Proxy presets");
-        
+
         var presetGetCommand = new Command("get", "Download the specified preset from the Sample Solution Gallery");
         var presetIdArgument = new Argument<string>("preset-id", "The ID of the preset to download");
         presetGetCommand.AddArgument(presetIdArgument);
@@ -268,6 +303,22 @@ internal class ProxyHost
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(_portOption, _ipAddressOption, _logLevelOption!, _recordOption, _watchPidsOption, _watchProcessNamesOption, _rateOption, _noFirstRunOption, pluginEvents, urlsToWatch, logger);
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, Option[] optionsFromPlugins, ISet<UrlToWatch> urlsToWatch, IProxyLogger logger) => new ProxyCommandHandler(
+        pluginEvents,
+        new Option[] {
+            _portOption,
+            _ipAddressOption,
+            _logLevelOption!,
+            _recordOption,
+            _watchPidsOption,
+            _watchProcessNamesOption,
+            _rateOption,
+            _noFirstRunOption,
+            _asSystemProxyOption,
+            _installCertOption,
+        }.Concat(optionsFromPlugins).ToArray(),
+        urlsToWatch,
+        logger
+    );
 }
 

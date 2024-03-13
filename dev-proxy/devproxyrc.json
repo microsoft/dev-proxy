@@ -1,15 +1,15 @@
 {
-  "$schema": "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.15.0/rc.schema.json",
+  "$schema": "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.16.0/rc.schema.json",
   "plugins": [
     {
       "name": "RetryAfterPlugin",
       "enabled": true,
-      "pluginPath": "plugins\\dev-proxy-plugins.dll"
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll"
     },
     {
       "name": "GenericRandomErrorPlugin",
       "enabled": true,
-      "pluginPath": "plugins\\dev-proxy-plugins.dll",
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll",
       "configSection": "genericRandomErrorPlugin"
     }
   ],
@@ -21,6 +21,6 @@
   },
   "rate": 50,
   "labelMode": "text",
-  "logLevel": "info",
+  "logLevel": "information",
   "newVersionNotification": "stable"
 }

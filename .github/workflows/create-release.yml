@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
       - name: Publish ${{ matrix.architecture }}
@@ -60,7 +60,7 @@ jobs:
         with:
           path: output
       - name: Release
-        uses: anton-yurchenko/git-release@v5.0
+        uses: anton-yurchenko/git-release@v6.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRAFT_RELEASE: "false"

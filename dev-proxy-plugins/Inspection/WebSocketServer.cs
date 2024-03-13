@@ -8,8 +8,8 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
+using Microsoft.DevProxy.Abstractions;
 
 public class WebSocketServer
 {
@@ -84,10 +84,7 @@ public class WebSocketServer
             return;
         }
 
-        var messageString = JsonSerializer.Serialize(message, new JsonSerializerOptions
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        });
+        var messageString = JsonSerializer.Serialize(message, ProxyUtils.JsonSerializerOptions);
 
         // we need a semaphore to avoid multiple simultaneous writes
         // which aren't allowed

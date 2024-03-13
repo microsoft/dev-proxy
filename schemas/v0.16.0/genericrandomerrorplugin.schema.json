@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Proxy GenericRandomErrorPlugin responses",
+  "description": "Mocks for the Dev Proxy GenericRandomErrorPlugin",
+  "type": "object",
+  "properties": {
+    "$schema": {
+    	"type":"string"
+    },
+    "responses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": [
+              "object",
+              "array",
+              "string"
+            ]
+          },
+          "statusCode": {
+            "type": "integer"
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "responses"
+  ],
+  "additionalProperties": false
+}

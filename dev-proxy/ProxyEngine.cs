@@ -2,9 +2,10 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
@@ -23,9 +24,9 @@ enum ToggleSystemProxyAction
 public class ProxyEngine
 {
     private readonly PluginEvents _pluginEvents;
-    private readonly ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly ProxyConfiguration _config;
-    private ProxyServer? _proxyServer;
+    private static ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
     // lists of URLs to watch, used for intercepting requests
     private ISet<UrlToWatch> _urlsToWatch = new HashSet<UrlToWatch>();
@@ -40,7 +41,20 @@ public class ProxyEngine
     // the key is HashObject of the SessionEventArgs object
     private Dictionary<int, Dictionary<string, object>> _pluginData = new();
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
+    public static X509Certificate2? Certificate => _proxyServer?.CertificateManager.RootCertificate;
+
+    static ProxyEngine()
+    {
+        _proxyServer = new ProxyServer();
+        _proxyServer.CertificateManager.RootCertificateName = "Dev Proxy CA";
+        _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
+        // we need to change this to a value lower than 397
+        // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
+        _proxyServer.CertificateManager.CertificateValidDays = 365;
+        _proxyServer.CertificateManager.CreateRootCertificate();
+    }
+
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, IProxyLogger logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
@@ -74,18 +88,16 @@ public class ProxyEngine
 
     public async Task Run(CancellationToken? cancellationToken)
     {
+        Debug.Assert(_proxyServer is not null, "Proxy server is not initialized");
+
         if (!_urlsToWatch.Any())
         {
-            _logger.LogInfo("No URLs to watch configured. Please add URLs to watch in the devproxyrc.json config file.");
+            _logger.LogInformation("No URLs to watch configured. Please add URLs to watch in the devproxyrc.json config file.");
             return;
         }
 
         LoadHostNamesFromUrls();
 
-        _proxyServer = new ProxyServer();
-
-        _proxyServer.CertificateManager.RootCertificateName = "Dev Proxy CA";
-        _proxyServer.CertificateManager.CertificateStorage = new CertificateDiskCache();
         _proxyServer.BeforeRequest += OnRequest;
         _proxyServer.BeforeResponse += OnBeforeResponse;
         _proxyServer.AfterResponse += OnAfterResponse;
@@ -95,18 +107,16 @@ public class ProxyEngine
 
         var ipAddress = string.IsNullOrEmpty(_config.IPAddress) ? IPAddress.Any : IPAddress.Parse(_config.IPAddress);
         _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
-        if (!RunTime.IsWindows)
-        {
-            // we need to change this to a value lower than 397
-            // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
-            _proxyServer.CertificateManager.CertificateValidDays = 365;
-            // we need to call it explicitly for non-Windows OSes because it's
-            // a part of the SetAsSystemHttpProxy that works only on Windows
-            _proxyServer.CertificateManager.EnsureRootCertificate();
-        }
-
         // Fired when a CONNECT request is received
         _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
+        if (_config.InstallCert)
+        {
+            _proxyServer.CertificateManager.EnsureRootCertificate();
+        }
+        else
+        {
+            _explicitEndPoint.GenericCertificate = _proxyServer.CertificateManager.LoadRootCertificate();
+        }
 
         _proxyServer.AddEndPoint(_explicitEndPoint);
         _proxyServer.Start();
@@ -116,25 +126,31 @@ public class ProxyEngine
 
         foreach (var endPoint in _proxyServer.ProxyEndPoints)
         {
-            _logger.LogInfo($"Listening on {endPoint.IpAddress}:{endPoint.Port}...");
+            _logger.LogInformation("Listening on {ipAddress}:{port}...", endPoint.IpAddress, endPoint.Port);
         }
 
-        if (RunTime.IsWindows)
+        if (_config.AsSystemProxy)
         {
-            // Only explicit proxies can be set as system proxy!
-            _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
-        }
-        else if (RunTime.IsMac)
-        {
-            ToggleSystemProxy(ToggleSystemProxyAction.On, _config.IPAddress, _config.Port);
+            if (RunTime.IsWindows)
+            {
+                _proxyServer.SetAsSystemHttpProxy(_explicitEndPoint);
+                _proxyServer.SetAsSystemHttpsProxy(_explicitEndPoint);
+            }
+            else if (RunTime.IsMac)
+            {
+                ToggleSystemProxy(ToggleSystemProxyAction.On, _config.IPAddress, _config.Port);
+            }
+            else
+            {
+                _logger.LogWarning("Configure your operating system to use this proxy's port and address {ipAddress}:{port}", _config.IPAddress, _config.Port);
+            }
         }
         else
         {
-            _logger.LogWarn("Configure your operating system to use this proxy's port and address");
+            _logger.LogInformation("Configure your application to use this proxy's port and address");
         }
 
-        _logger.LogInfo("Press CTRL+C to stop Dev Proxy");
-        _logger.LogInfo("");
+        PrintHotkeys();
         Console.CancelKeyPress += Console_CancelKeyPress;
 
         if (_config.Record)
@@ -156,7 +172,8 @@ public class ProxyEngine
     {
         if (!RunTime.IsMac ||
             _config.NoFirstRun ||
-            !IsFirstRun())
+            !IsFirstRun() ||
+            !_config.InstallCert)
         {
             return;
         }
@@ -220,8 +237,11 @@ public class ProxyEngine
             if (key == ConsoleKey.C)
             {
                 Console.Clear();
-                Console.WriteLine("Press CTRL+C to stop Dev Proxy");
-                Console.WriteLine("");
+                PrintHotkeys();
+            }
+            if (key == ConsoleKey.W)
+            {
+                _pluginEvents.RaiseMockRequest(new EventArgs()).GetAwaiter().GetResult();
             }
         } while (key != ConsoleKey.Escape);
     }
@@ -297,6 +317,13 @@ public class ProxyEngine
                 hostToWatch = urlToWatchPattern;
             }
 
+            // remove port number if present
+            var portPos = hostToWatch.IndexOf(":");
+            if (portPos > 0)
+            {
+                hostToWatch = hostToWatch.Substring(0, portPos);
+            }
+
             var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
             Regex hostRegex = new Regex($"^{hostToWatchRegexString}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             // don't add the same host twice
@@ -340,14 +367,14 @@ public class ProxyEngine
                 _proxyServer.Stop();
             }
 
-            if (RunTime.IsMac)
+            if (RunTime.IsMac && _config.AsSystemProxy)
             {
                 ToggleSystemProxy(ToggleSystemProxyAction.Off);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Exception: {ex.Message}");
+            _logger.LogError(ex, "An error occurred while stopping the proxy");
         }
     }
 
@@ -561,5 +588,12 @@ public class ProxyEngine
     {
         // set e.clientCertificate to override
         return Task.CompletedTask;
+    }
+    
+    private void PrintHotkeys()
+    {
+        Console.WriteLine("Hotkeys: issue (w)eb request, (r)ecord, (s)top recording, (c)lear screen");
+        Console.WriteLine("Press CTRL+C to stop Dev Proxy");
+        Console.WriteLine("");
     }
 }

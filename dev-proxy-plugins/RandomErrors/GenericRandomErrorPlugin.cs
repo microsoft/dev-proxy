@@ -5,11 +5,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Microsoft.DevProxy.Plugins.Behavior;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RandomErrors;
 internal enum GenericRandomErrorFailMode
@@ -22,7 +22,7 @@ internal enum GenericRandomErrorFailMode
 public class GenericRandomErrorConfiguration
 {
     public string? ErrorsFile { get; set; }
-    [JsonPropertyName("responses")]
+    public int RetryAfterInSeconds { get; set; } = 5;
     public IEnumerable<GenericErrorResponse> Responses { get; set; } = Array.Empty<GenericErrorResponse>();
 }
 
@@ -34,7 +34,6 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
 
     public override string Name => nameof(GenericRandomErrorPlugin);
 
-    private const int retryAfterInSeconds = 5;
     private readonly Random _random;
 
     public GenericRandomErrorPlugin()
@@ -55,7 +54,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey)
     {
         var throttleKeyForRequest = BuildThrottleKey(request);
-        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? retryAfterInSeconds : 0, "Retry-After");
+        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? _configuration.RetryAfterInSeconds : 0, "Retry-After");
     }
 
     private void UpdateProxyResponse(ProxyRequestArgs e, GenericErrorResponse error)
@@ -72,7 +71,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             error.Headers is not null &&
             error.Headers.FirstOrDefault(h => h.Name == "Retry-After" || h.Name == "retry-after")?.Value == "@dynamic")
         {
-            var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
+            var retryAfterDate = DateTime.Now.AddSeconds(_configuration.RetryAfterInSeconds);
             if (!e.GlobalData.ContainsKey(RetryAfterPlugin.ThrottledRequestsKey))
             {
                 e.GlobalData.Add(RetryAfterPlugin.ThrottledRequestsKey, new List<ThrottlerInfo>());
@@ -82,11 +81,11 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             // replace the header with the @dynamic value with the actual value
             var h = headers.First(h => h.Name == "Retry-After" || h.Name == "retry-after");
             headers.Remove(h);
-            headers.Add(new("Retry-After", retryAfterInSeconds.ToString()));
+            headers.Add(new("Retry-After", _configuration.RetryAfterInSeconds.ToString()));
         }
 
         var statusCode = (HttpStatusCode)error.StatusCode;
-        var body = error.Body is null ? string.Empty : JsonSerializer.Serialize(error.Body);
+        var body = error.Body is null ? string.Empty : JsonSerializer.Serialize(error.Body, ProxyUtils.JsonSerializerOptions);
         // we get a JSON string so need to start with the opening quote
         if (body.StartsWith("\"@"))
         {
@@ -98,7 +97,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             var filePath = Path.Combine(Path.GetDirectoryName(_configuration.ErrorsFile) ?? "", ProxyUtils.ReplacePathTokens(body.Trim('"').Substring(1)));
             if (!File.Exists(filePath))
             {
-                _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
+                _logger?.LogError("File {filePath} not found. Serving file path in the mock response", (string?)filePath);
                 session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
             }
             else

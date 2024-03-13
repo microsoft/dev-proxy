@@ -4,8 +4,9 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.MockResponses;
+using Microsoft.DevProxy.Plugins.Mocks;
 using Titanium.Web.Proxy.EventArguments;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -25,7 +26,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
 
     private Task AfterRecordingStop(object? sender, RecordingArgs e)
     {
-        _logger?.LogInfo("Creating mocks from recorded requests...");
+        _logger?.LogInformation("Creating mocks from recorded requests...");
 
         if (!e.RequestLogs.Any())
         {
@@ -46,7 +47,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
             }
 
             var methodAndUrlString = request.MessageLines.First();
-            _logger?.LogDebug($"Processing request {methodAndUrlString}...");
+            _logger?.LogDebug("Processing request {methodAndUrlString}...", methodAndUrlString);
 
             var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
             var response = request.Context.Session.HttpClient.Response;
@@ -75,23 +76,23 @@ public class MockGeneratorPlugin : BaseProxyPlugin
             }
 
             mocks.Add(mock);
-            _logger?.LogDebug($"Added mock for {mock.Request.Method} {mock.Request.Url}");
+            _logger?.LogDebug("Added mock for {method} {url}", mock.Request.Method, mock.Request.Url);
         }
 
-        _logger?.LogDebug($"Sorting mocks...");
+        _logger?.LogDebug("Sorting mocks...");
         // sort mocks descending by url length so that most specific mocks are first
         mocks.Sort((a, b) => b.Request!.Url.CompareTo(a.Request!.Url));
 
         var mocksFile = new MockResponseConfiguration { Mocks = mocks };
 
-        _logger?.LogDebug($"Serializing mocks...");
-        var mocksFileJson = JsonSerializer.Serialize(mocksFile, new JsonSerializerOptions { WriteIndented = true });
+        _logger?.LogDebug("Serializing mocks...");
+        var mocksFileJson = JsonSerializer.Serialize(mocksFile, ProxyUtils.JsonSerializerOptions);
         var fileName = $"mocks-{DateTime.Now:yyyyMMddHHmmss}.json";
 
-        _logger?.LogDebug($"Writing mocks to {fileName}...");
+        _logger?.LogDebug("Writing mocks to {fileName}...", fileName);
         File.WriteAllText(fileName, mocksFileJson);
 
-        _logger?.LogInfo($"Created mock file {fileName} with {mocks.Count} mocks");
+        _logger?.LogInformation("Created mock file {fileName} with {mocksCount} mocks", fileName, mocks.Count);
 
         return Task.CompletedTask;
     }
@@ -121,13 +122,13 @@ public class MockGeneratorPlugin : BaseProxyPlugin
             {
                 _logger?.LogDebug("Reading response body as string...");
                 var body = response.IsBodyRead ? response.BodyString : await session.GetResponseBodyAsString();
-                _logger?.LogDebug($"Body: {body}");
+                _logger?.LogDebug("Body: {body}", body);
                 _logger?.LogDebug("Deserializing response body...");
-                return JsonSerializer.Deserialize<dynamic>(body);
+                return JsonSerializer.Deserialize<dynamic>(body, ProxyUtils.JsonSerializerOptions);
             }
             catch (Exception ex)
             {
-                _logger?.LogError($"Error reading response body: {ex.Message}");
+                _logger?.LogError(ex, "Error reading response body");
                 return null;
             }
         }
@@ -136,16 +137,16 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         // assume body is binary
         try
         {
-            var filename = $"response-{DateTime.Now:yyyyMMddHHmmss}.bin";
+            var filename = $"response-{Guid.NewGuid()}.bin";
             _logger?.LogDebug("Reading response body as bytes...");
             var body = await session.GetResponseBody();
-            _logger?.LogDebug($"Writing response body to {filename}...");
+            _logger?.LogDebug("Writing response body to {filename}...", filename);
             File.WriteAllBytes(filename, body);
             return $"@{filename}";
         }
         catch (Exception ex)
         {
-            _logger?.LogError($"Error reading response body: {ex.Message}");
+            _logger?.LogError(ex, "Error reading response body");
             return null;
         }
     }

@@ -9,6 +9,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.Inspection.CDP;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Inspection;
 
@@ -87,7 +88,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         var inspectionUrl = $"http://localhost:9222/devtools/inspector.html?ws=localhost:{port}";
         var args = $"{inspectionUrl} --remote-debugging-port=9222 --profile-directory=devproxy";
 
-        _logger?.LogInfo($"DevTools available at {inspectionUrl}");
+        _logger?.LogInformation("DevTools available at {inspectionUrl}", inspectionUrl);
 
         var process = new Process
         {
@@ -113,7 +114,7 @@ public class DevToolsPlugin : BaseProxyPlugin
 
         try
         {
-            var message = JsonSerializer.Deserialize<GetResponseBodyMessage>(msg);
+            var message = JsonSerializer.Deserialize<GetResponseBodyMessage>(msg, ProxyUtils.JsonSerializerOptions);
             if (message?.Method == "Network.getResponseBody")
             {
                 var requestId = message.Params?.RequestId;

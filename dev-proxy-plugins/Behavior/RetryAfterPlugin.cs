@@ -103,8 +103,18 @@ public class RetryAfterPlugin : BaseProxyPlugin
                         RequestId = requestId,
                         Date = requestDate
                     }
-                })
+                }),
+                ProxyUtils.JsonSerializerOptions
             );
+        }
+        else
+        {
+            // ProxyUtils.BuildGraphResponseHeaders already includes CORS headers
+            if (request.Headers.Any(h => h.Name.Equals("Origin", StringComparison.OrdinalIgnoreCase)))
+            {
+                headers.Add(new("Access-Control-Allow-Origin", "*"));
+                headers.Add(new("Access-Control-Expose-Headers", throttlingInfo.RetryAfterHeaderName));
+            }
         }
 
         headers.Add(new(throttlingInfo.RetryAfterHeaderName, throttlingInfo.ThrottleForSeconds.ToString()));

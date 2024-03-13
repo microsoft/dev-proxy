@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.Http;
 
@@ -23,6 +25,14 @@ public static class ProxyUtils
     private static readonly Regex allAlphaRegex = new Regex("^[a-z]+$", RegexOptions.IgnoreCase);
     private static readonly Regex deprecationRegex = new Regex("^[a-z]+_v2$", RegexOptions.IgnoreCase);
     private static readonly Regex functionCallRegex = new Regex(@"^[a-z]+\(.*\)$", RegexOptions.IgnoreCase);
+    private static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        WriteIndented = true
+    };
 
     // doesn't end with a path separator
     public static string? AppFolder => Path.GetDirectoryName(AppContext.BaseDirectory);
@@ -309,7 +319,8 @@ public static class ProxyUtils
             var existingHeader = allHeaders.FirstOrDefault(h => h.Name.Equals(header.Name, StringComparison.OrdinalIgnoreCase));
             if (existingHeader is not null)
             {
-                if (header.Name.Equals("Access-Control-Expose-Headers", StringComparison.OrdinalIgnoreCase))
+                if (header.Name.Equals("Access-Control-Expose-Headers", StringComparison.OrdinalIgnoreCase) ||
+                    header.Name.Equals("Access-Control-Allow-Headers", StringComparison.OrdinalIgnoreCase))
                 {
                     var existingValues = existingHeader.Value.Split(',').Select(v => v.Trim());
                     var newValues = header.Value.Split(',').Select(v => v.Trim());
@@ -325,4 +336,6 @@ public static class ProxyUtils
             allHeaders.Add(header);
         }
     }
+
+    public static JsonSerializerOptions JsonSerializerOptions => jsonSerializerOptions;
 }

@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.MockResponses;
 using System.Text.Json;
 
 namespace Microsoft.DevProxy.Plugins.Behavior;
 
 internal class RateLimitingCustomResponseLoader : IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly RateLimitConfiguration _configuration;
 
-    public RateLimitingCustomResponseLoader(ILogger logger, RateLimitConfiguration configuration)
+    public RateLimitingCustomResponseLoader(IProxyLogger logger, RateLimitConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -25,7 +25,7 @@ internal class RateLimitingCustomResponseLoader : IDisposable
     {
         if (!File.Exists(_customResponseFilePath))
         {
-            _logger.LogWarn($"File {_configuration.CustomResponseFile} not found. No response will be provided");
+            _logger.LogWarning("File {configurationFile} not found. No response will be provided", _configuration.CustomResponseFile);
             return;
         }
 
@@ -36,7 +36,7 @@ internal class RateLimitingCustomResponseLoader : IDisposable
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     var responseString = reader.ReadToEnd();
-                    var response = JsonSerializer.Deserialize<MockResponseResponse>(responseString);
+                    var response = JsonSerializer.Deserialize<MockResponseResponse>(responseString, ProxyUtils.JsonSerializerOptions);
                     if (response is not null)
                     {
                         _configuration.CustomResponse = response;
@@ -46,8 +46,7 @@ internal class RateLimitingCustomResponseLoader : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError($"An error has occurred while reading {_configuration.CustomResponseFile}:");
-            _logger.LogError(ex.Message);
+            _logger.LogError(ex, "An error has occurred while reading {configurationFile}:", _configuration.CustomResponseFile);
         }
     }
 
@@ -61,7 +60,7 @@ internal class RateLimitingCustomResponseLoader : IDisposable
         string path = Path.GetDirectoryName(_customResponseFilePath) ?? throw new InvalidOperationException($"{_customResponseFilePath} is an invalid path");
         if (!File.Exists(_customResponseFilePath))
         {
-            _logger.LogWarn($"File {_configuration.CustomResponseFile} not found. No mocks will be provided");
+            _logger.LogWarning("File {configurationFile} not found. No mocks will be provided", _configuration.CustomResponseFile);
             return;
         }
 

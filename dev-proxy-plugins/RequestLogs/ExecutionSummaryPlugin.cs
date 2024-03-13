@@ -6,6 +6,7 @@ using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -27,16 +28,18 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 {
     public override string Name => nameof(ExecutionSummaryPlugin);
     private ExecutionSummaryPluginConfiguration _configuration = new();
-    private readonly Option<string?> _filePath;
-    private readonly Option<SummaryGroupBy?> _groupBy;
+    private static readonly string _filePathOptionName = "--summary-file-path";
+    private static readonly string _groupByOptionName = "--summary-group-by";
     private const string _requestsInterceptedMessage = "Requests intercepted";
     private const string _requestsPassedThroughMessage = "Requests passed through";
 
-    public ExecutionSummaryPlugin()
+    public override Option[] GetOptions()
     {
-        _filePath = new Option<string?>("--summary-file-path", "Path to the file where the summary should be saved. If not specified, the summary will be printed to the console. Path can be absolute or relative to the current working directory.");
-        _filePath.ArgumentHelpName = "summary-file-path";
-        _filePath.AddValidator(input =>
+        var filePath = new Option<string?>(_filePathOptionName, "Path to the file where the summary should be saved. If not specified, the summary will be printed to the console. Path can be absolute or relative to the current working directory.")
+        {
+            ArgumentHelpName = "summary-file-path"
+        };
+        filePath.AddValidator(input =>
         {
             var outputFilePath = input.Tokens.First().Value;
             if (string.IsNullOrEmpty(outputFilePath))
@@ -58,15 +61,19 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
             }
         });
 
-        _groupBy = new Option<SummaryGroupBy?>("--summary-group-by", "Specifies how the information should be grouped in the summary. Available options: `url` (default), `messageType`.");
-        _groupBy.ArgumentHelpName = "summary-group-by";
-        _groupBy.AddValidator(input =>
+        var groupBy = new Option<SummaryGroupBy?>(_groupByOptionName, "Specifies how the information should be grouped in the summary. Available options: `url` (default), `messageType`.")
+        {
+            ArgumentHelpName = "summary-group-by"
+        };
+        groupBy.AddValidator(input =>
         {
             if (!Enum.TryParse<SummaryGroupBy>(input.Tokens.First().Value, true, out var groupBy))
             {
                 input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid option to group by. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(SummaryGroupBy)))}";
             }
         });
+
+        return [filePath, groupBy];
     }
 
     public override void Register(IPluginEvents pluginEvents,
@@ -78,28 +85,21 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 
         configSection?.Bind(_configuration);
 
-        pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
         pluginEvents.AfterRecordingStop += AfterRecordingStop;
-    }
-
-    private void OnInit(object? sender, InitArgs e)
-    {
-        e.RootCommand.AddOption(_filePath);
-        e.RootCommand.AddOption(_groupBy);
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
     {
         InvocationContext context = e.Context;
 
-        var filePath = context.ParseResult.GetValueForOption(_filePath);
+        var filePath = context.ParseResult.GetValueForOption<string?>(_filePathOptionName, e.Options);
         if (filePath is not null)
         {
             _configuration.FilePath = filePath;
         }
 
-        var groupBy = context.ParseResult.GetValueForOption(_groupBy);
+        var groupBy = context.ParseResult.GetValueForOption<SummaryGroupBy?>(_groupByOptionName, e.Options);
         if (groupBy is not null)
         {
             _configuration.GroupBy = groupBy.Value;
@@ -122,7 +122,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 
         if (string.IsNullOrEmpty(_configuration.FilePath))
         {
-            _logger?.LogInfo(string.Join(Environment.NewLine, report));
+            _logger?.LogInformation("Report:\r\n{report}", string.Join(Environment.NewLine, report));
         }
         else
         {

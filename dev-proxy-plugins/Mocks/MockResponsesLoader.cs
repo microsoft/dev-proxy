@@ -2,16 +2,17 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace Microsoft.DevProxy.Plugins.MockResponses;
+namespace Microsoft.DevProxy.Plugins.Mocks;
 
 internal class MockResponsesLoader : IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly IProxyLogger _logger;
     private readonly MockResponseConfiguration _configuration;
 
-    public MockResponsesLoader(ILogger logger, MockResponseConfiguration configuration)
+    public MockResponsesLoader(IProxyLogger logger, MockResponseConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -24,7 +25,7 @@ internal class MockResponsesLoader : IDisposable
     {
         if (!File.Exists(_responsesFilePath))
         {
-            _logger.LogWarn($"File {_configuration.MocksFile} not found. No mocks will be provided");
+            _logger.LogWarning("File {configurationFile} not found. No mocks will be provided", _configuration.MocksFile);
             _configuration.Mocks = Array.Empty<MockResponse>();
             return;
         }
@@ -36,20 +37,19 @@ internal class MockResponsesLoader : IDisposable
                 using (StreamReader reader = new StreamReader(stream))
                 {
                     var responsesString = reader.ReadToEnd();
-                    var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString);
+                    var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
                     IEnumerable<MockResponse>? configResponses = responsesConfig?.Mocks;
                     if (configResponses is not null)
                     {
                         _configuration.Mocks = configResponses;
-                        _logger.LogInfo($"Mock responses for {configResponses.Count()} url patterns loaded from {_configuration.MocksFile}");
+                        _logger.LogInformation("Mock responses for {configResponseCount} url patterns loaded from {mockFile}", configResponses.Count(), _configuration.MocksFile);
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError($"An error has occurred while reading {_configuration.MocksFile}:");
-            _logger.LogError(ex.Message);
+            _logger.LogError(ex, "An error has occurred while reading {configurationFile}:", _configuration.MocksFile);
         }
     }
 
@@ -63,7 +63,7 @@ internal class MockResponsesLoader : IDisposable
         string path = Path.GetDirectoryName(_responsesFilePath) ?? throw new InvalidOperationException($"{_responsesFilePath} is an invalid path");
         if (!File.Exists(_responsesFilePath))
         {
-            _logger.LogWarn($"File {_configuration.MocksFile} not found. No mocks will be provided");
+            _logger.LogWarning("File {configurationFile} not found. No mocks will be provided", _configuration.MocksFile);
             _configuration.Mocks = Array.Empty<MockResponse>();
             return;
         }

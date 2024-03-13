@@ -7,7 +7,6 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
@@ -24,17 +23,17 @@ internal enum GraphRandomErrorFailMode
 public class GraphRandomErrorConfiguration
 {
     public List<int> AllowedErrors { get; set; } = new();
+    public int RetryAfterInSeconds { get; set; } = 5;
 }
 
 public class GraphRandomErrorPlugin : BaseProxyPlugin
 {
-    private readonly Option<IEnumerable<int>> _allowedErrors;
+    private static readonly string _allowedErrorsOptionName = "--allowed-errors";
     private readonly GraphRandomErrorConfiguration _configuration = new();
     private IProxyConfiguration? _proxyConfiguration;
 
     public override string Name => nameof(GraphRandomErrorPlugin);
 
-    private const int retryAfterInSeconds = 5;
     private readonly Dictionary<string, HttpStatusCode[]> _methodStatusCode = new()
     {
         {
@@ -90,11 +89,6 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
 
     public GraphRandomErrorPlugin()
     {
-        _allowedErrors = new Option<IEnumerable<int>>("--allowed-errors", "List of errors that Dev Proxy may produce");
-        _allowedErrors.AddAlias("-a");
-        _allowedErrors.ArgumentHelpName = "allowed errors";
-        _allowedErrors.AllowMultipleArgumentsPerToken = true;
-
         _random = new Random();
     }
 
@@ -113,7 +107,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
     {
         var batchResponse = new GraphBatchResponsePayload();
 
-        var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString);
+        var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString, ProxyUtils.JsonSerializerOptions);
         if (batch == null)
         {
             UpdateProxyBatchResponse(e, batchResponse);
@@ -145,11 +139,11 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
 
                 if (errorStatus == HttpStatusCode.TooManyRequests)
                 {
-                    var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
+                    var retryAfterDate = DateTime.Now.AddSeconds(_configuration.RetryAfterInSeconds);
                     var requestUrl = ProxyUtils.GetAbsoluteRequestUrlFromBatch(e.Session.HttpClient.Request.RequestUri, request.Url);
                     var throttledRequests = e.GlobalData[RetryAfterPlugin.ThrottledRequestsKey] as List<ThrottlerInfo>;
                     throttledRequests?.Add(new ThrottlerInfo(GraphUtils.BuildThrottleKey(requestUrl), ShouldThrottle, retryAfterDate));
-                    response.Headers = new List<MockResponseHeader> { new("Retry-After", retryAfterInSeconds.ToString()) };
+                    response.Headers = new Dictionary<string, string> { { "Retry-After", _configuration.RetryAfterInSeconds.ToString() } };
                 }
 
                 responses.Add(response);
@@ -164,7 +158,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey)
     {
         var throttleKeyForRequest = GraphUtils.BuildThrottleKey(request);
-        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? retryAfterInSeconds : 0, "Retry-After");
+        return new ThrottlingInfo(throttleKeyForRequest == throttlingKey ? _configuration.RetryAfterInSeconds : 0, "Retry-After");
     }
 
     private void UpdateProxyResponse(ProxyRequestArgs e, HttpStatusCode errorStatus)
@@ -176,7 +170,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         var headers = ProxyUtils.BuildGraphResponseHeaders(request, requestId, requestDate);
         if (errorStatus == HttpStatusCode.TooManyRequests)
         {
-            var retryAfterDate = DateTime.Now.AddSeconds(retryAfterInSeconds);
+            var retryAfterDate = DateTime.Now.AddSeconds(_configuration.RetryAfterInSeconds);
             if (!e.GlobalData.ContainsKey(RetryAfterPlugin.ThrottledRequestsKey))
             {
                 e.GlobalData.Add(RetryAfterPlugin.ThrottledRequestsKey, new List<ThrottlerInfo>());
@@ -184,7 +178,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
 
             var throttledRequests = e.GlobalData[RetryAfterPlugin.ThrottledRequestsKey] as List<ThrottlerInfo>;
             throttledRequests?.Add(new ThrottlerInfo(GraphUtils.BuildThrottleKey(request), ShouldThrottle, retryAfterDate));
-            headers.Add(new("Retry-After", retryAfterInSeconds.ToString()));
+            headers.Add(new("Retry-After", _configuration.RetryAfterInSeconds.ToString()));
         }
 
         string body = JsonSerializer.Serialize(new GraphErrorResponseBody(
@@ -197,7 +191,8 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
                     RequestId = requestId,
                     Date = requestDate
                 }
-            })
+            }),
+            ProxyUtils.JsonSerializerOptions
         );
         _logger?.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(e.Session));
         session.GenericResponse(body ?? string.Empty, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)));
@@ -214,16 +209,24 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         Request request = session.HttpClient.Request;
         var headers = ProxyUtils.BuildGraphResponseHeaders(request, requestId, requestDate);
 
-        var options = new JsonSerializerOptions
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-        string body = JsonSerializer.Serialize(response, options);
+        string body = JsonSerializer.Serialize(response, ProxyUtils.JsonSerializerOptions);
         _logger?.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
         session.GenericResponse(body, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)));
     }
 
     private static string BuildApiErrorMessage(Request r) => $"Some error was generated by the proxy. {(ProxyUtils.IsGraphRequest(r) ? ProxyUtils.IsSdkRequest(r) ? "" : String.Join(' ', MessageUtils.BuildUseSdkForErrorsMessage(r)) : "")}";
+
+    public override Option[] GetOptions()
+    {
+        var _allowedErrors = new Option<IEnumerable<int>>(_allowedErrorsOptionName, "List of errors that Dev Proxy may produce")
+        {
+            ArgumentHelpName = "allowed errors",
+            AllowMultipleArgumentsPerToken = true
+        };
+        _allowedErrors.AddAlias("-a");
+
+        return [_allowedErrors];
+    }
 
     public override void Register(IPluginEvents pluginEvents,
                          IProxyContext context,
@@ -233,7 +236,6 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         configSection?.Bind(_configuration);
-        pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
         pluginEvents.BeforeRequest += OnRequest;
 
@@ -244,17 +246,12 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         _proxyConfiguration = context.Configuration;
     }
 
-    private void OnInit(object? sender, InitArgs e)
-    {
-        e.RootCommand.AddOption(_allowedErrors);
-    }
-
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
     {
         InvocationContext context = e.Context;
 
         // Configure the allowed errors
-        IEnumerable<int>? allowedErrors = context.ParseResult.GetValueForOption(_allowedErrors);
+        var allowedErrors = context.ParseResult.GetValueForOption<IEnumerable<int>?>(_allowedErrorsOptionName, e.Options);
         if (allowedErrors?.Any() ?? false)
             _configuration.AllowedErrors = allowedErrors.ToList();
 

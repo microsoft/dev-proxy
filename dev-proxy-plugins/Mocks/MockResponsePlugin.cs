@@ -12,8 +12,10 @@ using System.Text.RegularExpressions;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Microsoft.DevProxy.Plugins.Behavior;
+using System.Text;
+using Microsoft.Extensions.Logging;
 
-namespace Microsoft.DevProxy.Plugins.MockResponses;
+namespace Microsoft.DevProxy.Plugins.Mocks;
 
 public class MockResponseConfiguration
 {
@@ -25,33 +27,37 @@ public class MockResponseConfiguration
     public bool BlockUnmockedRequests { get; set; } = false;
 
     [JsonPropertyName("$schema")]
-    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.15.0/mockresponseplugin.schema.json";
-    [JsonPropertyName("mocks")]
+    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.16.0/mockresponseplugin.schema.json";
     public IEnumerable<MockResponse> Mocks { get; set; } = Array.Empty<MockResponse>();
 }
 
 public class MockResponsePlugin : BaseProxyPlugin
 {
     protected MockResponseConfiguration _configuration = new();
+    protected IProxyContext? _context;
     private MockResponsesLoader? _loader = null;
-    private readonly Option<bool?> _noMocks;
-    private readonly Option<string?> _mocksFile;
+    private static readonly string _noMocksOptionName = "--no-mocks";
+    private static readonly string _mocksFileOptionName = "--mocks-file";
     public override string Name => nameof(MockResponsePlugin);
     private IProxyConfiguration? _proxyConfiguration;
     // tracks the number of times a mock has been applied
     // used in combination with mocks that have an Nth property
     private Dictionary<string, int> _appliedMocks = new();
 
-    public MockResponsePlugin()
+    public override Option[] GetOptions()
     {
-        _noMocks = new Option<bool?>("--no-mocks", "Disable loading mock requests");
+        var _noMocks = new Option<bool?>(_noMocksOptionName, "Disable loading mock requests")
+        {
+            ArgumentHelpName = "no mocks"
+        };
         _noMocks.AddAlias("-n");
-        _noMocks.ArgumentHelpName = "no mocks";
 
-        _mocksFile = new Option<string?>("--mocks-file", "Provide a file populated with mock responses")
+        var _mocksFile = new Option<string?>(_mocksFileOptionName, "Provide a file populated with mock responses")
         {
             ArgumentHelpName = "mocks file"
         };
+
+        return [_noMocks, _mocksFile];
     }
 
     public override void Register(IPluginEvents pluginEvents,
@@ -59,22 +65,17 @@ public class MockResponsePlugin : BaseProxyPlugin
                             ISet<UrlToWatch> urlsToWatch,
                             IConfigurationSection? configSection = null)
     {
+        _context = context;
+
         base.Register(pluginEvents, context, urlsToWatch, configSection);
 
         configSection?.Bind(_configuration);
         _loader = new MockResponsesLoader(_logger!, _configuration);
 
-        pluginEvents.Init += OnInit;
         pluginEvents.OptionsLoaded += OnOptionsLoaded;
         pluginEvents.BeforeRequest += OnRequest;
 
         _proxyConfiguration = context.Configuration;
-    }
-
-    private void OnInit(object? sender, InitArgs e)
-    {
-        e.RootCommand.AddOption(_noMocks);
-        e.RootCommand.AddOption(_mocksFile);
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
@@ -82,7 +83,7 @@ public class MockResponsePlugin : BaseProxyPlugin
         InvocationContext context = e.Context;
 
         // allow disabling of mocks as a command line option
-        var noMocks = context.ParseResult.GetValueForOption(_noMocks);
+        var noMocks = context.ParseResult.GetValueForOption<bool?>(_noMocksOptionName, e.Options);
         if (noMocks.HasValue)
         {
             _configuration.NoMocks = noMocks.Value;
@@ -94,7 +95,7 @@ public class MockResponsePlugin : BaseProxyPlugin
         }
 
         // update the name of the mocks file to load from if supplied
-        string? mocksFile = context.ParseResult.GetValueForOption(_mocksFile);
+        var mocksFile = context.ParseResult.GetValueForOption<string?>(_mocksFileOptionName, e.Options);
         if (mocksFile is not null)
         {
             _configuration.MocksFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(mocksFile));
@@ -115,12 +116,12 @@ public class MockResponsePlugin : BaseProxyPlugin
             var matchingResponse = GetMatchingMockResponse(request);
             if (matchingResponse is not null)
             {
-                ProcessMockResponse(e, matchingResponse);
+                ProcessMockResponseInternal(e, matchingResponse);
                 state.HasBeenSet = true;
             }
             else if (_configuration.BlockUnmockedRequests)
             {
-                ProcessMockResponse(e, new MockResponse
+                ProcessMockResponseInternal(e, new MockResponse
                 {
                     Request = new()
                     {
@@ -202,7 +203,23 @@ public class MockResponsePlugin : BaseProxyPlugin
         return mockResponse.Request.Nth == nth;
     }
 
-    private void ProcessMockResponse(ProxyRequestArgs e, MockResponse matchingResponse)
+    protected virtual void ProcessMockResponse(ref byte[] body, IList<MockResponseHeader> headers, ProxyRequestArgs e, MockResponse? matchingResponse)
+    {
+    }
+
+    protected virtual void ProcessMockResponse(ref string? body, IList<MockResponseHeader> headers, ProxyRequestArgs e, MockResponse? matchingResponse)
+    {
+        if (string.IsNullOrEmpty(body))
+        {
+            return;
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(body);
+        ProcessMockResponse(ref bytes, headers, e, matchingResponse);
+        body = Encoding.UTF8.GetString(bytes);
+    }
+
+    private void ProcessMockResponseInternal(ProxyRequestArgs e, MockResponse matchingResponse)
     {
         string? body = null;
         string requestId = Guid.NewGuid().ToString();
@@ -216,14 +233,12 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         if (matchingResponse.Response?.Headers is not null)
         {
-            foreach (var header in matchingResponse.Response.Headers)
-            {
-                headers.Add(header);
-            }
+            ProxyUtils.MergeHeaders(headers, matchingResponse.Response.Headers);
         }
 
         // default the content type to application/json unless set in the mock response
-        if (!headers.Any(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase)))
+        if (!headers.Any(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase)) &&
+            matchingResponse.Response?.Body is not null)
         {
             headers.Add(new("content-type", "application/json"));
         }
@@ -236,7 +251,7 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         if (matchingResponse.Response?.Body is not null)
         {
-            var bodyString = JsonSerializer.Serialize(matchingResponse.Response.Body) as string;
+            var bodyString = JsonSerializer.Serialize(matchingResponse.Response.Body, ProxyUtils.JsonSerializerOptions) as string;
             // we get a JSON string so need to start with the opening quote
             if (bodyString?.StartsWith("\"@") ?? false)
             {
@@ -248,12 +263,14 @@ public class MockResponsePlugin : BaseProxyPlugin
                 var filePath = Path.Combine(Path.GetDirectoryName(_configuration.MocksFile) ?? "", ProxyUtils.ReplacePathTokens(bodyString.Trim('"').Substring(1)));
                 if (!File.Exists(filePath))
                 {
-                    _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
+
+                    _logger?.LogError("File {filePath} not found. Serving file path in the mock response", filePath);
                     body = bodyString;
                 }
                 else
                 {
                     var bodyBytes = File.ReadAllBytes(filePath);
+                    ProcessMockResponse(ref bodyBytes, headers, e, matchingResponse);
                     e.Session.GenericResponse(bodyBytes, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
                     _logger?.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
                     return;
@@ -264,6 +281,16 @@ public class MockResponsePlugin : BaseProxyPlugin
                 body = bodyString;
             }
         }
+        else {
+            // we need to remove the content-type header if the body is empty
+            // some clients fail on empty body + content-type
+            var contentTypeHeader = headers.FirstOrDefault(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase));
+            if (contentTypeHeader is not null)
+            {
+                headers.Remove(contentTypeHeader);
+            }
+        }
+        ProcessMockResponse(ref body, headers, e, matchingResponse);
         e.Session.GenericResponse(body ?? string.Empty, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
 
         _logger?.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));

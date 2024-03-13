@@ -3,19 +3,20 @@
 
 using System.Text;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
 
-public class ConsoleLogger : ILogger
+public class ConsoleLogger : IProxyLogger
 {
     private readonly ConsoleColor _color;
     private readonly LabelMode _labelMode;
     private readonly PluginEvents _pluginEvents;
-    private readonly string _boxTopLeft = "\u256d ";
-    private readonly string _boxLeft = "\u2502 ";
-    private readonly string _boxBottomLeft = "\u2570 ";
+    private const string _boxTopLeft = "\u256d ";
+    private const string _boxLeft = "\u2502 ";
+    private const string _boxBottomLeft = "\u2570 ";
     // used to align single-line messages
-    private readonly string _boxSpacing = "  ";
+    private const string _boxSpacing = "  ";
 
     public static readonly object ConsoleLock = new object();
 
@@ -31,53 +32,45 @@ public class ConsoleLogger : ILogger
         LogLevel = configuration.LogLevel;
     }
 
-    public void LogInfo(string message)
+    private void WriteLog(string message)
     {
-        if (LogLevel > LogLevel.Info)
-        {
-            return;
-        }
-
         Console.WriteLine(message);
     }
 
-    public void LogWarn(string message)
+    private void WriteWarning(string message)
     {
-        if (LogLevel > LogLevel.Warn)
-        {
-            return;
-        }
-
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Error.WriteLine($"  WARNING: {message}");
         Console.ForegroundColor = _color;
     }
 
-    public void LogError(string message)
+    private void WriteError(string message)
     {
-        if (LogLevel > LogLevel.Error)
-        {
-            return;
-        }
-
         Console.ForegroundColor = ConsoleColor.Red;
         Console.Error.WriteLine(message);
         Console.ForegroundColor = _color;
     }
 
-    public void LogDebug(string message)
+    private void WriteDebug(string message)
     {
-        if (LogLevel > LogLevel.Debug)
-        {
-            return;
-        }
-
         Console.ForegroundColor = ConsoleColor.Gray;
         Console.Error.WriteLine(message);
         Console.ForegroundColor = _color;
     }
 
     public void LogRequest(string[] message, MessageType messageType, LoggingContext? context = null)
+    {
+        var method = context?.Session.HttpClient.Request.Method;
+        var url = context?.Session.HttpClient.Request.Url;
+        LogRequest(message, messageType, method, url, context);
+    }
+
+    public void LogRequest(string[] message, MessageType messageType, string method, string url)
+    {
+        LogRequest(message, messageType, method, url, null);
+    }
+
+    private void LogRequest(string[] message, MessageType messageType, string? method, string? url, LoggingContext? context = null)
     {
         var messageLines = new List<string>(message);
 
@@ -87,9 +80,10 @@ public class ConsoleLogger : ILogger
             // add request context information to the message for messages
             // that are not intercepted requests and have a context
             if (messageType != MessageType.InterceptedRequest &&
-                context is not null)
+                method is not null &&
+                url is not null)
             {
-                messageLines.Add($"{context.Session.HttpClient.Request.Method} {context.Session.HttpClient.Request.Url}");
+                messageLines.Add($"{method} {url}");
             }
 
             lock (ConsoleLock)
@@ -114,15 +108,15 @@ public class ConsoleLogger : ILogger
 
     public void WriteBoxedWithInvertedLabels(string[] message, MessageType messageType)
     {
-        var labelSpacing = "  ";
-        var interceptedRequest = "request";
-        var passedThrough = "api";
-        var chaos = "chaos";
-        var warning = "warning";
-        var mock = "mock";
-        var normal = "log";
-        var fail = "fail";
-        var tip = "tip";
+        const string labelSpacing = "  ";
+        const string interceptedRequest = "request";
+        const string passedThrough = "api";
+        const string chaos = "chaos";
+        const string warning = "warning";
+        const string mock = "mock";
+        const string normal = "log";
+        const string fail = "fail";
+        const string tip = "tip";
         var allLabels = new[] { interceptedRequest, passedThrough, chaos, warning, mock, normal, fail, tip };
         var maxLabelLength = allLabels.Max(l => l.Length);
         var noLabelSpacing = new string(' ', maxLabelLength + 2);
@@ -214,53 +208,33 @@ public class ConsoleLogger : ILogger
 
     public void WriteBoxedWithAsciiIcons(string[] message, MessageType messageType)
     {
-        var iconSpacing = "  ";
-        var noIconSpacing = "   ";
-        var interceptedRequest = $"← ←";
-        var passedThrough = "↑ ↑";
-        var chaos = "× →";
-        var warning = "/!\\";
-        var mock = "o →";
-        var normal = "   ";
-        var fail = "! →";
-        var tip = "(i)";
+        const string iconSpacing = "  ";
+        const string noIconSpacing = "   ";
 
-        var icon = normal;
-        var fgColor = Console.ForegroundColor;
-
-        switch (messageType)
+        // Set the icon based on the provided message type, using this switch statement
+        var icon = messageType switch
         {
-            case MessageType.InterceptedRequest:
-                icon = interceptedRequest;
-                break;
-            case MessageType.PassedThrough:
-                icon = passedThrough;
-                fgColor = ConsoleColor.Gray;
-                break;
-            case MessageType.Chaos:
-                icon = chaos;
-                fgColor = ConsoleColor.DarkRed;
-                break;
-            case MessageType.Warning:
-                icon = warning;
-                fgColor = ConsoleColor.Yellow;
-                break;
-            case MessageType.Mocked:
-                icon = mock;
-                fgColor = ConsoleColor.DarkYellow;
-                break;
-            case MessageType.Failed:
-                icon = fail;
-                fgColor = ConsoleColor.Red;
-                break;
-            case MessageType.Tip:
-                icon = tip;
-                fgColor = ConsoleColor.Blue;
-                break;
-            case MessageType.Normal:
-                icon = normal;
-                break;
-        }
+            MessageType.InterceptedRequest => "← ←",
+            MessageType.PassedThrough => "↑ ↑",
+            MessageType.Chaos => "× →",
+            MessageType.Warning => "/!\\",
+            MessageType.Mocked => "o →",
+            MessageType.Failed => "! →",
+            MessageType.Tip => "(i)",
+            MessageType.Normal => "   ",
+            _ => "   "
+        };
+        // Set the foreground color based on the provided message type, using this switch statement
+        var fgColor = messageType switch
+        {
+            MessageType.PassedThrough => ConsoleColor.Gray,
+            MessageType.Chaos => ConsoleColor.DarkRed,
+            MessageType.Warning => ConsoleColor.Yellow,
+            MessageType.Mocked => ConsoleColor.DarkYellow,
+            MessageType.Failed => ConsoleColor.Red,
+            MessageType.Tip => ConsoleColor.Blue,
+            _ => Console.ForegroundColor
+        };
 
         Console.ForegroundColor = fgColor;
 
@@ -296,53 +270,32 @@ public class ConsoleLogger : ILogger
 
     public void WriteBoxedWithNerdFontIcons(string[] message, MessageType messageType)
     {
-        var iconSpacing = "  ";
-        var noIconSpacing = " ";
-        var interceptedRequest = "\uf441";
-        var passedThrough = "\ue33c";
-        var chaos = "\uf188";
-        var warning = "\uf421";
-        var mock = "\uf064";
-        var normal = " ";
-        var fail = "\uf65b";
-        var tip = "\ufbe6";
+        const string iconSpacing = "  ";
+        const string noIconSpacing = " ";
 
-        var icon = normal;
-        var fgColor = Console.ForegroundColor;
-
-        switch (messageType)
+        // Set the icon based on the provided message type, using this switch statement
+        var icon = messageType switch
         {
-            case MessageType.InterceptedRequest:
-                icon = interceptedRequest;
-                break;
-            case MessageType.PassedThrough:
-                icon = passedThrough;
-                fgColor = ConsoleColor.Gray;
-                break;
-            case MessageType.Chaos:
-                icon = chaos;
-                fgColor = ConsoleColor.DarkRed;
-                break;
-            case MessageType.Warning:
-                icon = warning;
-                fgColor = ConsoleColor.Yellow;
-                break;
-            case MessageType.Mocked:
-                icon = mock;
-                fgColor = ConsoleColor.DarkYellow;
-                break;
-            case MessageType.Failed:
-                icon = fail;
-                fgColor = ConsoleColor.Red;
-                break;
-            case MessageType.Tip:
-                icon = tip;
-                fgColor = ConsoleColor.Blue;
-                break;
-            case MessageType.Normal:
-                icon = normal;
-                break;
-        }
+            MessageType.InterceptedRequest => "\uf441",
+            MessageType.PassedThrough => "\ue33c",
+            MessageType.Chaos => "\uf188",
+            MessageType.Warning => "\uf421",
+            MessageType.Mocked => "\uf064",
+            MessageType.Failed => "\uf65b",
+            MessageType.Tip => "\ufbe6",
+            _ => " "
+        };
+        // Set the foreground color based on the provided message type, using this switch statement
+        var fgColor = messageType switch
+        {
+            MessageType.PassedThrough => ConsoleColor.Gray,
+            MessageType.Chaos => ConsoleColor.DarkRed,
+            MessageType.Warning => ConsoleColor.Yellow,
+            MessageType.Mocked => ConsoleColor.DarkYellow,
+            MessageType.Failed => ConsoleColor.Red,
+            MessageType.Tip => ConsoleColor.Blue,
+            _ => Console.ForegroundColor
+        };
 
         Console.ForegroundColor = fgColor;
 
@@ -384,4 +337,44 @@ public class ConsoleLogger : ILogger
             LogLevel = LogLevel
         }, _pluginEvents);
     }
+
+    /// <inheritdoc/>
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        if (!IsEnabled(logLevel))
+        {
+            return;
+        }
+
+        var message = formatter(state, exception);
+        // temporary fix to log exceptions
+        // long term we should move this to the formatter
+        if (exception is not null)
+        {
+            message += Environment.NewLine + exception;
+        }
+        message = message.ReplaceLineEndings();
+        switch (logLevel)
+        {
+            case LogLevel.Debug:
+                WriteDebug(message);
+                break;
+            case LogLevel.Information:
+                WriteLog(message);
+                break;
+            case LogLevel.Warning:
+                WriteWarning(message);
+                break;
+            case LogLevel.Error:
+                WriteError(message);
+                break;
+        }
+        
+    }
+
+    /// <inheritdoc/>
+    public bool IsEnabled(LogLevel logLevelToTest) => logLevelToTest >= LogLevel; // only log if the log level is greater than or equal to the current log level
+
+    /// <inheritdoc/>
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default!;
 }

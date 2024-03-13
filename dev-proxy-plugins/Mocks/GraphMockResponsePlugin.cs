@@ -6,9 +6,10 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.Behavior;
+using Microsoft.Extensions.Logging;
 using Titanium.Web.Proxy.Models;
 
-namespace Microsoft.DevProxy.Plugins.MockResponses;
+namespace Microsoft.DevProxy.Plugins.Mocks;
 
 public class GraphMockResponsePlugin : MockResponsePlugin
 {
@@ -29,7 +30,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
             return;
         }
 
-        var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString);
+        var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString, ProxyUtils.JsonSerializerOptions);
         if (batch == null)
         {
             await base.OnRequest(sender, e);
@@ -58,7 +59,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)HttpStatusCode.BadGateway,
-                    Headers = headers.ToList(),
+                    Headers = headers.ToDictionary(h => h.Name, h => h.Value),
                     Body = new GraphBatchResponsePayloadResponseBody
                     {
                         Error = new GraphBatchResponsePayloadResponseBodyError
@@ -82,11 +83,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
                 if (mockResponse.Response?.Headers is not null)
                 {
-                    // add all the mocked headers into the response we want
-                    foreach (var header in mockResponse.Response.Headers)
-                    {
-                        headers.Add(header);
-                    }
+                    ProxyUtils.MergeHeaders(headers, mockResponse.Response.Headers);
                 }
 
                 // default the content type to application/json unless set in the mock response
@@ -97,7 +94,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
                 if (mockResponse.Response?.Body is not null)
                 {
-                    var bodyString = JsonSerializer.Serialize(mockResponse.Response.Body) as string;
+                    var bodyString = JsonSerializer.Serialize(mockResponse.Response.Body, ProxyUtils.JsonSerializerOptions) as string;
                     // we get a JSON string so need to start with the opening quote
                     if (bodyString?.StartsWith("\"@") ?? false)
                     {
@@ -109,7 +106,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                         var filePath = Path.Combine(Path.GetDirectoryName(_configuration.MocksFile) ?? "", ProxyUtils.ReplacePathTokens(bodyString.Trim('"').Substring(1)));
                         if (!File.Exists(filePath))
                         {
-                            _logger?.LogError($"File {filePath} not found. Serving file path in the mock response");
+                            _logger?.LogError("File {filePath} not found. Serving file path in the mock response", filePath);
                             body = bodyString;
                         }
                         else
@@ -127,7 +124,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                 {
                     Id = request.Id,
                     Status = (int)statusCode,
-                    Headers = headers.ToList(),
+                    Headers = headers.ToDictionary(h => h.Name, h => h.Value),
                     Body = body
                 };
 
@@ -144,7 +141,9 @@ public class GraphMockResponsePlugin : MockResponsePlugin
         {
             Responses = responses.ToArray()
         };
-        e.Session.GenericResponse(JsonSerializer.Serialize(batchResponse), HttpStatusCode.OK, batchHeaders.Select(h => new HttpHeader(h.Name, h.Value)));
+        var batchResponseString = JsonSerializer.Serialize(batchResponse, ProxyUtils.JsonSerializerOptions);
+        ProcessMockResponse(ref batchResponseString, batchHeaders, e, null);
+        e.Session.GenericResponse(batchResponseString ?? string.Empty, HttpStatusCode.OK, batchHeaders.Select(h => new HttpHeader(h.Name, h.Value)));
         _logger?.LogRequest([$"200 {e.Session.HttpClient.Request.RequestUri}"], MessageType.Mocked, new LoggingContext(e.Session));
         e.ResponseState.HasBeenSet = true;
     }

@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Security.Cryptography.X509Certificates;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 
@@ -11,7 +12,8 @@ namespace Microsoft.DevProxy.Abstractions;
 public interface IProxyContext
 {
     IProxyConfiguration Configuration { get; }
-    ILogger Logger { get; }
+    IProxyLogger Logger { get; }
+    X509Certificate2? Certificate { get; }
 }
 
 public class ThrottlerInfo
@@ -57,7 +59,7 @@ public class ThrottlingInfo
 }
 
 public class ProxyHttpEventArgsBase
-{    
+{
     internal ProxyHttpEventArgsBase(SessionEventArgs session)
     {
         Session = session ?? throw new ArgumentNullException(nameof(session));
@@ -98,21 +100,21 @@ public class ProxyResponseArgs : ProxyHttpEventArgsBase
 
 public class InitArgs
 {
-    public InitArgs(RootCommand rootCommand)
+    public InitArgs()
     {
-        RootCommand = rootCommand ?? throw new ArgumentNullException(nameof(rootCommand));
     }
-    public RootCommand RootCommand { get; set; }
-
 }
 
 public class OptionsLoadedArgs
 {
-    public OptionsLoadedArgs(InvocationContext context)
+    public InvocationContext Context { get; set; }
+    public Option[] Options { get; set; }
+
+    public OptionsLoadedArgs(InvocationContext context, Option[] options)
     {
         Context = context ?? throw new ArgumentNullException(nameof(context));
+        Options = options ?? throw new ArgumentNullException(nameof(options));
     }
-    public InvocationContext Context { get; set; }
 }
 
 public class RequestLog
@@ -182,6 +184,10 @@ public interface IPluginEvents
     /// Raised after recording request logs has stopped.
     /// </summary>
     event AsyncEventHandler<RecordingArgs>? AfterRecordingStop;
+    /// <summary>
+    /// Raised when user requested issuing mock requests.
+    /// </summary>
+    event AsyncEventHandler<EventArgs>? MockRequest;
 }
 
 public class PluginEvents : IPluginEvents
@@ -200,6 +206,7 @@ public class PluginEvents : IPluginEvents
     public event EventHandler<RequestLogArgs>? AfterRequestLog;
     /// <inheritdoc />
     public event AsyncEventHandler<RecordingArgs>? AfterRecordingStop;
+    public event AsyncEventHandler<EventArgs>? MockRequest;
 
     public void RaiseInit(InitArgs args)
     {
@@ -245,6 +252,14 @@ public class PluginEvents : IPluginEvents
         if (AfterRecordingStop is not null)
         {
             await AfterRecordingStop.InvokeAsync(this, args, null);
+        }
+    }
+
+    public async Task RaiseMockRequest(EventArgs args)
+    {
+        if (MockRequest is not null)
+        {
+            await MockRequest.InvokeAsync(this, args, null);
         }
     }
 }
