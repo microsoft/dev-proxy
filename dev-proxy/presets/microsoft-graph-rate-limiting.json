@@ -1,9 +1,10 @@
 {
+  "$schema": "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.16.0/rc.schema.json",
   "plugins": [
     {
       "name": "RateLimitingPlugin",
       "enabled": true,
-      "pluginPath": "~appFolder\\plugins\\dev-proxy-plugins.dll"
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll"
     }
   ],
   "urlsToWatch": [
@@ -21,5 +22,5 @@
     "https://microsoftgraph.chinacloudapi.cn/*/sites/*"
   ],
   "labelMode": "text",
-  "logLevel": "info"
+  "logLevel": "information"
 }
