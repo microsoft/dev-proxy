@@ -98,10 +98,10 @@ public class GraphConnectorGuidancePlugin : BaseProxyPlugin
                 _logger?.LogRequest(
                     [
                         $"The schema is missing the following semantic labels: {string.Join(", ", missingLabels.Where(s => s != ""))}.",
-                        "Ingested content won't show up in Microsoft Copilot for Microsoft 365.",
+                        "Ingested content might not show up in Microsoft Copilot for Microsoft 365.",
                         "More information: https://aka.ms/devproxy/guidance/gc/ux"
                     ],
-                    MessageType.Warning, new LoggingContext(e.Session)
+                    MessageType.Failed, new LoggingContext(e.Session)
                 );
             }
         }
