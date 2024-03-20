@@ -69,11 +69,20 @@ fi
 
 unzip -o ./devproxy.zip -d ./
 rm ./devproxy.zip
-echo "Configuring devproxy and its files as executable..."
-chmod +x ./devproxy ./libe_sqlite3.dylib
 
-echo "Configuring new version notifications for the beta channel..."
-sed -i '' 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
+# If it's macOS
+if [ "$(uname)" == "Darwin" ]; then
+    echo "Configuring devproxy and its files as executable..."
+    chmod +x ./devproxy ./libe_sqlite3.dylib
+    echo "Configuring new version notifications for the beta channel..."
+    sed -i '' 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
+# If it's Linux
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    echo "Configuring devproxy and its files as executable..."
+    chmod +x ./devproxy ./libe_sqlite3.so
+    echo "Configuring new version notifications for the beta channel..."
+    sed -i 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
+fi
 
 echo "Adding devproxy to the PATH environment variable in your shell profile..."
 

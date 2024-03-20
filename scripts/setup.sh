@@ -69,7 +69,16 @@ fi
 unzip -o ./devproxy.zip -d ./
 rm ./devproxy.zip
 echo "Configuring devproxy and its files as executable..."
-chmod +x ./devproxy ./libe_sqlite3.dylib
+
+# If it's macOS
+if [ "$(uname)" == "Darwin" ]; then
+    # Set permissions for macOS
+    chmod +x ./devproxy ./libe_sqlite3.dylib
+# If it's Linux
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    # Set permissions for Linux
+    chmod +x ./devproxy ./libe_sqlite3.so
+fi
 
 echo "Adding devproxy to the PATH environment variable in your shell profile..."
 
