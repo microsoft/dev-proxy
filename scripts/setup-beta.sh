@@ -81,7 +81,7 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
     echo "Configuring devproxy and its files as executable..."
     chmod +x ./devproxy ./libe_sqlite3.so
     echo "Configuring new version notifications for the beta channel..."
-    sed -i  's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
+    sed -i 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
 fi
 
 echo "Adding devproxy to the PATH environment variable in your shell profile..."
