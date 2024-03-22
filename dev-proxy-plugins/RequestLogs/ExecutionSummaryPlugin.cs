@@ -12,9 +12,7 @@ namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
 internal enum SummaryGroupBy
 {
-    [JsonPropertyName("url")]
     Url,
-    [JsonPropertyName("messageType")]
     MessageType
 }
 
