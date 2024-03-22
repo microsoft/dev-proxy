@@ -52,7 +52,7 @@ jobs:
       - name: Archive abstractions
         uses: thedoctor0/zip-release@master
         with:
-          filename: '../../../../${{ env.release }}-abstractions.zip'
+          filename: '../../../../../${{ env.release }}-abstractions.zip'
           directory: './dev-proxy-abstractions/bin/Release/net8.0/${{ matrix.architecture }}'
           exclusions: '*.json'
       - name: Upload abstractions
