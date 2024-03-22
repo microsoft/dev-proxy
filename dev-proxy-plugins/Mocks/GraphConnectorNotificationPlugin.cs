@@ -5,7 +5,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -16,9 +15,7 @@ namespace Microsoft.DevProxy.Plugins.Mocks;
 
 public class GraphConnectorNotificationConfiguration : MockRequestConfiguration
 {
-    [JsonPropertyName("audience")]
     public string? Audience { get; set; }
-    [JsonPropertyName("tenant")]
     public string? Tenant { get; set; }
 }
 
