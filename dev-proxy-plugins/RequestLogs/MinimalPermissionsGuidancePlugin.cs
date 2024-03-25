@@ -21,21 +21,15 @@ internal class MinimalPermissionsGuidancePluginConfiguration
 
 internal class OperationInfo
 {
-    [JsonPropertyName("method")]
     public string Method { get; set; } = string.Empty;
-    [JsonPropertyName("endpoint")]
     public string Endpoint { get; set; } = string.Empty;
 }
 
 internal class MinimalPermissionsInfo
 {
-    [JsonPropertyName("minimalPermissions")]
     public string[] MinimalPermissions { get; set; } = Array.Empty<string>();
-    [JsonPropertyName("permissionsFromTheToken")]
     public string[] PermissionsFromTheToken { get; set; } = Array.Empty<string>();
-    [JsonPropertyName("excessPermissions")]
     public string[] ExcessPermissions { get; set; } = Array.Empty<string>();
-    [JsonPropertyName("operations")]
     public OperationInfo[] Operations { get; set; } = Array.Empty<OperationInfo>();
 }
 

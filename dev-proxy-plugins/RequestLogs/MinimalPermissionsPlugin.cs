@@ -13,7 +13,6 @@ namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
 internal class MinimalPermissionsPluginConfiguration
 {
-    [JsonPropertyName("type")]
     public PermissionsType Type { get; set; } = PermissionsType.Delegated;
 }
 
