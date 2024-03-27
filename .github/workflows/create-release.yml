@@ -14,7 +14,6 @@ jobs:
           - win-x86
           - linux-x64
           - osx-x64
-          - osx-arm64
     env:
       release: 'dev-proxy-${{ matrix.architecture }}-${{ github.ref_name }}'
     steps:
@@ -54,14 +53,14 @@ jobs:
         if: matrix.architecture == 'win-x64'
         uses: thedoctor0/zip-release@master
         with:
-          filename: '../../../../${{ env.release }}-abstractions.zip'
+          filename: '../../../../dev-proxy-${{ github.ref_name }}-abstractions.zip'
           directory: './dev-proxy-abstractions/bin/Release/net8.0'
           exclusions: '*.json'
       - name: Upload abstractions
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-abstractions-${{ env.release }}
-          path: ./${{ env.release }}-abstractions.zip
+          name: binaries-abstractions
+          path: ./dev-proxy-${{ github.ref_name }}-abstractions.zip
   create_release:
     name: Create Release
     needs: [publish_binaries]
