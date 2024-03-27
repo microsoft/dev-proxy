@@ -53,15 +53,15 @@ jobs:
         if: matrix.architecture == 'win-x64'
         uses: thedoctor0/zip-release@master
         with:
-          filename: '../../../../dev-proxy-${{ github.ref_name }}-abstractions.zip'
+          filename: '../../../../dev-proxy-abstractions-${{ github.ref_name }}.zip'
           directory: './dev-proxy-abstractions/bin/Release/net8.0'
           exclusions: '*.json'
       - name: Upload abstractions
         if: matrix.architecture == 'win-x64'
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-abstractions
-          path: ./dev-proxy-${{ github.ref_name }}-abstractions.zip
+          name: binaries-dev-proxy-abstractions-${{ github.ref_name }}
+          path: ./dev-proxy-abstractions-${{ github.ref_name }}.zip
   create_release:
     name: Create Release
     needs: [publish_binaries]
