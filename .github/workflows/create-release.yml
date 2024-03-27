@@ -28,7 +28,8 @@ jobs:
       - name: Build plugins
         run: dotnet build ./dev-proxy-plugins/dev-proxy-plugins.csproj -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -c Release -r ${{ matrix.architecture }} --no-self-contained
       - name: Build abstractions
-        run: dotnet build ./dev-proxy-abstractions/dev-proxy-abstractions.csproj -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -c Release -r ${{ matrix.architecture }} --no-self-contained
+        if: matrix.architecture == 'win-x64'
+        run: dotnet build ./dev-proxy-abstractions/dev-proxy-abstractions.csproj -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -c Release --no-self-contained
       - name: Add plugins to output
         run: cp ./dev-proxy/bin/Release/net8.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
       - name: Remove unnecessary files
@@ -50,10 +51,11 @@ jobs:
           name: binaries-${{ env.release }}
           path: ./${{ env.release }}.zip
       - name: Archive abstractions
+        if: matrix.architecture == 'win-x64'
         uses: thedoctor0/zip-release@master
         with:
-          filename: '../../../../../${{ env.release }}-abstractions.zip'
-          directory: './dev-proxy-abstractions/bin/Release/net8.0/${{ matrix.architecture }}'
+          filename: '../../../../${{ env.release }}-abstractions.zip'
+          directory: './dev-proxy-abstractions/bin/Release/net8.0'
           exclusions: '*.json'
       - name: Upload abstractions
         uses: actions/upload-artifact@v4
