@@ -39,26 +39,26 @@ Write-Host "Downloading Dev Proxy $version..."
 $base_url = "https://github.com/microsoft/dev-proxy/releases/download/$version/dev-proxy"
 
 # Check system architecture
-$os = $PSVersionTable.OS
+# empty in Windows PowerShell
 $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+# fallback for Windows PowerShell
+$os = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+$isX64 = [Environment]::Is64BitOperatingSystem
 
 if ($os -match "Windows") {
-    if ($arch -eq "X64") {
+    if ($isX64) {
         $url = "$base_url-win-x64-$version.zip"
-    } elseif ($arch -eq "X86") {
-        $url = "$base_url-win-x86-$version.zip"
     } else {
-        Write-Host "Unsupported architecture $arch. Aborting"
-        exit 1
+        $url = "$base_url-win-x86-$version.zip"
     }
-} elseif ($os -match "Linux") {
+} elseif ($IsLinux) {
     if ($arch -eq "X64") {
         $url = "$base_url-linux-x64-$version.zip"
     } else {
         Write-Host "Unsupported architecture $arch. Aborting"
         exit 1
     }
-} elseif ($os -match "Darwin") {
+} elseif ($IsMacOS) {
     # temporary workaround to install devproxy on Mx macs
     if ($arch -eq "X64" -or $arch -eq "Arm64") {
         $url = "$base_url-osx-x64-$version.zip"
@@ -76,7 +76,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 Expand-Archive -Path devproxy.zip -DestinationPath . -Force -ErrorAction Stop
 Remove-Item devproxy.zip
 
-if ($os -match "Linux" -or $os -match "Darwin") {
+if ($IsLinux -or $IsMacOS) {
     Write-Host "Configuring devproxy and its files as executable..."
     chmod +x ./devproxy ./libe_sqlite3.dylib
 }
