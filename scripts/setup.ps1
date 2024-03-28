@@ -40,10 +40,11 @@ $base_url = "https://github.com/microsoft/dev-proxy/releases/download/$version/d
 
 # Check system architecture
 $os = $env:OS
-$arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+$isX64 = [Environment]::Is64BitOperatingSystem
+#$arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
 
 if ($os -match "Windows") {
-    if ($arch -eq "X64") {
+    if ($isX64) {
         $url = "$base_url-win-x64-$version.zip"
     } elseif ($arch -eq "X86") {
         $url = "$base_url-win-x86-$version.zip"
@@ -52,7 +53,7 @@ if ($os -match "Windows") {
         exit 1
     }
 } elseif ($os -match "Linux") {
-    if ($arch -eq "X64") {
+    if ($isX64) {
         $url = "$base_url-linux-x64-$version.zip"
     } else {
         Write-Host "Unsupported architecture $arch. Aborting"
@@ -60,14 +61,14 @@ if ($os -match "Windows") {
     }
 } elseif ($os -match "Darwin") {
     # temporary workaround to install devproxy on Mx macs
-    if ($arch -eq "X64" -or $arch -eq "Arm64") {
+    if ($isX64) {
         $url = "$base_url-osx-x64-$version.zip"
     } else {
         Write-Host "Unsupported architecture $arch. Aborting"
         exit 1
     }
 } else {
-    Write-Host "Unsupported OS $os. Aborting"
+    Write-Host "Unsupported OS: $os. Aborting"
     exit 1
 }
 
