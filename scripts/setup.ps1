@@ -39,7 +39,7 @@ Write-Host "Downloading Dev Proxy $version..."
 $base_url = "https://github.com/microsoft/dev-proxy/releases/download/$version/dev-proxy"
 
 # Check system architecture
-$os = $PSVersionTable.OS
+$os = $env:OS
 $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
 
 if ($os -match "Windows") {
