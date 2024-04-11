@@ -44,6 +44,9 @@ jobs:
         with:
           filename: '../${{ env.release }}.zip'
           directory: './${{ env.release }}'
+      - name: Release SHA256 hash
+        run: |
+          $(Get-FileHash ./${{ env.release }}.zip -Algorithm SHA256).Hash
       - name: Upload release
         uses: actions/upload-artifact@v4
         with:
