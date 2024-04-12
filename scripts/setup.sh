@@ -57,7 +57,7 @@ if [ "$(uname)" == "Darwin" ]; then
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
     ARCH="$(uname -m)"
     if [ "$(expr substr ${ARCH} 1 5)" == "arm64" ] || [ "$(expr substr ${ARCH} 1 7)" == "aarch64" ]; then
-        echo "unsupported architecture ${ARCH}. Aborting"; exit 1;
+        curl -sL -o ./devproxy.zip "$base_url-linux-arm64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
     elif [ "$(expr substr ${ARCH} 1 6)" == "x86_64" ]; then
         curl -sL -o ./devproxy.zip "$base_url-linux-x64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
     else
