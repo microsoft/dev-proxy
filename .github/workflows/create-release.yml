@@ -69,6 +69,9 @@ jobs:
       - name: Add install file
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
         run: cp ./install.iss ./${{ env.release }}
+      - name: Add installer icon
+        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        run: cp ./media/icon.ico ./${{ env.release }}
       - name: Build Installer
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
         run: ISCC.exe install.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
