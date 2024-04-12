@@ -71,14 +71,14 @@ jobs:
         run: cp ./install.iss ./${{ env.release }}
       - name: Build Installer
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
-        run: ISCC.exe install.iss /F"DevProxySetup-${{ github.ref_name }}-${{ matrix.architecture }}"
+        run: ISCC.exe install.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
         working-directory: ./${{ env.release }}
       - name: Upload Installer
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
         uses: actions/upload-artifact@v4
         with:
           name: installer-dev-proxy-${{ github.ref_name }}-${{ matrix.architecture }}
-          path: ./${{ env.release }}/output/DevProxySetup-${{ github.ref_name }}-${{ matrix.architecture }}.exe
+          path: ./${{ env.release }}/output/dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}.exe
   create_release:
     name: Create Release
     needs: [publish_binaries]
