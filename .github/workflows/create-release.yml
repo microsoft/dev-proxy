@@ -66,6 +66,23 @@ jobs:
         with:
           name: binaries-dev-proxy-abstractions-${{ github.ref_name }}
           path: ./dev-proxy-abstractions-${{ github.ref_name }}.zip
+      - name: Add install file
+        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        run: cp ./install.iss ./${{ env.release }}
+      - name: Install Inno Setup
+        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        run: choco install innosetup
+      - name: Build Installer
+        if: matrix.architecture == 'win-x64'
+        run: ISCC.exe install.iss /F"DevProxySetup-${{ github.ref_name }}-${{ matrix.architecture }}.exe"
+        with:
+          directory: ./${{ env.release }}
+      - name: Upload Installer
+        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        uses: actions/upload-artifact@v2
+        with:
+          name: installer-dev-proxy-${{ github.ref_name }}-${{ matrix.architecture }}
+          path: ./${{ env.release }}/output/DevProxySetup-${{ github.ref_name }}-${{ matrix.architecture }}.exe
   create_release:
     name: Create Release
     needs: [publish_binaries]
