@@ -69,12 +69,9 @@ jobs:
       - name: Add install file
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
         run: cp ./install.iss ./${{ env.release }}
-      - name: Install Inno Setup
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
-        run: choco install innosetup
       - name: Build Installer
         if: matrix.architecture == 'win-x64'
-        run: ISCC.exe install.iss /F"DevProxySetup-${{ github.ref_name }}-${{ matrix.architecture }}.exe"
+        run: ISCC.exe install.iss /F"DevProxySetup-${{ github.ref_name }}-${{ matrix.architecture }}"
         working-directory: ./${{ env.release }}
       - name: Upload Installer
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
