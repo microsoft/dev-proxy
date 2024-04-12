@@ -75,7 +75,7 @@ jobs:
         working-directory: ./${{ env.release }}
       - name: Upload Installer
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: installer-dev-proxy-${{ github.ref_name }}-${{ matrix.architecture }}
           path: ./${{ env.release }}/output/DevProxySetup-${{ github.ref_name }}-${{ matrix.architecture }}.exe
