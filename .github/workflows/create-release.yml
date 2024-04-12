@@ -75,8 +75,7 @@ jobs:
       - name: Build Installer
         if: matrix.architecture == 'win-x64'
         run: ISCC.exe install.iss /F"DevProxySetup-${{ github.ref_name }}-${{ matrix.architecture }}.exe"
-        with:
-          directory: ./${{ env.release }}
+        working-directory: ./${{ env.release }}
       - name: Upload Installer
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
         uses: actions/upload-artifact@v2
