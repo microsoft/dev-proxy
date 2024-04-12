@@ -29,6 +29,7 @@ OutputBaseFilename={#MyAppSetupExeName}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+OutputDir=.
 
 [Registry] 
 Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Flags: preservestringtype
