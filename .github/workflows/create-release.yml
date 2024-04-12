@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installer-dev-proxy-${{ github.ref_name }}-${{ matrix.architecture }}
-          path: ./${{ env.release }}/output/dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}.exe
+          path: ./${{ env.release }}/dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}.exe
   create_release:
     name: Create Release
     needs: [publish_binaries]
