@@ -27,7 +27,7 @@ public class MockResponseConfiguration
     public bool BlockUnmockedRequests { get; set; } = false;
 
     [JsonPropertyName("$schema")]
-    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.16.0/mockresponseplugin.schema.json";
+    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.17.0/mockresponseplugin.schema.json";
     public IEnumerable<MockResponse> Mocks { get; set; } = Array.Empty<MockResponse>();
 }
 
@@ -159,7 +159,9 @@ public class MockResponsePlugin : BaseProxyPlugin
             if (mockResponse.Request is null) return false;
 
             if (mockResponse.Request.Method != request.Method) return false;
-            if (mockResponse.Request.Url == request.Url && IsNthRequest(mockResponse))
+            if (mockResponse.Request.Url == request.Url &&
+                HasMatchingBody(mockResponse, request) &&
+                IsNthRequest(mockResponse))
             {
                 return true;
             }
@@ -173,7 +175,9 @@ public class MockResponsePlugin : BaseProxyPlugin
 
             //turn mock URL with wildcard into a regex and match against the request URL
             var mockResponseUrlRegex = Regex.Escape(mockResponse.Request.Url).Replace("\\*", ".*");
-            return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$") && IsNthRequest(mockResponse);
+            return Regex.IsMatch(request.Url, $"^{mockResponseUrlRegex}$") &&
+                HasMatchingBody(mockResponse, request) &&
+                IsNthRequest(mockResponse);
         });
 
         if (mockResponse is not null && mockResponse.Request is not null)
@@ -186,6 +190,30 @@ public class MockResponsePlugin : BaseProxyPlugin
         }
 
         return mockResponse;
+    }
+
+    private bool HasMatchingBody(MockResponse mockResponse, Request request)
+    {
+        if (request.Method == "GET")
+        {
+            // GET requests don't have a body so we can't match on it
+            return true;
+        }
+
+        if (mockResponse.Request?.BodyFragment is null)
+        {
+            // no body fragment to match on
+            return true;
+        }
+
+        if (!request.HasBody || string.IsNullOrEmpty(request.BodyString))
+        {
+            // mock defines a body fragment but the request has no body
+            // so it can't match
+            return false;
+        }
+
+        return request.BodyString.Contains(mockResponse.Request.BodyFragment, StringComparison.OrdinalIgnoreCase);
     }
 
     private bool IsNthRequest(MockResponse mockResponse)

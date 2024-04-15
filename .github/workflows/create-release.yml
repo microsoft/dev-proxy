@@ -13,8 +13,8 @@ jobs:
           - win-x64
           - win-x86
           - linux-x64
+          - linux-arm64
           - osx-x64
-          - osx-arm64
     env:
       release: 'dev-proxy-${{ matrix.architecture }}-${{ github.ref_name }}'
     steps:
@@ -27,6 +27,9 @@ jobs:
         run: dotnet publish ./dev-proxy/dev-proxy.csproj -c Release -p:PublishSingleFile=true -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -r ${{ matrix.architecture }} --self-contained -o ./${{ env.release }}
       - name: Build plugins
         run: dotnet build ./dev-proxy-plugins/dev-proxy-plugins.csproj -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -c Release -r ${{ matrix.architecture }} --no-self-contained
+      - name: Build abstractions
+        if: matrix.architecture == 'win-x64'
+        run: dotnet build ./dev-proxy-abstractions/dev-proxy-abstractions.csproj -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -c Release --no-self-contained
       - name: Add plugins to output
         run: cp ./dev-proxy/bin/Release/net8.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
       - name: Remove unnecessary files
@@ -37,15 +40,48 @@ jobs:
           Get-ChildItem -Filter *.deps.json -Recurse | Remove-Item
           Get-ChildItem -Filter *.runtimeconfig.json -Recurse | Remove-Item
           popd
-      - name: Archive Release ${{ env.release }}
+      - name: Archive release ${{ env.release }}
         uses: thedoctor0/zip-release@master
         with:
           filename: '../${{ env.release }}.zip'
           directory: './${{ env.release }}'
-      - uses: actions/upload-artifact@v4
+      - name: Release SHA256 hash
+        run: |
+          $(Get-FileHash ./${{ env.release }}.zip -Algorithm SHA256).Hash
+      - name: Upload release
+        uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ env.release }}
           path: ./${{ env.release }}.zip
+      - name: Archive abstractions
+        if: matrix.architecture == 'win-x64'
+        uses: thedoctor0/zip-release@master
+        with:
+          filename: '../../../../dev-proxy-abstractions-${{ github.ref_name }}.zip'
+          directory: './dev-proxy-abstractions/bin/Release/net8.0'
+          exclusions: '*.json'
+      - name: Upload abstractions
+        if: matrix.architecture == 'win-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-dev-proxy-abstractions-${{ github.ref_name }}
+          path: ./dev-proxy-abstractions-${{ github.ref_name }}.zip
+      - name: Add install file
+        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        run: cp ./install.iss ./${{ env.release }}
+      - name: Add installer icon
+        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        run: cp ./media/icon.ico ./${{ env.release }}
+      - name: Build Installer
+        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        run: ISCC.exe install.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
+        working-directory: ./${{ env.release }}
+      - name: Upload Installer
+        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-dev-proxy-${{ github.ref_name }}-${{ matrix.architecture }}
+          path: ./${{ env.release }}/dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}.exe
   create_release:
     name: Create Release
     needs: [publish_binaries]
@@ -70,3 +106,4 @@ jobs:
         with:
           args: |
               output/binaries-*/*.zip
+              output/installer-*/*.exe

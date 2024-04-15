@@ -14,6 +14,7 @@ public class MockResponseRequest
     public string Url { get; set; } = string.Empty;
     public string Method { get; set; } = "GET";
     public int? Nth { get; set; }
+    public string? BodyFragment { get; set; }
 }
 
 public class MockResponseResponse
