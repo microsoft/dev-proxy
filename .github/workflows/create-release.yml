@@ -66,15 +66,22 @@ jobs:
         with:
           name: binaries-dev-proxy-abstractions-${{ github.ref_name }}
           path: ./dev-proxy-abstractions-${{ github.ref_name }}.zip
-      - name: Add install file
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
-        run: cp ./install.iss ./${{ env.release }}
       - name: Add installer icon
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
         run: cp ./media/icon.ico ./${{ env.release }}
+      - name: Add install file
+        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && !contains(github.ref_name, 'beta')
+        run: cp ./install.iss ./${{ env.release }}
       - name: Build Installer
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && !contains(github.ref_name, 'beta')
         run: ISCC.exe install.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
+        working-directory: ./${{ env.release }}
+      - name: Add beta install file
+        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && contains(github.ref_name, 'beta')
+        run: cp ./install-beta.iss ./${{ env.release }}
+      - name: Build Beta Installer
+        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && !contains(github.ref_name, 'beta')
+        run: ISCC.exe install-beta.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
         working-directory: ./${{ env.release }}
       - name: Upload Installer
         if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
