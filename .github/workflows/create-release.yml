@@ -80,7 +80,7 @@ jobs:
         if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && contains(github.ref_name, 'beta')
         run: cp ./install-beta.iss ./${{ env.release }}
       - name: Build Beta Installer
-        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && !contains(github.ref_name, 'beta')
+        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && contains(github.ref_name, 'beta')
         run: ISCC.exe install-beta.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
         working-directory: ./${{ env.release }}
       - name: Upload Installer
