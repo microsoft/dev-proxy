@@ -67,24 +67,27 @@ jobs:
           name: binaries-dev-proxy-abstractions-${{ github.ref_name }}
           path: ./dev-proxy-abstractions-${{ github.ref_name }}.zip
       - name: Add installer icon
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        if: contains(matrix.architecture, 'win-')
         run: cp ./media/icon.ico ./${{ env.release }}
+      - name: Set installer file name
+        id: installer
+        if: contains(matrix.architecture, 'win-')
+        run: |
+          if contains(github.ref_name, 'beta')
+          then
+            echo "::set-output name=filename::install-beta.iss"
+          else
+            echo "::set-output name=filename::install.iss"
+          fi
       - name: Add install file
-        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && !contains(github.ref_name, 'beta')
-        run: cp ./install.iss ./${{ env.release }}
+        if: contains(matrix.architecture, 'win-')
+        run: cp ./${{ steps.installer.outputs.filename }} ./${{ env.release }}
       - name: Build Installer
-        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && !contains(github.ref_name, 'beta')
-        run: ISCC.exe install.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
-        working-directory: ./${{ env.release }}
-      - name: Add beta install file
-        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && contains(github.ref_name, 'beta')
-        run: cp ./install-beta.iss ./${{ env.release }}
-      - name: Build Beta Installer
-        if: (matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86') && contains(github.ref_name, 'beta')
-        run: ISCC.exe install-beta.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
+        if: contains(matrix.architecture, 'win-')
+        run: ISCC.exe ${{ steps.installer.outputs.filename }} /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
         working-directory: ./${{ env.release }}
       - name: Upload Installer
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        if: contains(matrix.architecture, 'win-')
         uses: actions/upload-artifact@v4
         with:
           name: installer-dev-proxy-${{ github.ref_name }}-${{ matrix.architecture }}
