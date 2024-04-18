@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.Net;
@@ -299,6 +300,11 @@ internal class ProxyHost
         presetCommand.Add(presetGetCommand);
 
         command.Add(presetCommand);
+
+        var outdatedCommand = new Command("outdated", "Check for new version");
+        
+        outdatedCommand.SetHandler(async () => await OutdatedCommandHandler.CheckVersion(logger));
+        command.Add(outdatedCommand);
 
         return command;
     }
