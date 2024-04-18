@@ -114,21 +114,19 @@ namespace Microsoft.DevProxy.Plugins.RequestLogs
             var apiDefinitions = await LoadApiDefinitions(apis.Value);
 
             var newApis = new List<Tuple<string, string>>();
-            foreach (var request in e.RequestLogs)
+            var interceptedRequests = e.RequestLogs
+                .Where(l => l.MessageType == MessageType.InterceptedRequest)
+                .Select(request => {
+                    var methodAndUrl = request.MessageLines.First().Split(' ');
+                    return new Tuple<string, string>(methodAndUrl[0], methodAndUrl[1]);
+                })
+                .Distinct();
+            foreach (var request in interceptedRequests)
             {
-                if (request.MessageType != MessageType.InterceptedResponse ||
-                    request.Context is null ||
-                    request.Context.Session is null)
-                {
-                    continue;
-                }
+                _logger?.LogDebug("Processing request {method} {url}...", request.Item1, request.Item2);
 
-                var methodAndUrlString = request.MessageLines.First();
-                _logger?.LogDebug("Processing request {methodAndUrl}...", methodAndUrlString);
-
-                var methodAndUrl = methodAndUrlString.Split(' ');
-                var requestMethod = methodAndUrl[0];
-                var requestUrl = methodAndUrl[1];
+                var requestMethod = request.Item1;
+                var requestUrl = request.Item2;
 
                 var apiDefinition = apiDefinitions.FirstOrDefault(x => requestUrl.Contains(x.Key)).Value;
                 if (apiDefinition.Id is null)
