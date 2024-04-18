@@ -2,8 +2,8 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Dev Proxy Beta"
-#define MyAppSetupExeName "dev-proxy-installer-win-x64-0.17.0-beta.1"
-#define MyAppVersion "0.17.0-beta.1"
+#define MyAppSetupExeName "dev-proxy-installer-win-x64-0.17.0-beta.2"
+#define MyAppVersion "0.17.0-beta.2"
 #define MyAppPublisher "Microsoft"
 #define MyAppURL "https://aka.ms/devproxy"
 
