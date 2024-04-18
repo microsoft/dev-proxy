@@ -73,12 +73,11 @@ jobs:
         id: installer
         if: contains(matrix.architecture, 'win-')
         run: |
-          if contains(github.ref_name, 'beta')
-          then
-            echo "::set-output name=filename::install-beta.iss"
-          else
-            echo "::set-output name=filename::install.iss"
-          fi
+          if ('${{ github.ref_name }}'.Contains('beta')) {
+              Write-Output "filename=install-beta.iss" >> $env:GITHUB_OUTPUT
+          } else {
+              Write-Output "filename=install.iss" >> $env:GITHUB_OUTPUT
+          }
       - name: Add install file
         if: contains(matrix.architecture, 'win-')
         run: cp ./${{ steps.installer.outputs.filename }} ./${{ env.release }}
