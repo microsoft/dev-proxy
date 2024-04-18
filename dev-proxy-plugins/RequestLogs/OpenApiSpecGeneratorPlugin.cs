@@ -452,14 +452,14 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
     {
         var prompt = $"For the specified request, generate an operation ID, compatible with an OpenAPI spec. Respond with just the ID in plain-text format. For example, for request such as `GET https://api.contoso.com/books/{{books-id}}` you return `getBookById`. For a request like `GET https://api.contoso.com/books/{{books-id}}/authors` you return `getAuthorsForBookById`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
         var id = await Context.LanguageModelClient.GenerateCompletion(prompt);
-        return id ?? $"{method}{parametrizedPath.Replace('/', '.')}";
+        return id?.Response ?? $"{method}{parametrizedPath.Replace('/', '.')}";
     }
 
     private async Task<string> GetOperationDescription(string method, string serverUrl, string parametrizedPath)
     {
         var prompt = $"You're an expert in OpenAPI. You help developers build great OpenAPI specs for use with LLMs. For the specified request, generate a one-sentence description. Respond with just the description. For example, for a request such as `GET https://api.contoso.com/books/{{books-id}}` you return `Get a book by ID`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
         var description = await Context.LanguageModelClient.GenerateCompletion(prompt);
-        return description ?? $"{method} {parametrizedPath}";
+        return description?.Response ?? $"{method} {parametrizedPath}";
     }
 
     /**

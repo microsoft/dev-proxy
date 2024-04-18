@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.DevProxy.LanguageModel;
+namespace Microsoft.DevProxy.Abstractions;
 
 public class LanguageModelConfiguration
 {
