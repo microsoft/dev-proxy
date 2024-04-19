@@ -19,7 +19,7 @@ public static class OutdatedCommandHandler
             else
             {
                 var notesLink = isBeta ? "https://aka.ms/devproxy/notes" : "https://aka.ms/devproxy/beta/notes";
-                logger.LogInformation($"New Dev Proxy version {releaseInfo.Version} is available.\r\nRelease notes: {notesLink} \r\nDocs: https://aka.ms/devproxy/upgrade");
+                logger.LogInformation($"New Dev Proxy version {releaseInfo.Version} is available.{Environment.NewLine}Release notes: {notesLink}{Environment.NewLine}Docs: https://aka.ms/devproxy/upgrade");
             }
         }
         else if (!versionOnly)
