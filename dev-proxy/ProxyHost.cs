@@ -302,8 +302,10 @@ internal class ProxyHost
         command.Add(presetCommand);
 
         var outdatedCommand = new Command("outdated", "Check for new version");
-        
-        outdatedCommand.SetHandler(async () => await OutdatedCommandHandler.CheckVersion(logger));
+        var outdatedShortOption = new Option<bool>("--short", "Return version only");
+        outdatedCommand.AddOption(outdatedShortOption);
+        outdatedCommand.SetHandler(async versionOnly => await OutdatedCommandHandler.CheckVersion(versionOnly, logger), outdatedShortOption);
+
         command.Add(outdatedCommand);
 
         return command;
