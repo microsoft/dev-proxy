@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi.Extensions;
-using System.Runtime.InteropServices;
 
 namespace Microsoft.DevProxy;
 
@@ -10,7 +8,7 @@ public static class OutdatedCommandHandler
     {
         var releaseInfo = await UpdateNotification.CheckForNewVersion(ProxyCommandHandler.Configuration.NewVersionNotification);
 
-        if (releaseInfo != null && releaseInfo.Version != null)
+        if (releaseInfo is not null && releaseInfo.Version is not null)
         {
             var isBeta = releaseInfo.Version.Contains("-beta");
 
