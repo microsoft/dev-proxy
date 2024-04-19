@@ -92,7 +92,11 @@ public class ProxyCommandHandler : ICommandHandler
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion(Configuration.NewVersionNotification);
         if (newReleaseInfo != null)
         {
-            _logger.LogError("New Dev Proxy version {version} is available.\r\nSee https://aka.ms/devproxy/upgrade for more information.", newReleaseInfo.Version);
+            _logger.LogError(
+                "New Dev Proxy version {version} is available.{newLine}See https://aka.ms/devproxy/upgrade for more information.",
+                newReleaseInfo.Version,
+                Environment.NewLine
+            );
         }
 
         try
