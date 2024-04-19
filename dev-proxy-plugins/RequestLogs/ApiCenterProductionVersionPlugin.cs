@@ -2,8 +2,10 @@
 // Licensed under the MIT License.
 
 using System.Diagnostics;
+using System.Diagnostics.Tracing;
 using System.Text.Json;
 using Azure.Core;
+using Azure.Core.Diagnostics;
 using Azure.Identity;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins;
@@ -38,19 +40,15 @@ internal class ApiCenterProductionVersionPluginConfiguration
     public string ResourceGroupName { get; set; } = "";
     public string ServiceName { get; set; } = "";
     public string WorkspaceName { get; set; } = "default";
+    public bool ExcludeDevCredentials { get; set; } = false;
+    public bool ExcludeProdCredentials { get; set; } = true;
 }
 
 public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
 {
     private ApiCenterProductionVersionPluginConfiguration _configuration = new();
     private readonly string[] _scopes = ["https://management.azure.com/.default"];
-    private readonly TokenCredential _credential = new ChainedTokenCredential(
-        new VisualStudioCredential(),
-        new VisualStudioCodeCredential(),
-        new AzureCliCredential(),
-        new AzurePowerShellCredential(),
-        new AzureDeveloperCliCredential()
-    );
+    private TokenCredential _credential = new DefaultAzureCredential();
     private HttpClient? _httpClient;
     private JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
     {
@@ -84,16 +82,50 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             _logger?.LogError("Specify ServiceName in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
             return;
         }
+        if (_configuration.ExcludeDevCredentials && _configuration.ExcludeProdCredentials)
+        {
+            _logger?.LogError("Both ExcludeDevCredentials and ExcludeProdCredentials are set to true. You need to use at least one set of credentials The {plugin} will not be used.", Name);
+            return;
+        }
 
+        var credentials = new List<TokenCredential>();
+        if (!_configuration.ExcludeDevCredentials)
+        {
+            credentials.AddRange([
+                new SharedTokenCacheCredential(),
+                new VisualStudioCredential(),
+                new VisualStudioCodeCredential(),
+                new AzureCliCredential(),
+                new AzurePowerShellCredential(),
+                new AzureDeveloperCliCredential(),
+            ]);
+        }
+        if (!_configuration.ExcludeProdCredentials)
+        {
+            credentials.AddRange([
+                new EnvironmentCredential(),
+                new WorkloadIdentityCredential(),
+                new ManagedIdentityCredential()
+            ]);
+        }
+        _credential = new ChainedTokenCredential(credentials.ToArray());
+
+        if (_logger?.LogLevel == LogLevel.Debug)
+        {
+            var consoleListener = AzureEventSourceListener.CreateConsoleLogger(EventLevel.Verbose);
+        }
+
+        _logger?.LogDebug("[{now}] Plugin {plugin} checking Azure auth...", DateTime.Now, Name);
         try
         {
             _ = _credential.GetTokenAsync(new TokenRequestContext(_scopes), CancellationToken.None).Result;
         }
         catch (AuthenticationFailedException ex)
         {
-            _logger?.LogError(ex, "Failed to authenticate with Azure. The ApiCenterProductionVersionPlugin will not be used.");
+            _logger?.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
             return;
         }
+        _logger?.LogDebug("[{now}] Plugin {plugin} auth confirmed...", DateTime.Now, Name);
 
         var authenticationHandler = new AuthenticationDelegatingHandler(_credential, _scopes)
         {

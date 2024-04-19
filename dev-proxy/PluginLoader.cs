@@ -42,7 +42,7 @@ internal class PluginLoader
                 // Load Handler Assembly if enabled
                 string pluginLocation = Path.GetFullPath(Path.Combine(configFileDirectory, ProxyUtils.ReplacePathTokens(h.PluginPath.Replace('\\', Path.DirectorySeparatorChar))));
                 PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
-                _logger.LogDebug("Loading plugin {pluginName} from: {pluginLocation}", h.Name, pluginLocation);
+                _logger?.LogDebug("Loading plugin {pluginName} from: {pluginLocation}", h.Name, pluginLocation);
                 Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
                 IEnumerable<UrlToWatch>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
                 ISet<UrlToWatch>? pluginUrls = null;
@@ -53,12 +53,14 @@ internal class PluginLoader
                 }
                 // Load Plugins from assembly
                 IProxyPlugin plugin = CreatePlugin(assembly, h);
+                _logger?.LogDebug("Registering plugin {pluginName}...", plugin.Name);
                 plugin.Register(
                     pluginEvents,
                     proxyContext,
                     (pluginUrls != null && pluginUrls.Any()) ? pluginUrls : defaultUrlsToWatch,
                     h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection)
                 );
+                _logger?.LogDebug("Plugin {pluginName} registered.", plugin.Name);
                 plugins.Add(plugin);
             }
         }

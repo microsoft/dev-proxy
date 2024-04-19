@@ -2,11 +2,13 @@
 // Licensed under the MIT License.
 
 using System.Diagnostics;
+using System.Diagnostics.Tracing;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Azure.Core;
+using Azure.Core.Diagnostics;
 using Azure.Identity;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
@@ -24,19 +26,15 @@ internal class ApiCenterOnboardingPluginConfiguration
     public string ServiceName { get; set; } = "";
     public string WorkspaceName { get; set; } = "default";
     public bool CreateApicEntryForNewApis { get; set; } = true;
+    public bool ExcludeDevCredentials { get; set; } = false;
+    public bool ExcludeProdCredentials { get; set; } = true;
 }
 
 public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 {
     private ApiCenterOnboardingPluginConfiguration _configuration = new();
     private readonly string[] _scopes = ["https://management.azure.com/.default"];
-    private readonly TokenCredential _credential = new ChainedTokenCredential(
-        new VisualStudioCredential(),
-        new VisualStudioCodeCredential(),
-        new AzureCliCredential(),
-        new AzurePowerShellCredential(),
-        new AzureDeveloperCliCredential()
-    );
+    private TokenCredential _credential = new DefaultAzureCredential();
     private HttpClient? _httpClient;
     private JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
     {
@@ -57,29 +55,63 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         if (string.IsNullOrEmpty(_configuration.SubscriptionId))
         {
-            _logger?.LogError("Specify SubscriptionId in the ApiCenterOnboardingPlugin configuration. The ApiCenterOnboardingPlugin will not be used.");
+            _logger?.LogError("Specify SubscriptionId in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
             return;
         }
         if (string.IsNullOrEmpty(_configuration.ResourceGroupName))
         {
-            _logger?.LogError("Specify ResourceGroupName in the ApiCenterOnboardingPlugin configuration. The ApiCenterOnboardingPlugin will not be used.");
+            _logger?.LogError("Specify ResourceGroupName in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
             return;
         }
         if (string.IsNullOrEmpty(_configuration.ServiceName))
         {
-            _logger?.LogError("Specify ServiceName in the ApiCenterOnboardingPlugin configuration. The ApiCenterOnboardingPlugin will not be used.");
+            _logger?.LogError("Specify ServiceName in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
+            return;
+        }
+        if (_configuration.ExcludeDevCredentials && _configuration.ExcludeProdCredentials)
+        {
+            _logger?.LogError("Both ExcludeDevCredentials and ExcludeProdCredentials are set to true. You need to use at least one set of credentials The {plugin} will not be used.", Name);
             return;
         }
 
+        var credentials = new List<TokenCredential>();
+        if (!_configuration.ExcludeDevCredentials)
+        {
+            credentials.AddRange([
+                new SharedTokenCacheCredential(),
+                new VisualStudioCredential(),
+                new VisualStudioCodeCredential(),
+                new AzureCliCredential(),
+                new AzurePowerShellCredential(),
+                new AzureDeveloperCliCredential(),
+            ]);
+        }
+        if (!_configuration.ExcludeProdCredentials)
+        {
+            credentials.AddRange([
+                new EnvironmentCredential(),
+                new WorkloadIdentityCredential(),
+                new ManagedIdentityCredential()
+            ]);
+        }
+        _credential = new ChainedTokenCredential(credentials.ToArray());
+
+        if (_logger?.LogLevel == LogLevel.Debug)
+        {
+            var consoleListener = AzureEventSourceListener.CreateConsoleLogger(EventLevel.Verbose);
+        }
+
+        _logger?.LogDebug("[{now}] Plugin {plugin} checking Azure auth...", DateTime.Now, Name);
         try
         {
             _ = _credential.GetTokenAsync(new TokenRequestContext(_scopes), CancellationToken.None).Result;
         }
         catch (AuthenticationFailedException ex)
         {
-            _logger?.LogError(ex, "Failed to authenticate with Azure. The ApiCenterOnboardingPlugin will not be used.");
+            _logger?.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
             return;
         }
+        _logger?.LogDebug("[{now}] Plugin {plugin} auth confirmed...", DateTime.Now, Name);
 
         var authenticationHandler = new AuthenticationDelegatingHandler(_credential, _scopes)
         {
@@ -114,7 +146,8 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         var newApis = new List<Tuple<string, string>>();
         var interceptedRequests = e.RequestLogs
             .Where(l => l.MessageType == MessageType.InterceptedRequest)
-            .Select(request => {
+            .Select(request =>
+            {
                 var methodAndUrl = request.MessageLines.First().Split(' ');
                 return new Tuple<string, string>(methodAndUrl[0], methodAndUrl[1]);
             })
