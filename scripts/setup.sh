@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------------------------
 
 if [ "$(expr substr $(uname -s) 1 5)" != "Linux" ]; then
-    echo "Unsupported OS. This script is for installing Dev Proxy on Linux. To install Dev Proxy on macOS or Windows use their installers. For more information, visit https://learn.microsoft.com/microsoft-cloud/dev/dev-proxy/get-started?tabs=automated&pivots=client-operating-system-windows."
+    echo "Unsupported OS. This script is for installing Dev Proxy on Linux. To install Dev Proxy on macOS or Windows use their installers. For more information, visit https://aka.ms/devproxy/start."
     exit 1
 fi
 
