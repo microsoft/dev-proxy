@@ -81,7 +81,7 @@ Remove-Item devproxy.zip
 
 if ($IsLinux -or $IsMacOS) {
     Write-Host "Configuring devproxy and its files as executable..."
-    chmod +x ./devproxy ./libe_sqlite3.dylib
+    chmod +x ./devproxy-beta ./libe_sqlite3.dylib
 }
 
 Write-Host "Configuring new version notifications for the beta channel..."
