@@ -60,7 +60,7 @@ Expand-Archive -Path devproxy.zip -DestinationPath . -Force -ErrorAction Stop
 Remove-Item devproxy.zip
 
 Write-Host "Configuring devproxy and its files as executable..."
-chmod +x ./devproxy ./libe_sqlite3.so
+chmod +x ./devproxy-beta ./libe_sqlite3.so
 
 Write-Host "Configuring new version notifications for the beta channel..."
 (Get-Content -Path devproxyrc.json) -replace '"newVersionNotification": "stable"', '"newVersionNotification": "beta"' | Set-Content -Path devproxyrc.json
