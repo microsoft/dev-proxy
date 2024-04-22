@@ -31,9 +31,6 @@ SolidCompression=yes
 WizardStyle=modern
 OutputDir=.
 
-[Registry] 
-Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Flags: preservestringtype
-
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
@@ -46,27 +43,44 @@ Source: ".\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsu
 Type:files;Name:"{app}\rootCert.pfx"
 
 [Code]
-function UpdatePath(Param: string): string;
+procedure RemovePath(Path: string);
 var
-  OrigPath: string;
+  Paths: string;
 begin
-  // Get original PATH value
-  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath) then
-    OrigPath := '';
-
-  // If the path is already there, do nothing
-  if Pos(';' + ExpandConstant('{app}') + ';', ';' + OrigPath + ';') > 0 then
-    Result := OrigPath
-  else
-    // Otherwise, add it
-    Result := OrigPath + ';' + ExpandConstant('{app}');
+  if RegQueryStringValue(HKCU, 'Environment', 'Path', Paths) then
+  begin
+    StringChangeEx(Paths, ';' + Path + ';', ';', true);
+    RegWriteStringValue(HKCU, 'Environment', 'Path', Paths);
+  end;
 end;
 
-procedure DeinitializeSetup();
-var
-  OrigPath: string;
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
-  OrigPath := UpdatePath('');
-  // Set the updated path during installation
-  RegWriteStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath);
+  if CurUninstallStep = usUninstall then
+  begin
+    RemovePath(ExpandConstant('{app}'));
+  end;
+end;
+
+procedure AddPath(Path: string);
+var
+  Paths: string;
+begin
+  if RegQueryStringValue(HKCU, 'Environment', 'Path', Paths) then
+  begin
+    if Pos(';' + Path + ';', Paths) < 1 then
+    begin
+      Paths := Paths + ';' + Path + ';'
+      StringChangeEx(Paths, ';;', ';', true);
+      RegWriteStringValue(HKCU, 'Environment', 'Path', Paths);
+    end;
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssInstall then
+  begin
+    AddPath(ExpandConstant('{app}'));
+  end;
 end;
