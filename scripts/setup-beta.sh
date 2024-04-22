@@ -64,7 +64,7 @@ fi
 unzip -o ./devproxy.zip -d ./
 rm ./devproxy.zip
 echo "Configuring devproxy and its files as executable..."
-chmod +x ./devproxy ./libe_sqlite3.so
+chmod +x ./devproxy-beta ./libe_sqlite3.so
 echo "Configuring new version notifications for the beta channel..."
 sed -i 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
 
