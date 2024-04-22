@@ -3,6 +3,12 @@
 # Licensed under the MIT License. See License in the project root for license information.
 #---------------------------------------------------------------------------------------------
 
+if (-not $IsLinux)
+{
+    Write-Error "Unsupported OS. This script is for installing Dev Proxy on Linux. To install Dev Proxy on macOS or Windows use their installers. For more information, visit https://aka.ms/devproxy/start."
+    exit 1
+}
+
 Write-Host ""
 Write-Host "This script installs Dev Proxy on your machine. It runs the following steps:"
 Write-Host ""
@@ -38,38 +44,12 @@ Write-Host "Latest version is $version"
 Write-Host "Downloading Dev Proxy $version..."
 $base_url = "https://github.com/microsoft/dev-proxy/releases/download/$version/dev-proxy"
 
-# Check system architecture
-# empty in Windows PowerShell
-$arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-# fallback for Windows PowerShell
-$os = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
-$isX64 = [Environment]::Is64BitOperatingSystem
-
-if ($os -match "Windows") {
-    if ($isX64) {
-        $url = "$base_url-win-x64-$version.zip"
-    } else {
-        $url = "$base_url-win-x86-$version.zip"
-    }
-} elseif ($IsLinux) {
-    if ($arch -eq "X64") {
-        $url = "$base_url-linux-x64-$version.zip"
-    } elseif ($arch -eq "Arm64") {
-        $url = "$base_url-linux-arm64-$version.zip"
-    } else {
-        Write-Host "Unsupported architecture $arch. Aborting"
-        exit 1
-    }
-} elseif ($IsMacOS) {
-    # temporary workaround to install devproxy on Mx macs
-    if ($arch -eq "X64" -or $arch -eq "Arm64") {
-        $url = "$base_url-osx-x64-$version.zip"
-    } else {
-        Write-Host "Unsupported architecture $arch. Aborting"
-        exit 1
-    }
+if ($arch -eq "X64") {
+    $url = "$base_url-linux-x64-$version.zip"
+} elseif ($arch -eq "Arm64") {
+    $url = "$base_url-linux-arm64-$version.zip"
 } else {
-    Write-Host "Unsupported OS $os. Aborting"
+    Write-Host "Unsupported architecture $arch. Aborting"
     exit 1
 }
 
@@ -78,10 +58,8 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 Expand-Archive -Path devproxy.zip -DestinationPath . -Force -ErrorAction Stop
 Remove-Item devproxy.zip
 
-if ($IsLinux -or $IsMacOS) {
-    Write-Host "Configuring devproxy and its files as executable..."
-    chmod +x ./devproxy ./libe_sqlite3.dylib
-}
+Write-Host "Configuring devproxy and its files as executable..."
+chmod +x ./devproxy ./libe_sqlite3.so
 
 if (!(Test-Path $PROFILE.CurrentUserAllHosts)) {
     Write-Host "Creating `$PROFILE.CurrentUserAllHosts..."
