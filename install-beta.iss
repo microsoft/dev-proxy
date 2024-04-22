@@ -2,15 +2,15 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Dev Proxy Beta"
-#define MyAppSetupExeName "dev-proxy-installer-win-x64-0.17.0-beta.2"
-#define MyAppVersion "0.17.0-beta.2"
+#define MyAppSetupExeName "dev-proxy-installer-win-x64-0.17.0-beta.3"
+#define MyAppVersion "0.17.0-beta.3"
 #define MyAppPublisher "Microsoft"
 #define MyAppURL "https://aka.ms/devproxy"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{4448FDE7-D519-4009-AFE2-0C5D0AA9C3D2}
+AppId={{4448FDE7-D519-4009-AFE2-0C5D0AA9C3D3}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -31,9 +31,6 @@ SolidCompression=yes
 WizardStyle=modern
 OutputDir=.
 
-[Registry] 
-Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Flags: preservestringtype
-
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
@@ -46,27 +43,44 @@ Source: ".\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsu
 Type:files;Name:"{app}\rootCert.pfx"
 
 [Code]
-function UpdatePath(Param: string): string;
+procedure RemovePath(Path: string);
 var
-  OrigPath: string;
+  Paths: string;
 begin
-  // Get original PATH value
-  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath) then
-    OrigPath := '';
-
-  // If the path is already there, do nothing
-  if Pos(';' + ExpandConstant('{app}') + ';', ';' + OrigPath + ';') > 0 then
-    Result := OrigPath
-  else
-    // Otherwise, add it
-    Result := OrigPath + ';' + ExpandConstant('{app}');
+  if RegQueryStringValue(HKCU, 'Environment', 'Path', Paths) then
+  begin
+    StringChangeEx(Paths, ';' + Path + ';', ';', true);
+    RegWriteStringValue(HKCU, 'Environment', 'Path', Paths);
+  end;
 end;
 
-procedure DeinitializeSetup();
-var
-  OrigPath: string;
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
-  OrigPath := UpdatePath('');
-  // Set the updated path during installation
-  RegWriteStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath);
+  if CurUninstallStep = usUninstall then
+  begin
+    RemovePath(ExpandConstant('{app}'));
+  end;
+end;
+
+procedure AddPath(Path: string);
+var
+  Paths: string;
+begin
+  if RegQueryStringValue(HKCU, 'Environment', 'Path', Paths) then
+  begin
+    if Pos(';' + Path + ';', Paths) < 1 then
+    begin
+      Paths := Paths + ';' + Path + ';'
+      StringChangeEx(Paths, ';;', ';', true);
+      RegWriteStringValue(HKCU, 'Environment', 'Path', Paths);
+    end;
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssInstall then
+  begin
+    AddPath(ExpandConstant('{app}'));
+  end;
 end;
