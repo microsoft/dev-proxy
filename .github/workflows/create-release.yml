@@ -77,6 +77,11 @@ jobs:
       - name: Add installer icon
         if: contains(matrix.architecture, 'win-')
         run: cp ./media/icon.ico ./${{ env.release }}
+      - name: Update version in beta installer
+        if: contains(matrix.architecture, 'win-') && contains('${{ github.ref_name }}', '-beta')
+        run: |
+          $content = Get-Content ./install-beta.iss
+          $content -replace '#define MyAppVersion .*', "#define MyAppVersion `"$("${{ github.ref_name }}".Substring(1))`"" | Set-Content ./install-beta.iss
       - name: Set installer file name
         id: installer
         if: contains(matrix.architecture, 'win-')
