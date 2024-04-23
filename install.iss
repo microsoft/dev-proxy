@@ -2,6 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Dev Proxy"
+; for local use only. In production replaced by a command line arg
 #define MyAppSetupExeName "dev-proxy-installer-win-x64-0.17.0"
 #define MyAppVersion "0.17.0"
 #define MyAppPublisher "Microsoft"
