@@ -13,6 +13,9 @@ if (-not (Test-Path ../bld)) {
 if ($isBeta) {
     # Rename executable for beta
     Rename-Item -Path ../bld/devproxy.exe -NewName devproxy-beta.exe
+    # Set newVersionNotification for beta
+    $content = Get-Content ../bld/devproxyrc.json
+    $content -replace '"newVersionNotification": "stable"', '"newVersionNotification": "beta"' | Set-Content ../bld/devproxyrc.json
 }
 
 # Add installer icon
