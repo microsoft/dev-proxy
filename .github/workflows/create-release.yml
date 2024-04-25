@@ -84,7 +84,12 @@ jobs:
           path: ./dev-proxy-abstractions-${{ github.ref_name }}.zip
       - name: Add installer icon
         if: contains(matrix.architecture, 'win-')
-        run: cp ./media/icon.ico ./${{ env.release }}
+        run: |
+          if ('${{ github.ref_name }}'.Contains('beta')) {
+            cp ./media/icon-beta.ico ./${{ env.release }}
+          } else {
+            cp ./media/icon.ico ./${{ env.release }}
+          }
       - name: Update version in beta installer
         if: contains(matrix.architecture, 'win-') && contains(github.ref_name, '-beta')
         run: |

@@ -18,8 +18,11 @@ if ($isBeta) {
     $content -replace '"newVersionNotification": "stable"', '"newVersionNotification": "beta"' | Set-Content ../bld/devproxyrc.json
 }
 
+# Set icon filename
+$icon = $isBeta ? "icon-beta.ico" : "icon.ico"
+
 # Add installer icon
-Copy-Item ../media/icon.ico ../bld/icon.ico
+Copy-Item "../media/$icon" "../bld/$icon"
 
 # Set installer filename
 $installer = $isBeta ? "install-beta.iss" : "install.iss"
