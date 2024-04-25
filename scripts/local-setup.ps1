@@ -1,4 +1,4 @@
-$versionString = "v0.17.0-beta.4"
+$versionString = "v0.17.1-beta.1"
 $version = $versionString.Substring(1)
 $isBeta = $version.Contains("-beta")
 
