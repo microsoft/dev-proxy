@@ -23,6 +23,22 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      - name: Rename executable for beta
+        if: contains(github.ref_name, '-beta')
+        run: |
+          pushd
+          cd ./dev-proxy
+          $content = Get-Content dev-proxy.csproj
+          $content -replace '<AssemblyName>devproxy</AssemblyName>', '<AssemblyName>devproxy-beta</AssemblyName>' | Set-Content dev-proxy.csproj
+          popd
+      - name: Set newVersionNotification for beta
+        if: contains(github.ref_name, '-beta')
+        run: |
+          pushd
+          cd ./dev-proxy
+          $content = Get-Content devproxyrc.json
+          $content -replace '"newVersionNotification": "stable"', '"newVersionNotification": "beta"' | Set-Content devproxyrc.json
+          popd
       - name: Publish ${{ matrix.architecture }}
         run: dotnet publish ./dev-proxy/dev-proxy.csproj -c Release -p:PublishSingleFile=true -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -r ${{ matrix.architecture }} --self-contained -o ./${{ env.release }}
       - name: Build plugins
@@ -66,18 +82,37 @@ jobs:
         with:
           name: binaries-dev-proxy-abstractions-${{ github.ref_name }}
           path: ./dev-proxy-abstractions-${{ github.ref_name }}.zip
-      - name: Add install file
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
-        run: cp ./install.iss ./${{ env.release }}
       - name: Add installer icon
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
-        run: cp ./media/icon.ico ./${{ env.release }}
+        if: contains(matrix.architecture, 'win-')
+        run: |
+          if ('${{ github.ref_name }}'.Contains('beta')) {
+            cp ./media/icon-beta.ico ./${{ env.release }}
+          } else {
+            cp ./media/icon.ico ./${{ env.release }}
+          }
+      - name: Update version in beta installer
+        if: contains(matrix.architecture, 'win-') && contains(github.ref_name, '-beta')
+        run: |
+          $content = Get-Content ./install-beta.iss
+          $content -replace '#define MyAppVersion .*', "#define MyAppVersion `"$("${{ github.ref_name }}".Substring(1))`"" | Set-Content ./install-beta.iss
+      - name: Set installer file name
+        id: installer
+        if: contains(matrix.architecture, 'win-')
+        run: |
+          if ('${{ github.ref_name }}'.Contains('beta')) {
+              Write-Output "filename=install-beta.iss" >> $env:GITHUB_OUTPUT
+          } else {
+              Write-Output "filename=install.iss" >> $env:GITHUB_OUTPUT
+          }
+      - name: Add install file
+        if: contains(matrix.architecture, 'win-')
+        run: cp ./${{ steps.installer.outputs.filename }} ./${{ env.release }}
       - name: Build Installer
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
-        run: ISCC.exe install.iss /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
+        if: contains(matrix.architecture, 'win-')
+        run: ISCC.exe ${{ steps.installer.outputs.filename }} /F"dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}"
         working-directory: ./${{ env.release }}
       - name: Upload Installer
-        if: matrix.architecture == 'win-x64' || matrix.architecture == 'win-x86'
+        if: contains(matrix.architecture, 'win-')
         uses: actions/upload-artifact@v4
         with:
           name: installer-dev-proxy-${{ github.ref_name }}-${{ matrix.architecture }}

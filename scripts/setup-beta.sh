@@ -4,6 +4,11 @@
 # Licensed under the MIT License. See License in the project root for license information.
 #---------------------------------------------------------------------------------------------
 
+if [ "$(expr substr $(uname -s) 1 5)" != "Linux" ]; then
+    echo "Unsupported OS. This script is for installing Dev Proxy on Linux. To install Dev Proxy on macOS or Windows use their installers. For more information, visit https://aka.ms/devproxy/start."
+    exit 1
+fi
+
 echo ""
 echo "This script installs Dev Proxy on your machine. It runs the following steps:"
 echo ""
@@ -46,43 +51,22 @@ echo "Downloading Dev Proxy $version..."
 
 base_url="https://github.com/microsoft/dev-proxy/releases/download/$version/dev-proxy"
 
-if [ "$(uname)" == "Darwin" ]; then
-    ARCH="$(uname -m)"
-    # temporary workaround to install devproxy on Mx macs
-    if [ ${ARCH} == "x86_64" ] || [ ${ARCH} == "arm64" ]; then
-        curl -sL -o ./devproxy.zip "$base_url-osx-x64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
-    else
-        echo "unsupported architecture ${ARCH}"
-        exit
-    fi
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-    ARCH="$(uname -m)"
-    if [ "$(expr substr ${ARCH} 1 5)" == "arm64" ] || [ "$(expr substr ${ARCH} 1 7)" == "aarch64" ]; then
-        curl -sL -o ./devproxy.zip "$base_url-linux-arm64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
-    elif [ "$(expr substr ${ARCH} 1 6)" == "x86_64" ]; then
-        curl -sL -o ./devproxy.zip "$base_url-linux-x64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
-    else
-        echo "unsupported architecture ${ARCH}"
-        exit
-    fi
+ARCH="$(uname -m)"
+if [ "$(expr substr ${ARCH} 1 5)" == "arm64" ] || [ "$(expr substr ${ARCH} 1 7)" == "aarch64" ]; then
+    curl -sL -o ./devproxy.zip "$base_url-linux-arm64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
+elif [ "$(expr substr ${ARCH} 1 6)" == "x86_64" ]; then
+    curl -sL -o ./devproxy.zip "$base_url-linux-x64-$version.zip" || { echo "Cannot install Dev Proxy. Aborting"; exit 1; }
+else
+    echo "unsupported architecture ${ARCH}"
+    exit
 fi
 
 unzip -o ./devproxy.zip -d ./
 rm ./devproxy.zip
-
-# If it's macOS
-if [ "$(uname)" == "Darwin" ]; then
-    echo "Configuring devproxy and its files as executable..."
-    chmod +x ./devproxy ./libe_sqlite3.dylib
-    echo "Configuring new version notifications for the beta channel..."
-    sed -i '' 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
-# If it's Linux
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-    echo "Configuring devproxy and its files as executable..."
-    chmod +x ./devproxy ./libe_sqlite3.so
-    echo "Configuring new version notifications for the beta channel..."
-    sed -i 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
-fi
+echo "Configuring devproxy and its files as executable..."
+chmod +x ./devproxy-beta ./libe_sqlite3.so
+echo "Configuring new version notifications for the beta channel..."
+sed -i 's/"newVersionNotification": "stable"/"newVersionNotification": "beta"/g' ./devproxyrc.json
 
 echo "Adding devproxy to the PATH environment variable in your shell profile..."
 
