@@ -115,7 +115,7 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             var consoleListener = AzureEventSourceListener.CreateConsoleLogger(EventLevel.Verbose);
         }
 
-        _logger?.LogDebug("[{now}] Plugin {plugin} checking Azure auth...", DateTime.Now, Name);
+        _logger?.LogDebug("Plugin {plugin} checking Azure auth...", Name);
         try
         {
             _ = _credential.GetTokenAsync(new TokenRequestContext(_scopes), CancellationToken.None).Result;
@@ -125,7 +125,7 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             _logger?.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
             return;
         }
-        _logger?.LogDebug("[{now}] Plugin {plugin} auth confirmed...", DateTime.Now, Name);
+        _logger?.LogDebug("Plugin {plugin} auth confirmed...", Name);
 
         var authenticationHandler = new AuthenticationDelegatingHandler(_credential, _scopes)
         {
