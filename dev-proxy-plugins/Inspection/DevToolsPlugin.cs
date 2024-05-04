@@ -60,21 +60,18 @@ public class DevToolsPlugin : BaseProxyPlugin
 
     private string GetChromiumProcessName(DevToolsPluginConfiguration configuration)
     {
-        switch (configuration.PreferredBrowser)
+        return configuration.PreferredBrowser switch
         {
-            case PreferredBrowser.Chrome:
-                return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Google\Chrome\Application\chrome.exe")
-                    : "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-            case PreferredBrowser.EdgeDev:
-                return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge Dev\Application\msedge.exe")
-                    : "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Dev";
-            default:
-                return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe")
-                    : "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
-        }
+            PreferredBrowser.Chrome => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Google\Chrome\Application\chrome.exe")
+                : "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            PreferredBrowser.EdgeDev => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge Dev\Application\msedge.exe")
+                : "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Dev",
+            _ => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe")
+                : "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
+        };
     }
 
     private void InitInspector()
