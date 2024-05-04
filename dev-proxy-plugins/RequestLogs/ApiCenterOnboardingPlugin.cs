@@ -417,7 +417,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         try
         {
-            apiDefinition.Definition = new OpenApiStringReader().Read(exportResult.Value, out var diagnostic);
+            apiDefinition.Definition = new OpenApiStringReader().Read(exportResult.Value, out _);
         }
         catch (Exception ex)
         {

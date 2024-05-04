@@ -443,8 +443,7 @@ public class ProxyEngine
             return -1;
         }
 
-        var pid = -1;
-        if (int.TryParse(pidString, out pid))
+        if (int.TryParse(pidString, out var pid))
         {
             return pid;
         }
