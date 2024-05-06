@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using Titanium.Web.Proxy.Http;
 
@@ -18,21 +19,22 @@ public class CachingGuidancePlugin : BaseProxyPlugin
     private readonly CachingGuidancePluginConfiguration _configuration = new();
     private IDictionary<string, DateTime> _interceptedRequests = new Dictionary<string, DateTime>();
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public CachingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
-        configSection?.Bind(_configuration);
+    }
 
-        pluginEvents.BeforeRequest += BeforeRequest;
+    public override void Register()
+    {
+        base.Register();
+        
+        ConfigSection?.Bind(_configuration);
+        PluginEvents.BeforeRequest += BeforeRequest;
     }
 
     private Task BeforeRequest(object? sender, ProxyRequestArgs e)
     {
-        if (_urlsToWatch is null ||
-          !e.HasRequestUrlMatch(_urlsToWatch) ||
+        if (UrlsToWatch is null ||
+          !e.HasRequestUrlMatch(UrlsToWatch) ||
           e.Session.HttpClient.Request.Method.ToUpper() == "OPTIONS")
         {
             return Task.CompletedTask;
@@ -52,7 +54,7 @@ public class CachingGuidancePlugin : BaseProxyPlugin
         var secondsSinceLastIntercepted = (now - lastIntercepted).TotalSeconds;
         if (secondsSinceLastIntercepted <= _configuration.CacheThresholdSeconds)
         {
-            _logger?.LogRequest(BuildCacheWarningMessage(request, _configuration.CacheThresholdSeconds, lastIntercepted), MessageType.Warning, new LoggingContext(e.Session));
+            Logger.LogRequest(BuildCacheWarningMessage(request, _configuration.CacheThresholdSeconds, lastIntercepted), MessageType.Warning, new LoggingContext(e.Session));
         }
 
         _interceptedRequests[url] = now;

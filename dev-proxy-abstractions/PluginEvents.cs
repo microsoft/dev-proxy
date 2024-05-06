@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json.Serialization;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
@@ -13,7 +14,6 @@ namespace Microsoft.DevProxy.Abstractions;
 public interface IProxyContext
 {
     IProxyConfiguration Configuration { get; }
-    IProxyLogger Logger { get; }
     X509Certificate2? Certificate { get; }
 }
 
@@ -126,13 +126,37 @@ public class RequestLog
 {
     public string[] MessageLines { get; set; }
     public MessageType MessageType { get; set; }
+    [JsonIgnore]
     public LoggingContext? Context { get; set; }
+    public string? Method { get; init; }
+    public string? Url { get; init; }
 
-    public RequestLog(string[] messageLines, MessageType messageType, LoggingContext? context)
+    public RequestLog(string[] messageLines, MessageType messageType, LoggingContext? context) :
+        this(messageLines, messageType, context?.Session.HttpClient.Request.Method, context?.Session.HttpClient.Request.Url, context)
+    {
+    }
+
+    public RequestLog(string[] messageLines, MessageType messageType, string method, string url) :
+        this(messageLines, messageType, method, url, context: null)
+    {
+    }
+
+    private RequestLog(string[] messageLines, MessageType messageType, string? method, string? url, LoggingContext? context)
     {
         MessageLines = messageLines ?? throw new ArgumentNullException(nameof(messageLines));
         MessageType = messageType;
         Context = context;
+        Method = method;
+        Url = url;
+    }
+
+    public void Deconstruct(out string[] message, out MessageType messageType, out LoggingContext? context, out string? method, out string? url)
+    {
+        message = MessageLines;
+        messageType = MessageType;
+        context = Context;
+        method = Method;
+        url = Url;
     }
 }
 

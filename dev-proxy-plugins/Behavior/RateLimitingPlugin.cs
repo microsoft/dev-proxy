@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using System.Net;
 using System.Text.Json;
@@ -48,6 +49,10 @@ public class RateLimitingPlugin : BaseProxyPlugin
     private int _resourcesRemaining = -1;
     private DateTime _resetTime = DateTime.MinValue;
     private RateLimitingCustomResponseLoader? _loader = null;
+
+    public RateLimitingPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
 
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey)
     {
@@ -123,31 +128,28 @@ public class RateLimitingPlugin : BaseProxyPlugin
         }
     }
 
-    public override void Register(IPluginEvents pluginEvents,
-                         IProxyContext context,
-                         ISet<UrlToWatch> urlsToWatch,
-                         IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        configSection?.Bind(_configuration);
+        ConfigSection?.Bind(_configuration);
         if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Custom)
         {
-            _configuration.CustomResponseFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.CustomResponseFile), Path.GetDirectoryName(context.Configuration?.ConfigFile ?? string.Empty) ?? string.Empty);
-            _loader = new RateLimitingCustomResponseLoader(_logger!, _configuration);
+            _configuration.CustomResponseFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.CustomResponseFile), Path.GetDirectoryName(Context.Configuration.ConfigFile ?? string.Empty) ?? string.Empty);
+            _loader = new RateLimitingCustomResponseLoader(Logger, _configuration);
             // load the responses from the configured mocks file
             _loader.InitResponsesWatcher();
         }
 
-        pluginEvents.BeforeRequest += OnRequest;
-        pluginEvents.BeforeResponse += OnResponse;
+        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeResponse += OnResponse;
     }
 
     // add rate limiting headers to the response from the API
     private Task OnResponse(object? sender, ProxyResponseArgs e)
     {
-        if (_urlsToWatch is null ||
-            !e.HasRequestUrlMatch(_urlsToWatch))
+        if (UrlsToWatch is null ||
+            !e.HasRequestUrlMatch(UrlsToWatch))
         {
             return Task.CompletedTask;
         }
@@ -161,8 +163,8 @@ public class RateLimitingPlugin : BaseProxyPlugin
         var session = e.Session;
         var state = e.ResponseState;
         if (e.ResponseState.HasBeenSet ||
-            _urlsToWatch is null ||
-            !e.ShouldExecute(_urlsToWatch))
+            UrlsToWatch is null ||
+            !e.ShouldExecute(UrlsToWatch))
         {
             return Task.CompletedTask;
         }
@@ -191,7 +193,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
             _resourcesRemaining = 0;
             var request = e.Session.HttpClient.Request;
 
-            _logger?.LogRequest([$"Exceeded resource limit when calling {request.Url}.", "Request will be throttled"], MessageType.Failed, new LoggingContext(e.Session));
+            Logger.LogRequest([$"Exceeded resource limit when calling {request.Url}.", "Request will be throttled"], MessageType.Failed, new LoggingContext(e.Session));
             if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Throttle)
             {
                 if (!e.GlobalData.ContainsKey(RetryAfterPlugin.ThrottledRequestsKey))
@@ -250,7 +252,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
                 }
                 else
                 {
-                    _logger?.LogRequest([$"Custom behavior not set. {_configuration.CustomResponseFile} not found."], MessageType.Failed, new LoggingContext(e.Session));
+                    Logger.LogRequest([$"Custom behavior not set. {_configuration.CustomResponseFile} not found."], MessageType.Failed, new LoggingContext(e.Session));
                 }
             }
         }

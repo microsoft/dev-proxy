@@ -32,7 +32,7 @@ public static class MSGraphDbUtils
         }
     }
 
-    public static async Task<int> GenerateMSGraphDb(IProxyLogger logger, bool skipIfUpdatedToday = false)
+    public static async Task<int> GenerateMSGraphDb(ILogger logger, bool skipIfUpdatedToday = false)
     {
         var appFolder = ProxyUtils.AppFolder;
         if (string.IsNullOrEmpty(appFolder))
@@ -75,7 +75,7 @@ public static class MSGraphDbUtils
 
     }
 
-    private static void CreateDb(SqliteConnection dbConnection, IProxyLogger logger)
+    private static void CreateDb(SqliteConnection dbConnection, ILogger logger)
     {
         logger.LogInformation("Creating database...");
 
@@ -97,7 +97,7 @@ public static class MSGraphDbUtils
         createIndex.ExecuteNonQuery();
     }
 
-    private static void FillData(SqliteConnection dbConnection, IProxyLogger logger)
+    private static void FillData(SqliteConnection dbConnection, ILogger logger)
     {
         logger.LogInformation("Filling database...");
 
@@ -143,7 +143,7 @@ public static class MSGraphDbUtils
         logger.LogInformation("Inserted {endpointCount} endpoints in the database", i);
     }
 
-    private static async Task UpdateOpenAPIGraphFilesIfNecessary(string folder, IProxyLogger logger)
+    private static async Task UpdateOpenAPIGraphFilesIfNecessary(string folder, ILogger logger)
     {
         logger.LogInformation("Checking for updated OpenAPI files...");
 
@@ -176,7 +176,7 @@ public static class MSGraphDbUtils
         }
     }
 
-    private static async Task LoadOpenAPIFiles(string folder, IProxyLogger logger)
+    private static async Task LoadOpenAPIFiles(string folder, ILogger logger)
     {
         logger.LogInformation("Loading OpenAPI files...");
 

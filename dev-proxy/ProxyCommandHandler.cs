@@ -14,12 +14,12 @@ public class ProxyCommandHandler : ICommandHandler
     private readonly PluginEvents _pluginEvents;
     private readonly Option[] _options;
     private readonly ISet<UrlToWatch> _urlsToWatch;
-    private readonly IProxyLogger _logger;
+    private readonly ILogger _logger;
 
     public ProxyCommandHandler(PluginEvents pluginEvents,
                                Option[] options,
                                ISet<UrlToWatch> urlsToWatch,
-                               IProxyLogger logger)
+                               ILogger logger)
     {
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -43,11 +43,6 @@ public class ProxyCommandHandler : ICommandHandler
         if (ipAddress is not null)
         {
             Configuration.IPAddress = ipAddress;
-        }
-        var logLevel = context.ParseResult.GetValueForOption<LogLevel?>(ProxyHost.LogLevelOptionName, _options);
-        if (logLevel is not null)
-        {
-            _logger.LogLevel = logLevel.Value;
         }
         var record = context.ParseResult.GetValueForOption<bool?>(ProxyHost.RecordOptionName, _options);
         if (record is not null)

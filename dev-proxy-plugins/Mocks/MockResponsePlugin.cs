@@ -34,7 +34,6 @@ public class MockResponseConfiguration
 public class MockResponsePlugin : BaseProxyPlugin
 {
     protected MockResponseConfiguration _configuration = new();
-    protected IProxyContext? _context;
     private MockResponsesLoader? _loader = null;
     private static readonly string _noMocksOptionName = "--no-mocks";
     private static readonly string _mocksFileOptionName = "--mocks-file";
@@ -43,6 +42,10 @@ public class MockResponsePlugin : BaseProxyPlugin
     // tracks the number of times a mock has been applied
     // used in combination with mocks that have an Nth property
     private Dictionary<string, int> _appliedMocks = new();
+
+    public MockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
 
     public override Option[] GetOptions()
     {
@@ -60,22 +63,17 @@ public class MockResponsePlugin : BaseProxyPlugin
         return [_noMocks, _mocksFile];
     }
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        _context = context;
+        base.Register();
 
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        ConfigSection?.Bind(_configuration);
+        _loader = new MockResponsesLoader(Logger, _configuration);
 
-        configSection?.Bind(_configuration);
-        _loader = new MockResponsesLoader(_logger!, _configuration);
+        PluginEvents.OptionsLoaded += OnOptionsLoaded;
+        PluginEvents.BeforeRequest += OnRequest;
 
-        pluginEvents.OptionsLoaded += OnOptionsLoaded;
-        pluginEvents.BeforeRequest += OnRequest;
-
-        _proxyConfiguration = context.Configuration;
+        _proxyConfiguration = Context.Configuration;
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
@@ -111,7 +109,7 @@ public class MockResponsePlugin : BaseProxyPlugin
     {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
-        if (!_configuration.NoMocks && _urlsToWatch is not null && e.ShouldExecute(_urlsToWatch))
+        if (!_configuration.NoMocks && UrlsToWatch is not null && e.ShouldExecute(UrlsToWatch))
         {
             var matchingResponse = GetMatchingMockResponse(request);
             if (matchingResponse is not null)
@@ -291,7 +289,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                 if (!File.Exists(filePath))
                 {
 
-                    _logger?.LogError("File {filePath} not found. Serving file path in the mock response", filePath);
+                    Logger.LogError("File {filePath} not found. Serving file path in the mock response", filePath);
                     body = bodyString;
                 }
                 else
@@ -299,7 +297,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                     var bodyBytes = File.ReadAllBytes(filePath);
                     ProcessMockResponse(ref bodyBytes, headers, e, matchingResponse);
                     e.Session.GenericResponse(bodyBytes, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
-                    _logger?.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
+                    Logger.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
                     return;
                 }
             }
@@ -320,6 +318,6 @@ public class MockResponsePlugin : BaseProxyPlugin
         ProcessMockResponse(ref body, headers, e, matchingResponse);
         e.Session.GenericResponse(body ?? string.Empty, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
 
-        _logger?.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
+        Logger.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
     }
 }

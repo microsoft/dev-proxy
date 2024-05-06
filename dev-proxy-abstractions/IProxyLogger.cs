@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 using Titanium.Web.Proxy.EventArguments;
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Abstractions;
 

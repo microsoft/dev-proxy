@@ -36,6 +36,11 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
     public override string Name => nameof(MinimalPermissionsGuidancePlugin);
 
     public override void Register(IPluginEvents pluginEvents,
+
+    public override void Register()
+    {
+        base.Register();
+
                             IProxyContext context,
                             ISet<UrlToWatch> urlsToWatch,
                             IConfigurationSection? configSection = null)
@@ -137,14 +142,14 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
         var report = new MinimalPermissionsGuidancePluginReport();
 
-        _logger?.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
+        Logger.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
 
         if (delegatedEndpoints.Count > 0)
         {
             var delegatedPermissionsInfo = new MinimalPermissionsInfo();
             report.DelegatedPermissions = delegatedPermissionsInfo;
 
-            _logger?.LogInformation("Evaluating delegated permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.method} {e.url}")));
+            Logger.LogInformation("Evaluating delegated permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.method} {e.url}")));
 
             await EvaluateMinimalScopes(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
         }
@@ -154,7 +159,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             var applicationPermissionsInfo = new MinimalPermissionsInfo();
             report.ApplicationPermissions = applicationPermissionsInfo;
 
-            _logger?.LogInformation("Evaluating application permissions for:\r\n{applicationPermissions}\r\n", string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.method} {e.url}")));
+            Logger.LogInformation("Evaluating application permissions for:\r\n{applicationPermissions}\r\n", string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.method} {e.url}")));
 
             await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
         }
@@ -277,12 +282,12 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString(scopeType)}";
             using var client = new HttpClient();
             var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
-            _logger?.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
+            Logger.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
 
             var response = await client.PostAsJsonAsync(url, payload);
             var content = await response.Content.ReadAsStringAsync();
 
-            _logger?.LogDebug(string.Format("Response:{0}{1}", Environment.NewLine, content));
+            Logger.LogDebug(string.Format("Response:{0}{1}", Environment.NewLine, content));
 
             var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
             var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
@@ -298,12 +303,12 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             }
             if (errors.Any())
             {
-                _logger?.LogError("Couldn't determine minimal permissions for the following URLs: {errors}", string.Join(", ", errors));
+                Logger.LogError("Couldn't determine minimal permissions for the following URLs: {errors}", string.Join(", ", errors));
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occurred while retrieving minimal permissions: {message}", ex.Message);
+            Logger.LogError(ex, "An error has occurred while retrieving minimal permissions: {message}", ex.Message);
         }
     }
 

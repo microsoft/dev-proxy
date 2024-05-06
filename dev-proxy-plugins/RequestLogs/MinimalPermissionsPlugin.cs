@@ -7,7 +7,6 @@ using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -30,16 +29,17 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
     public override string Name => nameof(MinimalPermissionsPlugin);
     private MinimalPermissionsPluginConfiguration _configuration = new();
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+    }
 
-        configSection?.Bind(_configuration);
+    public override void Register()
+    {
+        base.Register();
 
-        pluginEvents.AfterRecordingStop += AfterRecordingStop;
+        ConfigSection?.Bind(_configuration);
+
+        PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
 
     private async Task AfterRecordingStop(object? sender, RecordingArgs e)
@@ -86,13 +86,13 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
 
         if (!endpoints.Any())
         {
-            _logger?.LogInformation("No requests to Microsoft Graph endpoints recorded. Will not retrieve minimal permissions.");
+            Logger.LogInformation("No requests to Microsoft Graph endpoints recorded. Will not retrieve minimal permissions.");
             return;
         }
 
-        _logger?.LogInformation("Retrieving minimal permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.method} {e.url}")));
+        Logger.LogInformation("Retrieving minimal permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.method} {e.url}")));
 
-        _logger?.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
+        Logger.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
 
         var report = await DetermineMinimalScopes(endpoints);
         if (report is not null)
@@ -154,12 +154,12 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
             var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString()}";
             using var client = new HttpClient();
             var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
-            _logger?.LogDebug("Calling {url} with payload\r\n{stringPayload}", url, stringPayload);
+            Logger.LogDebug("Calling {url} with payload\r\n{stringPayload}", url, stringPayload);
 
             var response = await client.PostAsJsonAsync(url, payload);
             var content = await response.Content.ReadAsStringAsync();
 
-            _logger?.LogDebug("Response:\r\n{content}", content);
+            Logger.LogDebug("Response:\r\n{content}", content);
 
             var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
             var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
@@ -167,11 +167,11 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
 
             if (minimalScopes.Any())
             {
-                _logger?.LogInformation("Minimal permissions:\r\n{permissions}", string.Join(", ", minimalScopes));
+                Logger.LogInformation("Minimal permissions:\r\n{permissions}", string.Join(", ", minimalScopes));
             }
             if (errors.Any())
             {
-                _logger?.LogError("Couldn't determine minimal permissions for the following URLs:\r\n{errors}", string.Join(Environment.NewLine, errors));
+                Logger.LogError("Couldn't determine minimal permissions for the following URLs:\r\n{errors}", string.Join(Environment.NewLine, errors));
             }
 
             return new MinimalPermissionsPluginReport
@@ -184,7 +184,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occurred while retrieving minimal permissions:");
+            Logger.LogError(ex, "An error has occurred while retrieving minimal permissions:");
             return null;
         }
     }

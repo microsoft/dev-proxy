@@ -9,10 +9,10 @@ namespace Microsoft.DevProxy.Plugins.Mocks;
 
 internal class CrudApiDefinitionLoader : IDisposable
 {
-    private readonly IProxyLogger _logger;
+    private readonly ILogger _logger;
     private readonly CrudApiConfiguration _configuration;
 
-    public CrudApiDefinitionLoader(IProxyLogger logger, CrudApiConfiguration configuration)
+    public CrudApiDefinitionLoader(ILogger logger, CrudApiConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));

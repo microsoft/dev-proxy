@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -36,6 +37,10 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
     private const string _requestsInterceptedMessage = "Requests intercepted";
     private const string _requestsPassedThroughMessage = "Requests passed through";
 
+    public ExecutionSummaryPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override Option[] GetOptions()
     {
         var groupBy = new Option<SummaryGroupBy?>(_groupByOptionName, "Specifies how the information should be grouped in the summary. Available options: `url` (default), `messageType`.")
@@ -53,17 +58,14 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
         return [groupBy];
     }
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        configSection?.Bind(_configuration);
+        ConfigSection?.Bind(_configuration);
 
-        pluginEvents.OptionsLoaded += OnOptionsLoaded;
-        pluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.OptionsLoaded += OnOptionsLoaded;
+        PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)

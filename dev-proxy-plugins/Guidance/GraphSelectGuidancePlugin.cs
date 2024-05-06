@@ -10,33 +10,30 @@ namespace Microsoft.DevProxy.Plugins.Guidance;
 
 public class GraphSelectGuidancePlugin : BaseProxyPlugin
 {
+    public GraphSelectGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(GraphSelectGuidancePlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        pluginEvents.AfterResponse += AfterResponse;
+        PluginEvents.AfterResponse += AfterResponse;
 
-        // for background db refresh, let's use a separate logger
-        // that only logs warnings and errors
-        var _logger2 = (IProxyLogger)context.Logger.Clone();
-        _logger2.LogLevel = LogLevel.Warning;
         // let's not await so that it doesn't block the proxy startup
-        _ = MSGraphDbUtils.GenerateMSGraphDb(_logger2, true);
+        _ = MSGraphDbUtils.GenerateMSGraphDb(Logger, true);
     }
 
     private Task AfterResponse(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
-        if (_urlsToWatch is not null &&
-            e.HasRequestUrlMatch(_urlsToWatch) &&
+        if (UrlsToWatch is not null &&
+            e.HasRequestUrlMatch(UrlsToWatch) &&
             e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
             WarnNoSelect(request))
-            _logger?.LogRequest(BuildUseSelectMessage(request), MessageType.Warning, new LoggingContext(e.Session));
+            Logger.LogRequest(BuildUseSelectMessage(request), MessageType.Warning, new LoggingContext(e.Session));
 
         return Task.CompletedTask;
     }
@@ -81,7 +78,7 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error looking up endpoint in database");
+            Logger.LogError(ex, "Error looking up endpoint in database");
             return fallback;
         }
     }

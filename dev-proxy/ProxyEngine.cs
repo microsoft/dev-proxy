@@ -24,7 +24,7 @@ enum ToggleSystemProxyAction
 public class ProxyEngine
 {
     private readonly PluginEvents _pluginEvents;
-    private readonly IProxyLogger _logger;
+    private readonly ILogger _logger;
     private readonly ProxyConfiguration _config;
     private static ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
@@ -58,7 +58,7 @@ public class ProxyEngine
         _proxyServer.CertificateManager.CreateRootCertificate();
     }
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, IProxyLogger logger)
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
@@ -293,7 +293,7 @@ public class ProxyEngine
 
     private void PrintRecordingIndicator()
     {
-        lock (ConsoleLogger.ConsoleLock)
+        lock (consoleLock)
         {
             if (_isRecording)
             {
