@@ -10,20 +10,23 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 
 public class WebSocketServer
 {
     private HttpListener? listener;
-    private int port;
+    private int _port;
+    private ILogger _logger;
     private WebSocket? webSocket;
     static SemaphoreSlim webSocketSemaphore = new SemaphoreSlim(1, 1);
 
     public bool IsConnected => webSocket is not null;
     public event Action<string>? MessageReceived;
 
-    public WebSocketServer(int port)
+    public WebSocketServer(int port, ILogger logger)
     {
-        this.port = port;
+        _port = port;
+        _logger = logger;
     }
 
     private async Task HandleMessages(WebSocket ws)
@@ -49,14 +52,14 @@ public class WebSocketServer
         }
         catch (InvalidOperationException)
         {
-            Console.WriteLine("[WS] Tried to receive message while already reading one.");
+            _logger.LogError("[WS] Tried to receive message while already reading one.");
         }
     }
 
     public async void Start()
     {
         listener = new HttpListener();
-        listener.Prefixes.Add($"http://localhost:{port}/");
+        listener.Prefixes.Add($"http://localhost:{_port}/");
         listener.Start();
 
         while (true)

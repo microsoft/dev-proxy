@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 using System.Security.Cryptography.X509Certificates;
 using Titanium.Web.Proxy.Helpers;
 using Titanium.Web.Proxy.Network;

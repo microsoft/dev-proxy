@@ -80,28 +80,29 @@ public class CrudApiPlugin : BaseProxyPlugin
     private JArray? _data;
     private OpenIdConnectConfiguration? _openIdConnectConfiguration;
 
-    public override async void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+    }
 
-        configSection?.Bind(_configuration);
+    public override async void Register()
+    {
+        base.Register();
 
-        pluginEvents.BeforeRequest += OnRequest;
+        ConfigSection?.Bind(_configuration);
 
-        _proxyConfiguration = context.Configuration;
+        PluginEvents.BeforeRequest += OnRequest;
+
+        _proxyConfiguration = Context.Configuration;
 
         _configuration.ApiFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.ApiFile), Path.GetDirectoryName(_proxyConfiguration?.ConfigFile ?? string.Empty) ?? string.Empty);
 
-        _loader = new CrudApiDefinitionLoader(_logger!, _configuration);
+        _loader = new CrudApiDefinitionLoader(Logger, _configuration);
         _loader?.InitApiDefinitionWatcher();
 
         if (_configuration.Auth == CrudApiAuthType.Entra &&
             _configuration.EntraAuthConfig is null)
         {
-            _logger?.LogError("Entra auth is enabled but no configuration is provided. API will work anonymously.");
+            Logger.LogError("Entra auth is enabled but no configuration is provided. API will work anonymously.");
             _configuration.Auth = CrudApiAuthType.None;
         }
 
@@ -119,7 +120,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occurred while loading OpenIdConnectConfiguration");
+            Logger.LogError(ex, "An error has occurred while loading OpenIdConnectConfiguration");
         }
     }
 
@@ -130,7 +131,7 @@ public class CrudApiPlugin : BaseProxyPlugin
             var dataFilePath = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.DataFile), Path.GetDirectoryName(_configuration.ApiFile) ?? string.Empty);
             if (!File.Exists(dataFilePath))
             {
-                _logger?.LogError($"Data file '{dataFilePath}' does not exist. The {_configuration.BaseUrl} API will be disabled.");
+                Logger.LogError($"Data file '{dataFilePath}' does not exist. The {_configuration.BaseUrl} API will be disabled.");
                 _configuration.Actions = Array.Empty<CrudApiAction>();
                 return;
             }
@@ -140,7 +141,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occurred while reading {configFile}", _configuration.DataFile);
+            Logger.LogError(ex, "An error has occurred while reading {configFile}", _configuration.DataFile);
         }
     }
 
@@ -149,7 +150,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
 
-        if (_urlsToWatch is not null && e.ShouldExecute(_urlsToWatch))
+        if (UrlsToWatch is not null && e.ShouldExecute(UrlsToWatch))
         {
             if (!AuthorizeRequest(e))
             {
@@ -185,7 +186,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         {
             if (action is null)
             {
-                _logger?.LogDebug("No auth is required for this API.");
+                Logger.LogDebug("No auth is required for this API.");
             }
             return true;
         }
@@ -196,7 +197,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         // is there a token
         if (string.IsNullOrEmpty(token))
         {
-            _logger?.LogRequest(["401 Unauthorized", "No token found on the request."], MessageType.Failed, new LoggingContext(e.Session));
+            Logger.LogRequest(["401 Unauthorized", "No token found on the request."], MessageType.Failed, new LoggingContext(e.Session));
             return false;
         }
 
@@ -204,7 +205,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         var tokenHeaderParts = token.Split(' ');
         if (tokenHeaderParts.Length != 2 || tokenHeaderParts[0] != "Bearer")
         {
-            _logger?.LogRequest(["401 Unauthorized", "The specified token is not a valid Bearer token."], MessageType.Failed, new LoggingContext(e.Session));
+            Logger.LogRequest(["401 Unauthorized", "The specified token is not a valid Bearer token."], MessageType.Failed, new LoggingContext(e.Session));
             return false;
         }
 
@@ -244,7 +245,7 @@ public class CrudApiPlugin : BaseProxyPlugin
                 {
                     var rolesRequired = string.Join(", ", authConfig.Roles);
 
-                    _logger?.LogRequest(["401 Unauthorized", $"The specified token does not have the necessary role(s). Required one of: {rolesRequired}, found: {rolesFromTheToken}"], MessageType.Failed, new LoggingContext(e.Session));
+                    Logger.LogRequest(["401 Unauthorized", $"The specified token does not have the necessary role(s). Required one of: {rolesRequired}, found: {rolesFromTheToken}"], MessageType.Failed, new LoggingContext(e.Session));
                     return false;
                 }
 
@@ -260,7 +261,7 @@ public class CrudApiPlugin : BaseProxyPlugin
                 {
                     var scopesRequired = string.Join(", ", authConfig.Scopes);
 
-                    _logger?.LogRequest(["401 Unauthorized", $"The specified token does not have the necessary scope(s). Required one of: {scopesRequired}, found: {scopesFromTheToken}"], MessageType.Failed, new LoggingContext(e.Session));
+                    Logger.LogRequest(["401 Unauthorized", $"The specified token does not have the necessary scope(s). Required one of: {scopesRequired}, found: {scopesFromTheToken}"], MessageType.Failed, new LoggingContext(e.Session));
                     return false;
                 }
 
@@ -269,7 +270,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogRequest(["401 Unauthorized", $"The specified token is not valid: {ex.Message}"], MessageType.Failed, new LoggingContext(e.Session));
+            Logger.LogRequest(["401 Unauthorized", $"The specified token is not valid: {ex.Message}"], MessageType.Failed, new LoggingContext(e.Session));
             return false;
         }
 
@@ -335,7 +336,7 @@ public class CrudApiPlugin : BaseProxyPlugin
     private void GetAll(SessionEventArgs e, CrudApiAction action, IDictionary<string, string> parameters)
     {
         SendJsonResponse(JsonConvert.SerializeObject(_data, Formatting.Indented), HttpStatusCode.OK, e);
-        _logger?.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+        Logger.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
     }
 
     private void GetOne(SessionEventArgs e, CrudApiAction action, IDictionary<string, string> parameters)
@@ -346,17 +347,17 @@ public class CrudApiPlugin : BaseProxyPlugin
             if (item is null)
             {
                 SendNotFoundResponse(e);
-                _logger?.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+                Logger.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
                 return;
             }
 
             SendJsonResponse(JsonConvert.SerializeObject(item, Formatting.Indented), HttpStatusCode.OK, e);
-            _logger?.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            _logger?.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -371,12 +372,12 @@ public class CrudApiPlugin : BaseProxyPlugin
             }
 
             SendJsonResponse(JsonConvert.SerializeObject(items, Formatting.Indented), HttpStatusCode.OK, e);
-            _logger?.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            _logger?.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -386,12 +387,12 @@ public class CrudApiPlugin : BaseProxyPlugin
         {
             _data?.Add(JObject.Parse(e.HttpClient.Request.BodyString));
             SendJsonResponse(JsonConvert.SerializeObject(e.HttpClient.Request.BodyString, Formatting.Indented), HttpStatusCode.Created, e);
-            _logger?.LogRequest([$"201 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest([$"201 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            _logger?.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -403,18 +404,18 @@ public class CrudApiPlugin : BaseProxyPlugin
             if (item is null)
             {
                 SendNotFoundResponse(e);
-                _logger?.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+                Logger.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
                 return;
             }
             var update = JObject.Parse(e.HttpClient.Request.BodyString);
             ((JContainer)item)?.Merge(update);
             SendEmptyResponse(HttpStatusCode.NoContent, e);
-            _logger?.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            _logger?.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -426,18 +427,18 @@ public class CrudApiPlugin : BaseProxyPlugin
             if (item is null)
             {
                 SendNotFoundResponse(e);
-                _logger?.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+                Logger.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
                 return;
             }
             var update = JObject.Parse(e.HttpClient.Request.BodyString);
             ((JContainer)item)?.Replace(update);
             SendEmptyResponse(HttpStatusCode.NoContent, e);
-            _logger?.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            _logger?.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -449,18 +450,18 @@ public class CrudApiPlugin : BaseProxyPlugin
             if (item is null)
             {
                 SendNotFoundResponse(e);
-                _logger?.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+                Logger.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
                 return;
             }
 
             item?.Remove();
             SendEmptyResponse(HttpStatusCode.NoContent, e);
-            _logger?.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            _logger?.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
         }
     }
 

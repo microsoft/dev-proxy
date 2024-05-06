@@ -23,22 +23,23 @@ public class MockRequestPlugin : BaseProxyPlugin
     protected MockRequestConfiguration _configuration = new();
     private MockRequestLoader? _loader = null;
 
+    public MockRequestPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(MockRequestPlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        configSection?.Bind(_configuration);
-        _loader = new MockRequestLoader(_logger!, _configuration);
+        ConfigSection?.Bind(_configuration);
+        _loader = new MockRequestLoader(Logger, _configuration);
 
-        pluginEvents.MockRequest += OnMockRequest;
+        PluginEvents.MockRequest += OnMockRequest;
 
         // make the mock file path relative to the configuration file
-        _configuration.MockFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.MockFile), Path.GetDirectoryName(context.Configuration?.ConfigFile ?? string.Empty) ?? string.Empty);
+        _configuration.MockFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.MockFile), Path.GetDirectoryName(Context.Configuration.ConfigFile ?? string.Empty) ?? string.Empty);
 
         // load the request from the configured mock file
         _loader.InitResponsesWatcher();
@@ -48,7 +49,7 @@ public class MockRequestPlugin : BaseProxyPlugin
     {
         Debug.Assert(_configuration.Request is not null, "The mock request is not configured");
 
-        _logger?.LogDebug("Preparing mock {method} request to {url}", _configuration.Request.Method, _configuration.Request.Url);
+        Logger.LogDebug("Preparing mock {method} request to {url}", _configuration.Request.Method, _configuration.Request.Url);
         var requestMessage = new HttpRequestMessage
         {
             RequestUri = new Uri(_configuration.Request.Url),
@@ -58,7 +59,7 @@ public class MockRequestPlugin : BaseProxyPlugin
         var contentType = "";
         if (_configuration.Request.Headers is not null)
         {
-            _logger?.LogDebug("Adding headers to the mock request");
+            Logger.LogDebug("Adding headers to the mock request");
 
             foreach (var header in _configuration.Request.Headers)
             {
@@ -74,7 +75,7 @@ public class MockRequestPlugin : BaseProxyPlugin
 
         if (_configuration.Request.Body is not null)
         {
-            _logger?.LogDebug("Adding body to the mock request");
+            Logger.LogDebug("Adding body to the mock request");
 
             if (_configuration.Request.Body is string)
             {
@@ -93,7 +94,7 @@ public class MockRequestPlugin : BaseProxyPlugin
     {
         if (_configuration.Request is null)
         {
-            _logger?.LogDebug("No mock request is configured. Skipping.");
+            Logger.LogDebug("No mock request is configured. Skipping.");
             return;
         }
 
@@ -102,13 +103,13 @@ public class MockRequestPlugin : BaseProxyPlugin
 
         try
         {
-            _logger?.LogRequest(["Sending mock request"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
+            Logger.LogRequest(["Sending mock request"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
 
             await httpClient.SendAsync(requestMessage);
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occurred while sending the mock request to {url}", _configuration.Request.Url);
+            Logger.LogError(ex, "An error has occurred while sending the mock request to {url}", _configuration.Request.Url);
         }
     }
 }

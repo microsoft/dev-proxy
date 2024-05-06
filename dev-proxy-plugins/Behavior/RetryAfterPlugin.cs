@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using System.Net;
 using System.Text.Json;
@@ -16,22 +17,23 @@ public class RetryAfterPlugin : BaseProxyPlugin
     public override string Name => nameof(RetryAfterPlugin);
     public static readonly string ThrottledRequestsKey = "ThrottledRequests";
 
-    public override void Register(IPluginEvents pluginEvents,
-                         IProxyContext context,
-                         ISet<UrlToWatch> urlsToWatch,
-                         IConfigurationSection? configSection = null)
+    public RetryAfterPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+    }
 
-        pluginEvents.BeforeRequest += OnRequest;
+    public override void Register()
+    {
+        base.Register();
+
+        PluginEvents.BeforeRequest += OnRequest;
     }
 
     private Task OnRequest(object? sender, ProxyRequestArgs e)
     {
         if (e.ResponseState.HasBeenSet ||
-            _urlsToWatch is null ||
+            UrlsToWatch is null ||
             e.Session.HttpClient.Request.Method.ToUpper() == "OPTIONS" ||
-            !e.ShouldExecute(_urlsToWatch))
+            !e.ShouldExecute(UrlsToWatch))
         {
             return Task.CompletedTask;
         }
@@ -71,7 +73,7 @@ public class RetryAfterPlugin : BaseProxyPlugin
             if (throttleInfo.ThrottleForSeconds > 0)
             {
                 var messageLines = new[] { $"Calling {request.Url} before waiting for the Retry-After period.", "Request will be throttled.", $"Throttling on {throttler.ThrottlingKey}." };
-                _logger?.LogRequest(messageLines, MessageType.Failed, new LoggingContext(e.Session));
+                Logger.LogRequest(messageLines, MessageType.Failed, new LoggingContext(e.Session));
 
                 throttler.ResetTime = DateTime.Now.AddSeconds(throttleInfo.ThrottleForSeconds);
                 UpdateProxyResponse(e, throttleInfo, string.Join(' ', messageLines));

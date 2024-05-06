@@ -22,7 +22,10 @@ internal class PluginLoaderResult
 
 internal class PluginLoader
 {
-    public PluginLoader(IProxyLogger logger)
+    private PluginConfig? _pluginConfig;
+    private ILogger _logger;
+
+    public PluginLoader(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -52,14 +55,16 @@ internal class PluginLoader
                     globallyWatchedUrls.AddRange(pluginUrlsList);
                 }
                 // Load Plugins from assembly
-                IProxyPlugin plugin = CreatePlugin(assembly, h);
-                _logger?.LogDebug("Registering plugin {pluginName}...", plugin.Name);
-                plugin.Register(
+                IProxyPlugin plugin = CreatePlugin(
+                    assembly,
+                    h,
                     pluginEvents,
                     proxyContext,
                     (pluginUrls != null && pluginUrls.Any()) ? pluginUrls : defaultUrlsToWatch,
                     h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection)
                 );
+                _logger?.LogDebug("Registering plugin {pluginName}...", plugin.Name);
+                plugin.Register();
                 _logger?.LogDebug("Plugin {pluginName} registered.", plugin.Name);
                 plugins.Add(plugin);
             }
@@ -70,14 +75,21 @@ internal class PluginLoader
             : throw new InvalidDataException("No plugins were loaded");
     }
 
-    private IProxyPlugin CreatePlugin(Assembly assembly, PluginReference h)
+    private IProxyPlugin CreatePlugin(
+        Assembly assembly,
+        PluginReference pluginReference,
+        IPluginEvents pluginEvents,
+        IProxyContext context,
+        ISet<UrlToWatch> urlsToWatch,
+        IConfigurationSection? configSection = null
+    )
     {
         foreach (Type type in assembly.GetTypes())
         {
             if (typeof(IProxyPlugin).IsAssignableFrom(type))
             {
-                IProxyPlugin? result = Activator.CreateInstance(type) as IProxyPlugin;
-                if (result is not null && result.Name == h.Name)
+                IProxyPlugin? result = Activator.CreateInstance(type, [pluginEvents, context, _logger, urlsToWatch, configSection]) as IProxyPlugin;
+                if (result is not null && result.Name == pluginReference.Name)
                 {
                     return result;
                 }
@@ -86,7 +98,7 @@ internal class PluginLoader
 
         string availableTypes = string.Join(",", assembly.GetTypes().Select(t => t.FullName));
         throw new ApplicationException(
-            $"Can't find plugin {h.Name} which implements IProxyPlugin in {assembly} from {AppContext.BaseDirectory}.\r\n" +
+            $"Can't find plugin {pluginReference.Name} which implements IProxyPlugin in {assembly} from {AppContext.BaseDirectory}.\r\n" +
             $"Available types: {availableTypes}");
     }
 
@@ -104,9 +116,6 @@ internal class PluginLoader
             exclude
         );
     }
-
-    private PluginConfig? _pluginConfig;
-    private IProxyLogger _logger;
 
     private PluginConfig PluginConfig
     {

@@ -8,6 +8,8 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Mocks;
 
@@ -33,6 +35,11 @@ class IdToken
 public class EntraMockResponsePlugin : MockResponsePlugin
 {
     private string? lastNonce;
+
+    public EntraMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(EntraMockResponsePlugin);
 
     protected override void ProcessMockResponse(ref byte[] body, IList<MockResponseHeader> headers, ProxyRequestArgs e, MockResponse? matchingResponse)
@@ -139,19 +146,19 @@ public class EntraMockResponsePlugin : MockResponsePlugin
 
     private string GetKeyId()
     {
-        return _context?.Certificate?.Thumbprint ?? "";
+        return Context.Certificate?.Thumbprint ?? "";
     }
 
     private List<string> GetCertificateChain()
     {
-        if (_context?.Certificate is null)
+        if (Context.Certificate is null)
         {
             return new List<string>();
         }
 
         var collection = new X509Certificate2Collection
         {
-            _context.Certificate
+            Context.Certificate
         };
 
         var certificateChain = new List<string>();

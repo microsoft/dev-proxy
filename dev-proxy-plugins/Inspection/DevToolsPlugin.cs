@@ -34,19 +34,20 @@ public class DevToolsPlugin : BaseProxyPlugin
     public override string Name => nameof(DevToolsPlugin);
     private readonly DevToolsPluginConfiguration _configuration = new();
 
-    public override void Register(IPluginEvents pluginEvents,
-                              IProxyContext context,
-                              ISet<UrlToWatch> urlsToWatch,
-                              IConfigurationSection? configSection = null)
+    public DevToolsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
-        configSection?.Bind(_configuration);
+    }
+
+    public override void Register()
+    {
+        base.Register();
+        ConfigSection?.Bind(_configuration);
 
         InitInspector();
 
-        pluginEvents.BeforeRequest += BeforeRequest;
-        pluginEvents.AfterResponse += AfterResponse;
-        pluginEvents.AfterRequestLog += AfterRequestLog;
+        PluginEvents.BeforeRequest += BeforeRequest;
+        PluginEvents.AfterResponse += AfterResponse;
+        PluginEvents.AfterRequestLog += AfterRequestLog;
     }
 
     private static int GetFreePort()
@@ -77,7 +78,7 @@ public class DevToolsPlugin : BaseProxyPlugin
     private void InitInspector()
     {
         var port = GetFreePort();
-        webSocket = new WebSocketServer(port);
+        webSocket = new WebSocketServer(port, Logger);
         webSocket.MessageReceived += SocketMessageReceived;
         webSocket.Start();
 
@@ -85,7 +86,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         var inspectionUrl = $"http://localhost:9222/devtools/inspector.html?ws=localhost:{port}";
         var args = $"{inspectionUrl} --remote-debugging-port=9222 --profile-directory=devproxy";
 
-        _logger?.LogInformation("DevTools available at {inspectionUrl}", inspectionUrl);
+        Logger.LogInformation("DevTools available at {inspectionUrl}", inspectionUrl);
 
         var process = new Process
         {

@@ -3,14 +3,15 @@
 
 using System.CommandLine.Invocation;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
 
 public class MSGraphDbCommandHandler : ICommandHandler
 {
-    private readonly IProxyLogger _logger;
+    private readonly ILogger _logger;
 
-    public MSGraphDbCommandHandler(IProxyLogger logger)
+    public MSGraphDbCommandHandler(ILogger logger)
     {
         _logger = logger;
     }

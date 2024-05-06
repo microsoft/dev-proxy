@@ -44,30 +44,31 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    public ApiCenterOnboardingPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(ApiCenterOnboardingPlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        configSection?.Bind(_configuration);
+        ConfigSection?.Bind(_configuration);
 
         if (string.IsNullOrEmpty(_configuration.SubscriptionId))
         {
-            _logger?.LogError("Specify SubscriptionId in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
+            Logger.LogError("Specify SubscriptionId in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
             return;
         }
         if (string.IsNullOrEmpty(_configuration.ResourceGroupName))
         {
-            _logger?.LogError("Specify ResourceGroupName in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
+            Logger.LogError("Specify ResourceGroupName in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
             return;
         }
         if (string.IsNullOrEmpty(_configuration.ServiceName))
         {
-            _logger?.LogError("Specify ServiceName in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
+            Logger.LogError("Specify ServiceName in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
             return;
         }
 
@@ -89,7 +90,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             _configuration.WorkspaceName = Environment.GetEnvironmentVariable(_configuration.WorkspaceName.Substring(1)) ?? _configuration.WorkspaceName;
         }
 
-        if (_logger?.LogLevel == LogLevel.Debug)
+        if (Logger.IsEnabled(LogLevel.Debug) == true)
         {
             var consoleListener = AzureEventSourceListener.CreateConsoleLogger(EventLevel.Verbose);
         }
@@ -99,39 +100,39 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             InnerHandler = new HttpClientHandler()
         };
 
-        _logger?.LogDebug("Plugin {plugin} checking Azure auth...", Name);
+        Logger.LogDebug("Plugin {plugin} checking Azure auth...", Name);
         try
         {
             _ = authenticationHandler.GetAccessToken(CancellationToken.None).Result;
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
+            Logger.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
             return;
         }
-        _logger?.LogDebug("Plugin {plugin} auth confirmed...", Name);
+        Logger.LogDebug("Plugin {plugin} auth confirmed...", Name);
 
         _httpClient = new HttpClient(authenticationHandler);
 
-        pluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
 
     private async Task AfterRecordingStop(object sender, RecordingArgs e)
     {
         if (!e.RequestLogs.Any())
         {
-            _logger?.LogDebug("No requests to process");
+            Logger.LogDebug("No requests to process");
             return;
         }
 
-        _logger?.LogInformation("Checking if recorded API requests belong to APIs in API Center...");
+        Logger.LogInformation("Checking if recorded API requests belong to APIs in API Center...");
 
         Debug.Assert(_httpClient is not null);
 
         var apis = await LoadApisFromApiCenter();
         if (apis == null || !apis.Value.Any())
         {
-            _logger?.LogInformation("No APIs found in API Center");
+            Logger.LogInformation("No APIs found in API Center");
             return;
         }
 
@@ -150,12 +151,12 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         {
             var (method, url) = request;
 
-            _logger?.LogDebug("Processing request {method} {url}...", method, url);
+            Logger.LogDebug("Processing request {method} {url}...", method, url);
 
             var apiDefinition = apiDefinitions.FirstOrDefault(x => url.Contains(x.Key)).Value;
             if (apiDefinition.Id is null)
             {
-                _logger?.LogDebug("No matching API definition not found for {url}. Adding new API...", url);
+                Logger.LogDebug("No matching API definition not found for {url}. Adding new API...", url);
                 newApis.Add((method, url));
                 continue;
             }
@@ -164,7 +165,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
             if (apiDefinition.Definition is null)
             {
-                _logger?.LogDebug("API definition not found for {url} so nothing to compare to. Adding new API...", url);
+                Logger.LogDebug("API definition not found for {url} so nothing to compare to. Adding new API...", url);
                 newApis.Add(new(method, url));
                 continue;
             }
@@ -172,7 +173,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             var pathItem = FindMatchingPathItem(url, apiDefinition.Definition);
             if (pathItem is null)
             {
-                _logger?.LogDebug("No matching path found for {url}. Adding new API...", url);
+                Logger.LogDebug("No matching path found for {url}. Adding new API...", url);
                 newApis.Add(new(method, url));
                 continue;
             }
@@ -180,7 +181,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             var operation = pathItem.Operations.FirstOrDefault(x => x.Key.ToString().Equals(method, StringComparison.OrdinalIgnoreCase)).Value;
             if (operation is null)
             {
-                _logger?.LogDebug("No matching operation found for {method} {url}. Adding new API...", method, url);
+                Logger.LogDebug("No matching operation found for {method} {url}. Adding new API...", method, url);
 
                 newApis.Add(new(method, url));
                 continue;
@@ -189,7 +190,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         if (!newApis.Any())
         {
-            _logger?.LogInformation("No new APIs found");
+            Logger.LogInformation("No new APIs found");
             return;
         }
 
@@ -209,7 +210,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             newApisMessageChunks.AddRange(apiPerHost.Select(a => $"  {a.method} {a.url}"));
         }
 
-        _logger?.LogInformation(string.Join(Environment.NewLine, newApisMessageChunks));
+        Logger.LogInformation(string.Join(Environment.NewLine, newApisMessageChunks));
 
         if (!_configuration.CreateApicEntryForNewApis)
         {
@@ -224,7 +225,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogInformation("{newLine}Creating new API entries in API Center...", Environment.NewLine);
+        Logger.LogInformation("{newLine}Creating new API entries in API Center...", Environment.NewLine);
 
         foreach (var apiPerHost in apisPerHost)
         {
@@ -240,7 +241,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
             if (!generatedOpenApiSpecs.TryGetValue(schemeAndHost, out var openApiSpecFilePath))
             {
-                _logger?.LogDebug("No OpenAPI spec found for {host}", schemeAndHost);
+                Logger.LogDebug("No OpenAPI spec found for {host}", schemeAndHost);
                 continue;
             }
 
@@ -263,7 +264,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             await ImportApiDefinition(apiDefinition.Id, openApiSpecFilePath);
         }
 
-        _logger?.LogInformation("DONE");
+        Logger.LogInformation("DONE");
     }
 
     async Task<Api?> CreateApi(string schemeAndHost, IEnumerable<(string method, string url)> apiRequests)
@@ -272,7 +273,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         // trim to 50 chars which is max length for API name
         var apiName = MaxLength($"new-{schemeAndHost.Replace(".", "-").Replace("http://", "").Replace("https://", "")}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", 50);
-        _logger?.LogInformation("  Creating API {apiName} for {host}...", apiName, schemeAndHost);
+        Logger.LogInformation("  Creating API {apiName} for {host}...", apiName, schemeAndHost);
 
         var title = $"New APIs: {schemeAndHost}";
         var description = new List<string>(["New APIs discovered by Dev Proxy", ""]);
@@ -291,14 +292,14 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         var res = await _httpClient.PutAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}/workspaces/{_configuration.WorkspaceName}/apis/{apiName}?api-version=2024-03-01", content);
         if (res.IsSuccessStatusCode)
         {
-            _logger?.LogDebug("API created successfully");
+            Logger.LogDebug("API created successfully");
         }
         else
         {
-            _logger?.LogError("Failed to create API {apiName} for {host}", apiName, schemeAndHost);
+            Logger.LogError("Failed to create API {apiName} for {host}", apiName, schemeAndHost);
         }
         var resContent = await res.Content.ReadAsStringAsync();
-        _logger?.LogDebug(resContent);
+        Logger.LogDebug(resContent);
 
         if (res.IsSuccessStatusCode)
         {
@@ -314,7 +315,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("  Creating API version for {api}...", apiId);
+        Logger.LogDebug("  Creating API version for {api}...", apiId);
 
         var payload = new
         {
@@ -328,14 +329,14 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         var res = await _httpClient.PutAsync($"https://management.azure.com{apiId}/versions/v1-0?api-version=2024-03-01", content);
         if (res.IsSuccessStatusCode)
         {
-            _logger?.LogDebug("API version created successfully");
+            Logger.LogDebug("API version created successfully");
         }
         else
         {
-            _logger?.LogError("Failed to create API version for {api}", apiId.Substring(apiId.LastIndexOf('/')));
+            Logger.LogError("Failed to create API version for {api}", apiId.Substring(apiId.LastIndexOf('/')));
         }
         var resContent = await res.Content.ReadAsStringAsync();
-        _logger?.LogDebug(resContent);
+        Logger.LogDebug(resContent);
 
         if (res.IsSuccessStatusCode)
         {
@@ -351,7 +352,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("  Creating API definition for {api}...", apiVersionId);
+        Logger.LogDebug("  Creating API definition for {api}...", apiVersionId);
 
         var payload = new
         {
@@ -364,14 +365,14 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         var res = await _httpClient.PutAsync($"https://management.azure.com{apiVersionId}/definitions/openapi?api-version=2024-03-01", content);
         if (res.IsSuccessStatusCode)
         {
-            _logger?.LogDebug("API definition created successfully");
+            Logger.LogDebug("API definition created successfully");
         }
         else
         {
-            _logger?.LogError("Failed to create API definition for {apiVersion}", apiVersionId);
+            Logger.LogError("Failed to create API definition for {apiVersion}", apiVersionId);
         }
         var resContent = await res.Content.ReadAsStringAsync();
-        _logger?.LogDebug(resContent);
+        Logger.LogDebug(resContent);
 
         if (res.IsSuccessStatusCode)
         {
@@ -387,7 +388,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("  Importing API definition for {api}...", apiDefinitionId);
+        Logger.LogDebug("  Importing API definition for {api}...", apiDefinitionId);
 
         var openApiSpec = File.ReadAllText(openApiSpecFilePath);
         var payload = new
@@ -404,11 +405,11 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         var res = await _httpClient.PostAsync($"https://management.azure.com{apiDefinitionId}/importSpecification?api-version=2024-03-01", content);
         if (res.IsSuccessStatusCode)
         {
-            _logger?.LogDebug("API definition imported successfully");
+            Logger.LogDebug("API definition imported successfully");
         }
         else
         {
-            _logger?.LogError("Failed to import API definition for {apiDefinition}. Status: {status}, reason: {reason}", apiDefinitionId, res.StatusCode, res.ReasonPhrase);
+            Logger.LogError("Failed to import API definition for {apiDefinition}. Status: {status}, reason: {reason}", apiDefinitionId, res.StatusCode, res.ReasonPhrase);
         }
     }
 
@@ -416,7 +417,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogInformation("Loading APIs from API Center...");
+        Logger.LogInformation("Loading APIs from API Center...");
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}/workspaces/{_configuration.WorkspaceName}/apis?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<Api>>(res, _jsonSerializerOptions);
@@ -427,40 +428,40 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         foreach (var path in openApiDocument.Paths)
         {
             var urlPath = path.Key;
-            _logger?.LogDebug("Checking path {urlPath}...", urlPath);
+            Logger.LogDebug("Checking path {urlPath}...", urlPath);
 
             // check if path contains parameters. If it does,
             // replace them with regex
             if (urlPath.Contains('{'))
             {
-                _logger?.LogDebug("Path {urlPath} contains parameters and will be converted to Regex", urlPath);
+                Logger.LogDebug("Path {urlPath} contains parameters and will be converted to Regex", urlPath);
 
                 foreach (var parameter in path.Value.Parameters)
                 {
                     urlPath = urlPath.Replace($"{{{parameter.Name}}}", $"([^/]+)");
                 }
 
-                _logger?.LogDebug("Converted path to Regex: {urlPath}", urlPath);
+                Logger.LogDebug("Converted path to Regex: {urlPath}", urlPath);
                 var regex = new Regex(urlPath);
                 if (regex.IsMatch(requestUrl))
                 {
-                    _logger?.LogDebug("Regex matches {requestUrl}", requestUrl);
+                    Logger.LogDebug("Regex matches {requestUrl}", requestUrl);
 
                     return path.Value;
                 }
 
-                _logger?.LogDebug("Regex does not match {requestUrl}", requestUrl);
+                Logger.LogDebug("Regex does not match {requestUrl}", requestUrl);
             }
             else
             {
                 if (requestUrl.Contains(urlPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger?.LogDebug("{requestUrl} contains {urlPath}", requestUrl, urlPath);
+                    Logger.LogDebug("{requestUrl} contains {urlPath}", requestUrl, urlPath);
 
                     return path.Value;
                 }
 
-                _logger?.LogDebug("{requestUrl} doesn't contain {urlPath}", requestUrl, urlPath);
+                Logger.LogDebug("{requestUrl} doesn't contain {urlPath}", requestUrl, urlPath);
             }
         }
 
@@ -469,7 +470,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
     async Task<Dictionary<string, ApiDefinition>> LoadApiDefinitions(Api[] apis)
     {
-        _logger?.LogInformation("Loading API definitions from API Center...");
+        Logger.LogInformation("Loading API definitions from API Center...");
 
         // key is the runtime URI, value is the API definition
         var apiDefinitions = new Dictionary<string, ApiDefinition>();
@@ -478,7 +479,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         {
             Debug.Assert(api.Id is not null);
 
-            _logger?.LogDebug("Loading API definitions for {apiName}...", api.Id);
+            Logger.LogDebug("Loading API definitions for {apiName}...", api.Id);
 
             // load definitions from deployments
             var deployments = await LoadApiDeployments(api.Id);
@@ -491,7 +492,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
                     if (!deployment.Properties.Server.RuntimeUri.Any())
                     {
-                        _logger?.LogDebug("No runtime URIs found for deployment {deploymentName}", deployment.Name);
+                        Logger.LogDebug("No runtime URIs found for deployment {deploymentName}", deployment.Name);
                         continue;
                     }
 
@@ -506,7 +507,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             }
             else
             {
-                _logger?.LogDebug("No deployments found for API {api}", api.Id);
+                Logger.LogDebug("No deployments found for API {api}", api.Id);
             }
 
             // load definitions from versions
@@ -528,13 +529,13 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
                         
                             if (definition.Definition is null)
                             {
-                                _logger?.LogDebug("API definition not found for {definitionId}", definition.Id);
+                                Logger.LogDebug("API definition not found for {definitionId}", definition.Id);
                                 continue;
                             }
 
                             if (!definition.Definition.Servers.Any())
                             {
-                                _logger?.LogDebug("No servers found for API definition {definitionId}", definition.Id);
+                                Logger.LogDebug("No servers found for API definition {definitionId}", definition.Id);
                                 continue;
                             }
 
@@ -546,13 +547,13 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
                     }
                     else
                     {
-                        _logger?.LogDebug("No definitions found for version {versionId}", version.Id);
+                        Logger.LogDebug("No definitions found for version {versionId}", version.Id);
                     }
                 }
             }
             else
             {
-                _logger?.LogDebug("No versions found for API {api}", api.Id);
+                Logger.LogDebug("No versions found for API {api}", api.Id);
             }
         }
 
@@ -563,7 +564,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("Loading API definitions for version {id}...", versionId);
+        Logger.LogDebug("Loading API definitions for version {id}...", versionId);
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com{versionId}/definitions?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<ApiDefinition>>(res, _jsonSerializerOptions);
@@ -573,7 +574,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("Loading API versions for {apiName}...", apiId);
+        Logger.LogDebug("Loading API versions for {apiName}...", apiId);
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com{apiId}/versions?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<ApiVersion>>(res, _jsonSerializerOptions);
@@ -583,7 +584,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("Loading API deployments for {apiName}...", apiId);
+        Logger.LogDebug("Loading API deployments for {apiName}...", apiId);
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com{apiId}/deployments?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<ApiDeployment>>(res, _jsonSerializerOptions);
@@ -595,24 +596,24 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         if (apiDefinition.Definition is not null)
         {
-            _logger?.LogDebug("API definition already loaded for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogDebug("API definition already loaded for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
-        _logger?.LogDebug("Loading API definition for {apiDefinitionId}...", apiDefinition.Id);
+        Logger.LogDebug("Loading API definition for {apiDefinitionId}...", apiDefinition.Id);
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com{apiDefinition.Id}?api-version=2024-03-01");
         var definition = JsonSerializer.Deserialize<ApiDefinition>(res, _jsonSerializerOptions);
         if (definition is null)
         {
-            _logger?.LogError("Failed to deserialize API definition for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogError("Failed to deserialize API definition for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
         apiDefinition.Properties = definition.Properties;
         if (apiDefinition.Properties?.Specification?.Name != "openapi")
         {
-            _logger?.LogDebug("API definition is not OpenAPI for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogDebug("API definition is not OpenAPI for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
@@ -620,13 +621,13 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         var exportResult = await definitionRes.Content.ReadFromJsonAsync<ApiSpecExportResult>();
         if (exportResult is null)
         {
-            _logger?.LogError("Failed to deserialize exported API definition for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogError("Failed to deserialize exported API definition for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
         if (exportResult.Format != ApiSpecExportResultFormat.Inline)
         {
-            _logger?.LogDebug("API definition is not inline for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogDebug("API definition is not inline for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
@@ -636,7 +637,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to parse OpenAPI document for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogError(ex, "Failed to parse OpenAPI document for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
     }

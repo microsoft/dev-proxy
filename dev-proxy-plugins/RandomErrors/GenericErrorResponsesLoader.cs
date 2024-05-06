@@ -9,10 +9,10 @@ namespace Microsoft.DevProxy.Plugins.RandomErrors;
 
 internal class GenericErrorResponsesLoader : IDisposable
 {
-    private readonly IProxyLogger _logger;
+    private readonly ILogger _logger;
     private readonly GenericRandomErrorConfiguration _configuration;
 
-    public GenericErrorResponsesLoader(IProxyLogger logger, GenericRandomErrorConfiguration configuration)
+    public GenericErrorResponsesLoader(ILogger logger, GenericRandomErrorConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));

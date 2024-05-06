@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.Net;
@@ -261,7 +260,7 @@ internal class ProxyHost
         ProxyCommandHandler.Configuration.ConfigFile = ConfigFile;
     }
 
-    public RootCommand GetRootCommand(IProxyLogger logger)
+    public RootCommand GetRootCommand(ILogger logger)
     {
         var command = new RootCommand {
             _portOption,
@@ -311,7 +310,7 @@ internal class ProxyHost
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, Option[] optionsFromPlugins, ISet<UrlToWatch> urlsToWatch, IProxyLogger logger) => new ProxyCommandHandler(
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, Option[] optionsFromPlugins, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new ProxyCommandHandler(
         pluginEvents,
         new Option[] {
             _portOption,

@@ -24,7 +24,7 @@ enum ToggleSystemProxyAction
 public class ProxyEngine
 {
     private readonly PluginEvents _pluginEvents;
-    private readonly IProxyLogger _logger;
+    private readonly ILogger _logger;
     private readonly ProxyConfiguration _config;
     private static ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
@@ -34,6 +34,7 @@ public class ProxyEngine
     // used for deciding which URLs to decrypt for further inspection
     private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
     private Dictionary<string, object> _globalData = new();
+    private static readonly object consoleLock = new object();
 
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();
@@ -56,7 +57,7 @@ public class ProxyEngine
         _proxyServer.CertificateManager.CreateRootCertificate();
     }
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, IProxyLogger logger)
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
@@ -289,7 +290,7 @@ public class ProxyEngine
 
     private void PrintRecordingIndicator()
     {
-        lock (ConsoleLogger.ConsoleLock)
+        lock (consoleLock)
         {
             if (_isRecording)
             {
@@ -503,7 +504,7 @@ public class ProxyEngine
     {
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
         {
-            _pluginData.Add(e.GetHashCode(), new Dictionary<string, object>());
+            _pluginData.Add(e.GetHashCode(), new());
 
             // we need to keep the request body for further processing
             // by plugins
@@ -514,7 +515,8 @@ public class ProxyEngine
             }
 
             e.UserData = e.HttpClient.Request;
-            _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
+            var message = $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}";
+            _logger.LogRequest([message], MessageType.InterceptedRequest, new LoggingContext(e));
             await HandleRequest(e);
         }
     }

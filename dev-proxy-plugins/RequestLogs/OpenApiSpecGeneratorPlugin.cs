@@ -263,27 +263,28 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
         "apikey"
     ];
 
+    public OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(OpenApiSpecGeneratorPlugin);
     public static readonly string GeneratedOpenApiSpecsKey = "GeneratedOpenApiSpecs";
 
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        pluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
 
     private Task AfterRecordingStop(object? sender, RecordingArgs e)
     {
-        _logger?.LogInformation("Creating OpenAPI spec from recorded requests...");
+        Logger.LogInformation("Creating OpenAPI spec from recorded requests...");
 
         if (!e.RequestLogs.Any())
         {
-            _logger?.LogDebug("No requests to process");
+            Logger.LogDebug("No requests to process");
             return Task.CompletedTask;
         }
 
@@ -299,7 +300,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
             }
 
             var methodAndUrlString = request.MessageLines.First();
-            _logger?.LogDebug("Processing request {methodAndUrlString}...", methodAndUrlString);
+            Logger.LogDebug("Processing request {methodAndUrlString}...", methodAndUrlString);
 
             try
             {
@@ -311,11 +312,11 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Error processing request {methodAndUrl}", methodAndUrlString);
+                Logger.LogError(ex, "Error processing request {methodAndUrl}", methodAndUrlString);
             }
         }
 
-        _logger?.LogDebug("Serializing OpenAPI docs...");
+        Logger.LogDebug("Serializing OpenAPI docs...");
         var generatedOpenApiSpecs = new Dictionary<string, string>();
         foreach (var openApiDoc in openApiDocs)
         {
@@ -323,11 +324,11 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
             var fileName = GetFileNameFromServerUrl(server.Url);
             var docString = openApiDoc.SerializeAsJson(OpenApiSpecVersion.OpenApi3_0);
 
-            _logger?.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
+            Logger.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
             File.WriteAllText(fileName, docString);
             generatedOpenApiSpecs.Add(server.Url, fileName);
 
-            _logger?.LogInformation("Created OpenAPI spec file {fileName}", fileName);
+            Logger.LogInformation("Created OpenAPI spec file {fileName}", fileName);
         }
 
         // store the generated OpenAPI specs in the global data
@@ -456,17 +457,17 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         if (!request.HasBody)
         {
-            _logger?.LogDebug("  Request has no body");
+            Logger.LogDebug("  Request has no body");
             return;
         }
 
         if (request.ContentType is null)
         {
-            _logger?.LogDebug("  Request has no content type");
+            Logger.LogDebug("  Request has no content type");
             return;
         }
 
-        _logger?.LogDebug("  Processing request body...");
+        Logger.LogDebug("  Processing request body...");
         operation.RequestBody = new OpenApiRequestBody
         {
             Content = new Dictionary<string, OpenApiMediaType>
@@ -487,23 +488,23 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
         if (headers is null ||
             !headers.Any())
         {
-            _logger?.LogDebug("  Request has no headers");
+            Logger.LogDebug("  Request has no headers");
             return;
         }
 
-        _logger?.LogDebug("  Processing request headers...");
+        Logger.LogDebug("  Processing request headers...");
         foreach (var header in headers)
         {
             var lowerCaseHeaderName = header.Name.ToLowerInvariant();
             if (standardHeaders.Contains(lowerCaseHeaderName))
             {
-                _logger?.LogDebug("    Skipping standard header {headerName}", header.Name);
+                Logger.LogDebug("    Skipping standard header {headerName}", header.Name);
                 continue;
             }
 
             if (authHeaders.Contains(lowerCaseHeaderName))
             {
-                _logger?.LogDebug("    Skipping auth header {headerName}", header.Name);
+                Logger.LogDebug("    Skipping auth header {headerName}", header.Name);
                 continue;
             }
 
@@ -514,7 +515,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
                 Required = false,
                 Schema = new OpenApiSchema { Type = "string" }
             });
-            _logger?.LogDebug("    Added header {headerName}", header.Name);
+            Logger.LogDebug("    Added header {headerName}", header.Name);
         }
     }
 
@@ -523,11 +524,11 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
         if (queryParams.AllKeys is null ||
             !queryParams.AllKeys.Any())
         {
-            _logger?.LogDebug("  Request has no query string parameters");
+            Logger.LogDebug("  Request has no query string parameters");
             return;
         }
 
-        _logger?.LogDebug("  Processing query string parameters...");
+        Logger.LogDebug("  Processing query string parameters...");
         var dictionary = (queryParams.AllKeys as string[]).ToDictionary(k => k, k => queryParams[k] as object);
 
         foreach (var parameter in dictionary)
@@ -539,7 +540,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
                 Required = false,
                 Schema = new OpenApiSchema { Type = "string" }
             });
-            _logger?.LogDebug("    Added query string parameter {parameterKey}", parameter.Key);
+            Logger.LogDebug("    Added query string parameter {parameterKey}", parameter.Key);
         }
     }
 
@@ -547,11 +548,11 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         if (response is null)
         {
-            _logger?.LogDebug("  No response to process");
+            Logger.LogDebug("  No response to process");
             return;
         }
 
-        _logger?.LogDebug("  Processing response...");
+        Logger.LogDebug("  Processing response...");
 
         var openApiResponse = new OpenApiResponse
         {
@@ -560,7 +561,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
         var responseCode = response.StatusCode.ToString();
         if (response.HasBody)
         {
-            _logger?.LogDebug("    Response has body");
+            Logger.LogDebug("    Response has body");
 
             openApiResponse.Content.Add(response.ContentType, new OpenApiMediaType
             {
@@ -569,31 +570,31 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
         }
         else
         {
-            _logger?.LogDebug("    Response doesn't have body");
+            Logger.LogDebug("    Response doesn't have body");
         }
 
         if (response.Headers is not null && response.Headers.Any())
         {
-            _logger?.LogDebug("    Response has headers");
+            Logger.LogDebug("    Response has headers");
 
             foreach (var header in response.Headers)
             {
                 var lowerCaseHeaderName = header.Name.ToLowerInvariant();
                 if (standardHeaders.Contains(lowerCaseHeaderName))
                 {
-                    _logger?.LogDebug("    Skipping standard header {headerName}", header.Name);
+                    Logger.LogDebug("    Skipping standard header {headerName}", header.Name);
                     continue;
                 }
 
                 if (authHeaders.Contains(lowerCaseHeaderName))
                 {
-                    _logger?.LogDebug("    Skipping auth header {headerName}", header.Name);
+                    Logger.LogDebug("    Skipping auth header {headerName}", header.Name);
                     continue;
                 }
 
                 if (openApiResponse.Headers.ContainsKey(header.Name))
                 {
-                    _logger?.LogDebug("    Header {headerName} already exists in response", header.Name);
+                    Logger.LogDebug("    Header {headerName} already exists in response", header.Name);
                     continue;
                 }
 
@@ -601,12 +602,12 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
                 {
                     Schema = new OpenApiSchema { Type = "string" }
                 });
-                _logger?.LogDebug("    Added header {headerName}", header.Name);
+                Logger.LogDebug("    Added header {headerName}", header.Name);
             }
         }
         else
         {
-            _logger?.LogDebug("    Response doesn't have headers");
+            Logger.LogDebug("    Response doesn't have headers");
         }
 
         operation.Responses.Add(responseCode, openApiResponse);
@@ -616,13 +617,13 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         if (contentType is null)
         {
-            _logger?.LogDebug("  No content type to process");
+            Logger.LogDebug("  No content type to process");
             return null;
         }
 
         if (contentType.StartsWith("application/json"))
         {
-            _logger?.LogDebug("    Processing JSON body...");
+            Logger.LogDebug("    Processing JSON body...");
             return GetSchemaFromJsonString(body);
         }
 
@@ -636,7 +637,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
         if (openApiDoc is null)
         {
-            _logger?.LogDebug("  Creating OpenAPI spec for {serverUrl}...", serverUrl);
+            Logger.LogDebug("  Creating OpenAPI spec for {serverUrl}...", serverUrl);
 
             openApiDoc = new OpenApiDocument
             {
@@ -660,19 +661,19 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
         }
         else
         {
-            _logger?.LogDebug("  Found OpenAPI spec for {serverUrl}...", serverUrl);
+            Logger.LogDebug("  Found OpenAPI spec for {serverUrl}...", serverUrl);
         }
 
         if (!openApiDoc.Paths.ContainsKey(parametrizedPath))
         {
-            _logger?.LogDebug("  Adding path {parametrizedPath} to OpenAPI spec...", parametrizedPath);
+            Logger.LogDebug("  Adding path {parametrizedPath} to OpenAPI spec...", parametrizedPath);
 
             openApiDoc.Paths.Add(parametrizedPath, pathItem);
             // since we've just added the path, we're done
             return;
         }
 
-        _logger?.LogDebug("  Merging path {parametrizedPath} into OpenAPI spec...", parametrizedPath);
+        Logger.LogDebug("  Merging path {parametrizedPath} into OpenAPI spec...", parametrizedPath);
         var path = openApiDoc.Paths[parametrizedPath];
         var operation = pathItem.Operations.First();
         AddOrMergeOperation(path, operation.Key, operation.Value);
@@ -682,14 +683,14 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         if (!pathItem.Operations.ContainsKey(operationType))
         {
-            _logger?.LogDebug("    Adding operation {operationType} to path...", operationType);
+            Logger.LogDebug("    Adding operation {operationType} to path...", operationType);
 
             pathItem.AddOperation(operationType, apiOperation);
             // since we've just added the operation, we're done
             return;
         }
 
-        _logger?.LogDebug("    Merging operation {operationType} into path...", operationType);
+        Logger.LogDebug("    Merging operation {operationType} into path...", operationType);
 
         var operation = pathItem.Operations[operationType];
 
@@ -702,23 +703,23 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         if (parameters is null || !parameters.Any())
         {
-            _logger?.LogDebug("    No parameters to process");
+            Logger.LogDebug("    No parameters to process");
             return;
         }
 
-        _logger?.LogDebug("    Processing parameters for operation...");
+        Logger.LogDebug("    Processing parameters for operation...");
 
         foreach (var parameter in parameters)
         {
             var paramFromOperation = operation.Parameters.FirstOrDefault(p => p.Name == parameter.Name && p.In == parameter.In);
             if (paramFromOperation is null)
             {
-                _logger?.LogDebug("      Adding parameter {parameterName} to operation...", parameter.Name);
+                Logger.LogDebug("      Adding parameter {parameterName} to operation...", parameter.Name);
                 operation.Parameters.Add(parameter);
                 continue;
             }
 
-            _logger?.LogDebug("      Merging parameter {parameterName}...", parameter.Name);
+            Logger.LogDebug("      Merging parameter {parameterName}...", parameter.Name);
             MergeSchema(parameter?.Schema, paramFromOperation?.Schema);
         }
     }
@@ -727,25 +728,25 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         if (source is null || target is null)
         {
-            _logger?.LogDebug("        Source or target is null. Skipping...");
+            Logger.LogDebug("        Source or target is null. Skipping...");
             return;
         }
 
         if (source.Type != "object" || target.Type != "object")
         {
-            _logger?.LogDebug("        Source or target schema is not an object. Skipping...");
+            Logger.LogDebug("        Source or target schema is not an object. Skipping...");
             return;
         }
 
         if (source.Properties is null || !source.Properties.Any())
         {
-            _logger?.LogDebug("        Source has no properties. Skipping...");
+            Logger.LogDebug("        Source has no properties. Skipping...");
             return;
         }
 
         if (target.Properties is null || !target.Properties.Any())
         {
-            _logger?.LogDebug("        Target has no properties. Skipping...");
+            Logger.LogDebug("        Target has no properties. Skipping...");
             return;
         }
 
@@ -754,18 +755,18 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
             var propertyFromTarget = target.Properties.FirstOrDefault(p => p.Key == property.Key);
             if (propertyFromTarget.Value is null)
             {
-                _logger?.LogDebug("        Adding property {propertyKey} to schema...", property.Key);
+                Logger.LogDebug("        Adding property {propertyKey} to schema...", property.Key);
                 target.Properties.Add(property);
                 continue;
             }
 
             if (property.Value.Type != "object")
             {
-                _logger?.LogDebug("        Property already found but is not an object. Skipping...");
+                Logger.LogDebug("        Property already found but is not an object. Skipping...");
                 continue;
             }
 
-            _logger?.LogDebug("        Merging property {propertyKey}...", property.Key);
+            Logger.LogDebug("        Merging property {propertyKey}...", property.Key);
             MergeSchema(property.Value, propertyFromTarget.Value);
         }
     }
@@ -774,7 +775,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         if (requestBody is null || !requestBody.Content.Any())
         {
-            _logger?.LogDebug("    No request body to process");
+            Logger.LogDebug("    No request body to process");
             return;
         }
 
@@ -784,14 +785,14 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
         if (bodyFromOperation is null)
         {
-            _logger?.LogDebug("    Adding request body to operation...");
+            Logger.LogDebug("    Adding request body to operation...");
 
             operation.RequestBody.Content.Add(requestBody.Content.FirstOrDefault());
             // since we've just added the request body, we're done
             return;
         }
 
-        _logger?.LogDebug("    Merging request body into operation...");
+        Logger.LogDebug("    Merging request body into operation...");
         MergeSchema(bodyFromOperation.Schema, requestBody.Content.FirstOrDefault().Value.Schema);
     }
 
@@ -799,7 +800,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         if (apiResponses is null)
         {
-            _logger?.LogDebug("    No response to process");
+            Logger.LogDebug("    No response to process");
             return;
         }
 
@@ -811,7 +812,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
         if (responseFromOperation is null)
         {
-            _logger?.LogDebug("    Adding response {apiResponseStatusCode} to operation...", apiResponseStatusCode);
+            Logger.LogDebug("    Adding response {apiResponseStatusCode} to operation...", apiResponseStatusCode);
 
             operation.Responses.Add(apiResponseStatusCode, apiResponse);
             // since we've just added the response, we're done
@@ -820,7 +821,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
         if (!apiResponse.Content.Any())
         {
-            _logger?.LogDebug("    No response content to process");
+            Logger.LogDebug("    No response content to process");
             return;
         }
 
@@ -830,14 +831,14 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
         if (contentFromOperation is null)
         {
-            _logger?.LogDebug("    Adding response {apiResponseContentType} to {apiResponseStatusCode} to response...", apiResponseContentType, apiResponseStatusCode);
+            Logger.LogDebug("    Adding response {apiResponseContentType} to {apiResponseStatusCode} to response...", apiResponseContentType, apiResponseStatusCode);
 
             responseFromOperation.Content.Add(apiResponse.Content.First());
             // since we've just added the content, we're done
             return;
         }
 
-        _logger?.LogDebug("    Merging response {apiResponseStatusCode}/{apiResponseContentType} into operation...", apiResponseStatusCode, apiResponseContentType);
+        Logger.LogDebug("    Merging response {apiResponseStatusCode}/{apiResponseContentType} into operation...", apiResponseStatusCode, apiResponseContentType);
         MergeSchema(contentFromOperation.Schema, apiResponse.Content.First().Value.Schema);
     }
 
