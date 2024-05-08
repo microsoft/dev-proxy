@@ -101,10 +101,15 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             var consoleListener = AzureEventSourceListener.CreateConsoleLogger(EventLevel.Verbose);
         }
 
+        var authenticationHandler = new AuthenticationDelegatingHandler(_credential, _scopes)
+        {
+            InnerHandler = new HttpClientHandler()
+        };
+
         _logger?.LogDebug("[{now}] Plugin {plugin} checking Azure auth...", DateTime.Now, Name);
         try
         {
-            _ = _credential.GetTokenAsync(new TokenRequestContext(_scopes), CancellationToken.None).Result;
+            _ = authenticationHandler.GetAccessToken(CancellationToken.None).Result;
         }
         catch (AuthenticationFailedException ex)
         {
@@ -113,10 +118,6 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         }
         _logger?.LogDebug("[{now}] Plugin {plugin} auth confirmed...", DateTime.Now, Name);
 
-        var authenticationHandler = new AuthenticationDelegatingHandler(_credential, _scopes)
-        {
-            InnerHandler = new HttpClientHandler()
-        };
         _httpClient = new HttpClient(authenticationHandler);
 
         pluginEvents.AfterRecordingStop += AfterRecordingStop;
@@ -202,10 +203,14 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         // dedupe newApis
         newApis = newApis.Distinct().ToList();
 
-        var apisPerHost = newApis.GroupBy(x => new Uri(x.url).Host);
+        var apisPerSchemeAndHost = newApis.GroupBy(x =>
+        {
+            var u = new Uri(x.Item2);
+            return u.GetLeftPart(UriPartial.Authority);
+        });
 
         var newApisMessageChunks = new List<string>(["New APIs that aren't registered in Azure API Center:", ""]);
-        foreach (var apiPerHost in apisPerHost)
+        foreach (var apiPerHost in apisPerSchemeAndHost)
         {
             newApisMessageChunks.Add($"{apiPerHost.Key}:");
             newApisMessageChunks.AddRange(apiPerHost.Select(a => $"  {a.method} {a.url}"));
@@ -218,7 +223,8 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             return;
         }
 
-        await CreateApisInApiCenter(apisPerHost);
+        var generatedOpenApiSpecs = e.GlobalData.TryGetValue(OpenApiSpecGeneratorPlugin.GeneratedOpenApiSpecsKey, out var specs) ? specs as Dictionary<string, string> : new();
+        await CreateApisInApiCenter(apisPerSchemeAndHost, generatedOpenApiSpecs!);
     }
 
     async Task CreateApisInApiCenter(IEnumerable<IGrouping<string, (string method, string url)>> apisPerHost)
@@ -229,39 +235,188 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         foreach (var apiPerHost in apisPerHost)
         {
-            var host = apiPerHost.Key;
-            // trim to 50 chars which is max length for API name
-            var apiName = MaxLength($"new-{host.Replace(".", "-")}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", 50);
-            _logger?.LogInformation("  Creating API {apiName} for {host}...", apiName, host);
+            var schemeAndHost = apiPerHost.Key;
 
-            var title = $"New APIs: {host}";
-            var description = new List<string>(["New APIs discovered by Dev Proxy", ""]);
-            description.AddRange(apiPerHost.Select(a => $"  {a.method} {a.url}").ToArray());
-            var payload = new
+            var api = await CreateApi(schemeAndHost, apiPerHost);
+            if (api is null)
             {
-                properties = new
-                {
-                    title,
-                    description = string.Join(Environment.NewLine, description),
-                    kind = "REST",
-                    type = "rest"
-                }
-            };
-            var content = new StringContent(JsonSerializer.Serialize(payload, _jsonSerializerOptions), Encoding.UTF8, "application/json");
-            var createRes = await _httpClient.PutAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}/workspaces/{_configuration.WorkspaceName}/apis/{apiName}?api-version=2024-03-01", content);
-            if (createRes.IsSuccessStatusCode)
-            {
-                _logger?.LogDebug("API created successfully");
+                continue;
             }
-            else
+
+            Debug.Assert(api.Id is not null);
+
+            if (!generatedOpenApiSpecs.TryGetValue(schemeAndHost, out var openApiSpecFilePath))
             {
-                _logger?.LogError("Failed to create API {apiName} for {host}", apiName, host);
+                _logger?.LogDebug("No OpenAPI spec found for {host}", schemeAndHost);
+                continue;
             }
-            var createResContent = await createRes.Content.ReadAsStringAsync();
-            _logger?.LogDebug(createResContent);
+
+            var apiVersion = await CreateApiVersion(api.Id);
+            if (apiVersion is null)
+            {
+                continue;
+            }
+
+            Debug.Assert(apiVersion.Id is not null);
+
+            var apiDefinition = await CreateApiDefinition(apiVersion.Id);
+            if (apiDefinition is null)
+            {
+                continue;
+            }
+
+            Debug.Assert(apiDefinition.Id is not null);
+
+            await ImportApiDefinition(apiDefinition.Id, openApiSpecFilePath);
         }
 
         _logger?.LogInformation("DONE");
+    }
+
+    async Task<Api?> CreateApi(string schemeAndHost, IEnumerable<(string method, string url)> apiRequests)
+    {
+        Debug.Assert(_httpClient is not null);
+
+        // trim to 50 chars which is max length for API name
+        var apiName = MaxLength($"new-{schemeAndHost.Replace(".", "-").Replace("http://", "").Replace("https://", "")}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", 50);
+        _logger?.LogInformation("  Creating API {apiName} for {host}...", apiName, schemeAndHost);
+
+        var title = $"New APIs: {schemeAndHost}";
+        var description = new List<string>(["New APIs discovered by Dev Proxy", ""]);
+        description.AddRange(apiRequests.Select(a => $"  {a.method} {a.url}").ToArray());
+        var payload = new
+        {
+            properties = new
+            {
+                title,
+                description = string.Join(Environment.NewLine, description),
+                kind = "REST",
+                type = "rest"
+            }
+        };
+        var content = new StringContent(JsonSerializer.Serialize(payload, _jsonSerializerOptions), Encoding.UTF8, "application/json");
+        var res = await _httpClient.PutAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}/workspaces/{_configuration.WorkspaceName}/apis/{apiName}?api-version=2024-03-01", content);
+        if (res.IsSuccessStatusCode)
+        {
+            _logger?.LogDebug("API created successfully");
+        }
+        else
+        {
+            _logger?.LogError("Failed to create API {apiName} for {host}", apiName, schemeAndHost);
+        }
+        var resContent = await res.Content.ReadAsStringAsync();
+        _logger?.LogDebug(resContent);
+
+        if (res.IsSuccessStatusCode)
+        {
+            return JsonSerializer.Deserialize<Api>(resContent, _jsonSerializerOptions);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    async Task<ApiVersion?> CreateApiVersion(string apiId)
+    {
+        Debug.Assert(_httpClient is not null);
+
+        _logger?.LogDebug("  Creating API version for {api}...", apiId);
+
+        var payload = new
+        {
+            properties = new
+            {
+                title = "v1.0",
+                lifecycleStage = "production"
+            }
+        };
+        var content = new StringContent(JsonSerializer.Serialize(payload, _jsonSerializerOptions), Encoding.UTF8, "application/json");
+        var res = await _httpClient.PutAsync($"https://management.azure.com{apiId}/versions/v1-0?api-version=2024-03-01", content);
+        if (res.IsSuccessStatusCode)
+        {
+            _logger?.LogDebug("API version created successfully");
+        }
+        else
+        {
+            _logger?.LogError("Failed to create API version for {api}", apiId.Substring(apiId.LastIndexOf('/')));
+        }
+        var resContent = await res.Content.ReadAsStringAsync();
+        _logger?.LogDebug(resContent);
+
+        if (res.IsSuccessStatusCode)
+        {
+            return JsonSerializer.Deserialize<ApiVersion>(resContent, _jsonSerializerOptions);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    async Task<ApiDefinition?> CreateApiDefinition(string apiVersionId)
+    {
+        Debug.Assert(_httpClient is not null);
+
+        _logger?.LogDebug("  Creating API definition for {api}...", apiVersionId);
+
+        var payload = new
+        {
+            properties = new
+            {
+                title = "OpenAPI"
+            }
+        };
+        var content = new StringContent(JsonSerializer.Serialize(payload, _jsonSerializerOptions), Encoding.UTF8, "application/json");
+        var res = await _httpClient.PutAsync($"https://management.azure.com{apiVersionId}/definitions/openapi?api-version=2024-03-01", content);
+        if (res.IsSuccessStatusCode)
+        {
+            _logger?.LogDebug("API definition created successfully");
+        }
+        else
+        {
+            _logger?.LogError("Failed to create API definition for {apiVersion}", apiVersionId);
+        }
+        var resContent = await res.Content.ReadAsStringAsync();
+        _logger?.LogDebug(resContent);
+
+        if (res.IsSuccessStatusCode)
+        {
+            return JsonSerializer.Deserialize<ApiDefinition>(resContent, _jsonSerializerOptions);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    async Task ImportApiDefinition(string apiDefinitionId, string openApiSpecFilePath)
+    {
+        Debug.Assert(_httpClient is not null);
+
+        _logger?.LogDebug("  Importing API definition for {api}...", apiDefinitionId);
+
+        var openApiSpec = File.ReadAllText(openApiSpecFilePath);
+        var payload = new
+        {
+            format = "inline",
+            value = openApiSpec,
+            specification = new
+            {
+                name = "openapi",
+                version = "3.0.1"
+            }
+        };
+        var content = new StringContent(JsonSerializer.Serialize(payload, _jsonSerializerOptions), Encoding.UTF8, "application/json");
+        var res = await _httpClient.PostAsync($"https://management.azure.com{apiDefinitionId}/importSpecification?api-version=2024-03-01", content);
+        if (res.IsSuccessStatusCode)
+        {
+            _logger?.LogDebug("API definition imported successfully");
+        }
+        else
+        {
+            _logger?.LogError("Failed to import API definition for {apiDefinition}. Status: {status}, reason: {reason}", apiDefinitionId, res.StatusCode, res.ReasonPhrase);
+        }
     }
 
     async Task<Collection<Api>?> LoadApisFromApiCenter()
@@ -323,53 +478,121 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         _logger?.LogInformation("Loading API definitions from API Center...");
 
+        // key is the runtime URI, value is the API definition
         var apiDefinitions = new Dictionary<string, ApiDefinition>();
 
         foreach (var api in apis)
         {
-            Debug.Assert(api.Name is not null);
+            Debug.Assert(api.Id is not null);
 
-            var apiName = api.Name;
-            _logger?.LogDebug("Loading API definitions for {apiName}...", apiName);
+            _logger?.LogDebug("Loading API definitions for {apiName}...", api.Id);
 
-            var deployments = await LoadApiDeployments(apiName);
-            if (deployments == null || !deployments.Value.Any())
+            // load definitions from deployments
+            var deployments = await LoadApiDeployments(api.Id);
+            if (deployments != null && deployments.Value.Any())
             {
-                _logger?.LogDebug("No deployments found for API {apiName}", apiName);
-                continue;
+                foreach (var deployment in deployments.Value)
+                {
+                    Debug.Assert(deployment.Properties?.Server is not null);
+                    Debug.Assert(deployment.Properties?.DefinitionId is not null);
+
+                    if (!deployment.Properties.Server.RuntimeUri.Any())
+                    {
+                        _logger?.LogDebug("No runtime URIs found for deployment {deploymentName}", deployment.Name);
+                        continue;
+                    }
+
+                    foreach (var runtimeUri in deployment.Properties.Server.RuntimeUri)
+                    {
+                        apiDefinitions[runtimeUri] = new ApiDefinition
+                        {
+                            Id = deployment.Properties.DefinitionId
+                        };
+                    }
+                }
+            }
+            else
+            {
+                _logger?.LogDebug("No deployments found for API {api}", api.Id);
             }
 
-            foreach (var deployment in deployments.Value)
+            // load definitions from versions
+            var versions = await LoadApiVersions(api.Id);
+            if (versions != null && versions.Value.Any())
             {
-                Debug.Assert(deployment?.Properties?.Server is not null);
-                Debug.Assert(deployment?.Properties?.DefinitionId is not null);
-
-                if (!deployment.Properties.Server.RuntimeUri.Any())
+                foreach (var version in versions.Value)
                 {
-                    _logger?.LogDebug("No runtime URIs found for deployment {deploymentName}", deployment.Name);
-                    continue;
-                }
+                    Debug.Assert(version.Id is not null);
 
-                foreach (var runtimeUri in deployment.Properties.Server.RuntimeUri)
-                {
-                    apiDefinitions.Add(runtimeUri, new ApiDefinition
+                    var definitions = await LoadApiDefinitionsForVersion(version.Id);
+                    if (definitions != null && definitions.Value.Any())
                     {
-                        Id = deployment.Properties.DefinitionId
-                    });
+                        foreach (var definition in definitions.Value)
+                        {
+                            Debug.Assert(definition.Id is not null);
+                            
+                            await EnsureApiDefinition(definition);
+                        
+                            if (definition.Definition is null)
+                            {
+                                _logger?.LogDebug("API definition not found for {definitionId}", definition.Id);
+                                continue;
+                            }
+
+                            if (!definition.Definition.Servers.Any())
+                            {
+                                _logger?.LogDebug("No servers found for API definition {definitionId}", definition.Id);
+                                continue;
+                            }
+
+                            foreach (var server in definition.Definition.Servers)
+                            {
+                                apiDefinitions[server.Url] = definition;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _logger?.LogDebug("No definitions found for version {versionId}", version.Id);
+                    }
                 }
+            }
+            else
+            {
+                _logger?.LogDebug("No versions found for API {api}", api.Id);
             }
         }
 
         return apiDefinitions;
     }
 
-    async Task<Collection<ApiDeployment>?> LoadApiDeployments(string apiName)
+    private async Task<Collection<ApiDefinition>?> LoadApiDefinitionsForVersion(string versionId)
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("Loading API deployments for {apiName}...", apiName);
+        _logger?.LogDebug("Loading API definitions for version {id}...", versionId);
 
-        var res = await _httpClient.GetStringAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}/workspaces/{_configuration.WorkspaceName}/apis/{apiName}/deployments?api-version=2024-03-01");
+        var res = await _httpClient.GetStringAsync($"https://management.azure.com{versionId}/definitions?api-version=2024-03-01");
+        return JsonSerializer.Deserialize<Collection<ApiDefinition>>(res, _jsonSerializerOptions);
+    }
+
+    private async Task<Collection<ApiVersion>?> LoadApiVersions(string apiId)
+    {
+        Debug.Assert(_httpClient is not null);
+
+        _logger?.LogDebug("Loading API versions for {apiName}...", apiId);
+
+        var res = await _httpClient.GetStringAsync($"https://management.azure.com{apiId}/versions?api-version=2024-03-01");
+        return JsonSerializer.Deserialize<Collection<ApiVersion>>(res, _jsonSerializerOptions);
+    }
+
+    async Task<Collection<ApiDeployment>?> LoadApiDeployments(string apiId)
+    {
+        Debug.Assert(_httpClient is not null);
+
+        _logger?.LogDebug("Loading API deployments for {apiName}...", apiId);
+
+        var res = await _httpClient.GetStringAsync($"https://management.azure.com{apiId}/deployments?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<ApiDeployment>>(res, _jsonSerializerOptions);
     }
 
@@ -377,7 +600,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        if (apiDefinition.Properties is not null)
+        if (apiDefinition.Definition is not null)
         {
             _logger?.LogDebug("API definition already loaded for {apiDefinitionId}", apiDefinition.Id);
             return;
@@ -385,7 +608,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         _logger?.LogDebug("Loading API definition for {apiDefinitionId}...", apiDefinition.Id);
 
-        var res = await _httpClient.GetStringAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}{apiDefinition.Id}?api-version=2024-03-01");
+        var res = await _httpClient.GetStringAsync($"https://management.azure.com{apiDefinition.Id}?api-version=2024-03-01");
         var definition = JsonSerializer.Deserialize<ApiDefinition>(res, _jsonSerializerOptions);
         if (definition is null)
         {
@@ -400,7 +623,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             return;
         }
 
-        var definitionRes = await _httpClient.PostAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}{apiDefinition.Id}/exportSpecification?api-version=2024-03-01", null);
+        var definitionRes = await _httpClient.PostAsync($"https://management.azure.com{apiDefinition.Id}/exportSpecification?api-version=2024-03-01", null);
         var exportResult = await definitionRes.Content.ReadFromJsonAsync<ApiSpecExportResult>();
         if (exportResult is null)
         {
