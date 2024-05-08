@@ -102,8 +102,8 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
         }
 
         var methodAndUrlComparer = new MethodAndUrlComparer();
-        var delegatedEndpoints = new List<Tuple<string, string>>();
-        var applicationEndpoints = new List<Tuple<string, string>>();
+        var delegatedEndpoints = new List<(string method, string url)>();
+        var applicationEndpoints = new List<(string method, string url)>();
 
         // scope for delegated permissions
         var scopesToEvaluate = Array.Empty<string>();
@@ -119,9 +119,9 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
             var methodAndUrlString = request.MessageLines.First();
             var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
-            var requestsFromBatch = Array.Empty<Tuple<string, string>>();
+            var requestsFromBatch = Array.Empty<(string method, string url)>();
 
-            var uri = new Uri(methodAndUrl.Item2);
+            var uri = new Uri(methodAndUrl.url);
             if (!ProxyUtils.IsGraphUrl(uri))
             {
                 continue;
@@ -134,14 +134,14 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
             }
             else
             {
-                methodAndUrl = new Tuple<string, string>(methodAndUrl.Item1, GetTokenizedUrl(methodAndUrl.Item2));
+                methodAndUrl = (methodAndUrl.method, GetTokenizedUrl(methodAndUrl.url));
             }
 
             var scopesAndType = GetPermissionsAndType(request);
-            if (scopesAndType.Item1 == PermissionsType.Delegated)
+            if (scopesAndType.type == PermissionsType.Delegated)
             {
                 // use the scopes from the last request in case the app is using incremental consent
-                scopesToEvaluate = scopesAndType.Item2;
+                scopesToEvaluate = scopesAndType.permissions;
 
                 if (ProxyUtils.IsGraphBatchUrl(uri))
                 {
@@ -198,7 +198,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
             if (string.IsNullOrEmpty(_configuration.FilePath))
             {
-                _logger?.LogInformation("Evaluating delegated permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
+                _logger?.LogInformation("Evaluating delegated permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.method} {e.url}")));
             }
 
             await EvaluateMinimalScopes(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
@@ -211,7 +211,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
 
             if (string.IsNullOrEmpty(_configuration.FilePath))
             {
-                _logger?.LogInformation("Evaluating application permissions for:\r\n{applicationPermissions}\r\n", string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.Item1} {e.Item2}")));
+                _logger?.LogInformation("Evaluating application permissions for:\r\n{applicationPermissions}\r\n", string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.method} {e.url}")));
             }
 
             await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
@@ -224,11 +224,11 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
         }
     }
 
-    private Tuple<string, string>[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
+    private (string method, string url)[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
     {
-        var requests = new List<Tuple<string, string>>();
+        var requests = new List<(string method, string url)>();
 
-        if (String.IsNullOrEmpty(batchBody))
+        if (string.IsNullOrEmpty(batchBody))
         {
             return requests.ToArray();
         }
@@ -248,7 +248,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
                     var method = request.Method;
                     var url = request.Url;
                     var absoluteUrl = $"https://{graphHostName}/{graphVersion}{url}";
-                    requests.Add(new Tuple<string, string>(method, GetTokenizedUrl(absoluteUrl)));
+                    requests.Add((method, GetTokenizedUrl(absoluteUrl)));
                 }
                 catch { }
             }
@@ -261,22 +261,22 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
     /// <summary>
     /// Returns permissions and type (delegated or application) from the access token
     /// used on the request.
-    /// If it can't get the permissions, returns PermissionType.Application for Item1
-    /// and an empty array for Item2.
+    /// If it can't get the permissions, returns PermissionType.Application
+    /// and an empty array
     /// </summary>
-    private Tuple<PermissionsType, string[]> GetPermissionsAndType(RequestLog request)
+    private (PermissionsType type, string[] permissions) GetPermissionsAndType(RequestLog request)
     {
         var authHeader = request.Context?.Session.HttpClient.Request.Headers.GetFirstHeader("Authorization");
         if (authHeader == null)
         {
-            return new Tuple<PermissionsType, string[]>(PermissionsType.Application, Array.Empty<string>());
+            return (PermissionsType.Application, Array.Empty<string>());
         }
 
         var token = authHeader.Value.Replace("Bearer ", string.Empty);
         var tokenChunks = token.Split('.');
         if (tokenChunks.Length != 3)
         {
-            return new Tuple<PermissionsType, string[]>(PermissionsType.Application, Array.Empty<string>());
+            return (PermissionsType.Application, Array.Empty<string>());
         }
 
         try
@@ -295,21 +295,21 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
                   .ToArray();
                 if (roles.Length == 0)
                 {
-                    return new Tuple<PermissionsType, string[]>(PermissionsType.Application, Array.Empty<string>());
+                    return (PermissionsType.Application, Array.Empty<string>());
                 }
                 else
                 {
-                    return new Tuple<PermissionsType, string[]>(PermissionsType.Application, roles);
+                    return (PermissionsType.Application, roles);
                 }
             }
             else
             {
-                return new Tuple<PermissionsType, string[]>(PermissionsType.Delegated, scopeClaim.Value.Split(' '));
+                return (PermissionsType.Delegated, scopeClaim.Value.Split(' '));
             }
         }
         catch
         {
-            return new Tuple<PermissionsType, string[]>(PermissionsType.Application, Array.Empty<string>());
+            return (PermissionsType.Application, Array.Empty<string>());
         }
     }
 
@@ -323,14 +323,14 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
         };
     }
 
-    private async Task EvaluateMinimalScopes(IEnumerable<Tuple<string, string>> endpoints, string[] permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
+    private async Task EvaluateMinimalScopes(IEnumerable<(string method, string url)> endpoints, string[] permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
     {
-        var payload = endpoints.Select(e => new RequestInfo { Method = e.Item1, Url = e.Item2 });
+        var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
 
         permissionsInfo.Operations = endpoints.Select(e => new OperationInfo
         {
-            Method = e.Item1,
-            Endpoint = e.Item2
+            Method = e.method,
+            Endpoint = e.url
         }).ToArray();
         permissionsInfo.PermissionsFromTheToken = permissionsFromAccessToken;
 
@@ -386,14 +386,14 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
         }
     }
 
-    private Tuple<string, string> GetMethodAndUrl(string message)
+    private (string method, string url) GetMethodAndUrl(string message)
     {
         var info = message.Split(" ");
         if (info.Length > 2)
         {
             info = [info[0], string.Join(" ", info.Skip(1))];
         }
-        return new Tuple<string, string>(info[0], info[1]);
+        return (method: info[0], url: info[1]);
     }
 
     private string GetTokenizedUrl(string absoluteUrl)

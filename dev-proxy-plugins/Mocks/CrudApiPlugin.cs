@@ -161,14 +161,14 @@ public class CrudApiPlugin : BaseProxyPlugin
             var actionAndParams = GetMatchingActionHandler(request);
             if (actionAndParams is not null)
             {
-                if (!AuthorizeRequest(e, actionAndParams.Item2))
+                if (!AuthorizeRequest(e, actionAndParams.Value.action))
                 {
                     SendUnauthorizedResponse(e.Session);
                     state.HasBeenSet = true;
                     return Task.CompletedTask;
                 }
 
-                actionAndParams.Item1(e.Session, actionAndParams.Item2, actionAndParams.Item3);
+                actionAndParams.Value.handler(e.Session, actionAndParams.Value.action, actionAndParams.Value.parameters);
                 state.HasBeenSet = true;
             }
         }
@@ -228,10 +228,10 @@ public class CrudApiPlugin : BaseProxyPlugin
                 return jwt;
             };
         }
-        SecurityToken validatedToken;
+
         try
         {
-            var claimsPrincipal = handler.ValidateToken(tokenHeaderParts[1], validationParameters, out validatedToken);
+            var claimsPrincipal = handler.ValidateToken(tokenHeaderParts[1], validationParameters, out _);
 
             // does the token has valid roles/scopes
             if (authConfig.Roles.Any())
@@ -464,7 +464,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
     }
 
-    private Tuple<Action<SessionEventArgs, CrudApiAction, IDictionary<string, string>>, CrudApiAction, IDictionary<string, string>>? GetMatchingActionHandler(Request request)
+    private (Action<SessionEventArgs, CrudApiAction, IDictionary<string, string>> handler, CrudApiAction action, IDictionary<string, string> parameters)? GetMatchingActionHandler(Request request)
     {
         if (_configuration.Actions is null ||
             !_configuration.Actions.Any())
@@ -520,7 +520,7 @@ public class CrudApiPlugin : BaseProxyPlugin
             return null;
         }
 
-        return new Tuple<Action<SessionEventArgs, CrudApiAction, IDictionary<string, string>>, CrudApiAction, IDictionary<string, string>>(action.Action switch
+        return (handler: action.Action switch
         {
             CrudApiActionType.Create => Create,
             CrudApiActionType.GetAll => GetAll,

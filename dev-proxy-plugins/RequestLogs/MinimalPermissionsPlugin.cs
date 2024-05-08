@@ -40,7 +40,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         }
 
         var methodAndUrlComparer = new MethodAndUrlComparer();
-        var endpoints = new List<Tuple<string, string>>();
+        var endpoints = new List<(string method, string url)>();
 
         foreach (var request in e.RequestLogs)
         {
@@ -66,7 +66,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
             }
             else
             {
-                methodAndUrl = new Tuple<string, string>(methodAndUrl.Item1, GetTokenizedUrl(methodAndUrl.Item2));
+                methodAndUrl = (methodAndUrl.method, GetTokenizedUrl(methodAndUrl.url));
                 endpoints.Add(methodAndUrl);
             }
         }
@@ -80,7 +80,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
             return;
         }
 
-        _logger?.LogInformation("Retrieving minimal permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.Item1} {e.Item2}")));
+        _logger?.LogInformation("Retrieving minimal permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.method} {e.url}")));
 
 
         _logger?.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.");
@@ -88,11 +88,11 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         await DetermineMinimalScopes(endpoints);
     }
 
-    private Tuple<string, string>[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
+    private (string method, string url)[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
     {
-        var requests = new List<Tuple<string, string>>();
+        var requests = new List<(string, string)>();
 
-        if (String.IsNullOrEmpty(batchBody))
+        if (string.IsNullOrEmpty(batchBody))
         {
             return requests.ToArray();
         }
@@ -112,7 +112,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
                     var method = request.Method;
                     var url = request.Url;
                     var absoluteUrl = $"https://{graphHostName}/{graphVersion}{url}";
-                    requests.Add(new Tuple<string, string>(method, GetTokenizedUrl(absoluteUrl)));
+                    requests.Add((method, GetTokenizedUrl(absoluteUrl)));
                 }
                 catch { }
             }
@@ -132,9 +132,9 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         };
     }
 
-    private async Task DetermineMinimalScopes(IEnumerable<Tuple<string, string>> endpoints)
+    private async Task DetermineMinimalScopes(IEnumerable<(string method, string url)> endpoints)
     {
-        var payload = endpoints.Select(e => new RequestInfo { Method = e.Item1, Url = e.Item2 });
+        var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
 
         try
         {
@@ -169,14 +169,14 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         }
     }
 
-    private Tuple<string, string> GetMethodAndUrl(string message)
+    private (string method, string url) GetMethodAndUrl(string message)
     {
         var info = message.Split(" ");
         if (info.Length > 2)
         {
-            info = new[] { info[0], String.Join(" ", info.Skip(1)) };
+            info = [info[0], string.Join(" ", info.Skip(1))];
         }
-        return new Tuple<string, string>(info[0], info[1]);
+        return (info[0], info[1]);
     }
 
     private string GetTokenizedUrl(string absoluteUrl)

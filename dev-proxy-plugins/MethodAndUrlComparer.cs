@@ -1,33 +1,16 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
-internal class MethodAndUrlComparer : IEqualityComparer<Tuple<string, string>>
+internal class MethodAndUrlComparer : IEqualityComparer<(string method, string url)>
 {
-    public bool Equals(Tuple<string, string>? x, Tuple<string, string>? y)
+    public bool Equals((string method, string url) x, (string method, string url) y)
     {
-        if (object.ReferenceEquals(x, y))
-        {
-            return true;
-        }
-
-        if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null))
-        {
-            return false;
-        }
-
-        return x.Item1 == y.Item1 && x.Item2 == y.Item2;
+        return x.method == y.method && x.url == y.url;
     }
 
-    public int GetHashCode([DisallowNull] Tuple<string, string> obj)
+    public int GetHashCode((string method, string url) obj)
     {
-        if (obj == null)
-        {
-            return 0;
-        }
-
-        int methodHashCode = obj.Item1.GetHashCode();
-        int urlHashCode = obj.Item2.GetHashCode();
+        int methodHashCode = obj.method.GetHashCode();
+        int urlHashCode = obj.url.GetHashCode();
 
         return methodHashCode ^ urlHashCode;
     }

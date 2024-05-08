@@ -115,10 +115,15 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             var consoleListener = AzureEventSourceListener.CreateConsoleLogger(EventLevel.Verbose);
         }
 
+        var authenticationHandler = new AuthenticationDelegatingHandler(_credential, _scopes)
+        {
+            InnerHandler = new HttpClientHandler()
+        };
+
         _logger?.LogDebug("[{now}] Plugin {plugin} checking Azure auth...", DateTime.Now, Name);
         try
         {
-            _ = _credential.GetTokenAsync(new TokenRequestContext(_scopes), CancellationToken.None).Result;
+            _ = authenticationHandler.GetAccessToken(CancellationToken.None).Result;
         }
         catch (AuthenticationFailedException ex)
         {
@@ -127,10 +132,6 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
         }
         _logger?.LogDebug("[{now}] Plugin {plugin} auth confirmed...", DateTime.Now, Name);
 
-        var authenticationHandler = new AuthenticationDelegatingHandler(_credential, _scopes)
-        {
-            InnerHandler = new HttpClientHandler()
-        };
         _httpClient = new HttpClient(authenticationHandler);
 
         pluginEvents.AfterRecordingStop += AfterRecordingStop;

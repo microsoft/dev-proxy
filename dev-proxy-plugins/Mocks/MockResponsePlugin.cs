@@ -27,7 +27,7 @@ public class MockResponseConfiguration
     public bool BlockUnmockedRequests { get; set; } = false;
 
     [JsonPropertyName("$schema")]
-    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.17.1/mockresponseplugin.schema.json";
+    public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.18.0/mockresponseplugin.schema.json";
     public IEnumerable<MockResponse> Mocks { get; set; } = Array.Empty<MockResponse>();
 }
 
@@ -218,14 +218,13 @@ public class MockResponsePlugin : BaseProxyPlugin
 
     private bool IsNthRequest(MockResponse mockResponse)
     {
-        if (mockResponse.Request is null || mockResponse.Request.Nth is null)
+        if (mockResponse.Request?.Nth is null)
         {
             // mock doesn't define an Nth property so it always qualifies
             return true;
         }
 
-        int nth;
-        _appliedMocks.TryGetValue(mockResponse.Request.Url, out nth);
+        _appliedMocks.TryGetValue(mockResponse.Request.Url, out var nth);
         nth++;
 
         return mockResponse.Request.Nth == nth;

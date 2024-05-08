@@ -264,6 +264,8 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     ];
 
     public override string Name => nameof(OpenApiSpecGeneratorPlugin);
+    public static readonly string GeneratedOpenApiSpecsKey = "GeneratedOpenApiSpecs";
+
 
     public override void Register(IPluginEvents pluginEvents,
                             IProxyContext context,
@@ -314,6 +316,7 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
         }
 
         _logger?.LogDebug("Serializing OpenAPI docs...");
+        var generatedOpenApiSpecs = new Dictionary<string, string>();
         foreach (var openApiDoc in openApiDocs)
         {
             var server = openApiDoc.Servers.First();
@@ -322,9 +325,14 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
             _logger?.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
             File.WriteAllText(fileName, docString);
+            generatedOpenApiSpecs.Add(server.Url, fileName);
 
             _logger?.LogInformation("Created OpenAPI spec file {fileName}", fileName);
         }
+
+        // store the generated OpenAPI specs in the global data
+        // for use by other plugins
+        e.GlobalData[GeneratedOpenApiSpecsKey] = generatedOpenApiSpecs;
 
         return Task.CompletedTask;
     }
