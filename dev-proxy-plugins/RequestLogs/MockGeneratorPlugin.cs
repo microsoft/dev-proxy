@@ -49,7 +49,7 @@ public class MockGeneratorPlugin : BaseProxyPlugin
             var methodAndUrlString = request.MessageLines.First();
             _logger?.LogDebug("Processing request {methodAndUrlString}...", methodAndUrlString);
 
-            var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
+            var (method, url) = GetMethodAndUrl(methodAndUrlString);
             var response = request.Context.Session.HttpClient.Response;
 
             var newHeaders = new List<MockResponseHeader>();
@@ -58,8 +58,8 @@ public class MockGeneratorPlugin : BaseProxyPlugin
             {
                 Request = new()
                 {
-                    Method = methodAndUrl.Item1,
-                    Url = methodAndUrl.Item2,
+                    Method = method,
+                    Url = url,
                 },
                 Response = new()
                 {
@@ -151,13 +151,13 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         }
     }
 
-    private Tuple<string, string> GetMethodAndUrl(string message)
+    private (string method, string url) GetMethodAndUrl(string message)
     {
         var info = message.Split(" ");
         if (info.Length > 2)
         {
             info = [info[0], string.Join(" ", info.Skip(1))];
         }
-        return new Tuple<string, string>(info[0], info[1]);
+        return (info[0], info[1]);
     }
 }
