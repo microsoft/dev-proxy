@@ -5,29 +5,24 @@ using Microsoft.DevProxy;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Logging;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using System.CommandLine;
 
 PluginEvents pluginEvents = new PluginEvents();
 
 ILogger BuildLogger()
 {
-    var formatterOptions = new ProxyConsoleFormatterOptions
-    {
-        LabelMode = ProxyCommandHandler.Configuration.LabelMode
-    };
-
     var loggerFactory = LoggerFactory.Create(builder =>
     {
         builder
             .AddConsole(options =>
             {
                 options.FormatterName = "devproxy";
+                options.LogToStandardErrorThreshold = LogLevel.Warning;
             })
-            .AddConsoleFormatter<ProxyConsoleFormatter, ProxyConsoleFormatterOptions>(options => {
-                options.LabelMode = formatterOptions.LabelMode;
-            })
+            .AddConsoleFormatter<ProxyConsoleFormatter, ConsoleFormatterOptions>()
             .AddRequestLogger(pluginEvents)
-            .AddFilter("Default", ProxyHost.LogLevel ?? ProxyCommandHandler.Configuration.LogLevel);
+            .SetMinimumLevel(ProxyHost.LogLevel ?? ProxyCommandHandler.Configuration.LogLevel);
     });
     return loggerFactory.CreateLogger("devproxy");
 }

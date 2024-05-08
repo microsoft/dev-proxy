@@ -20,7 +20,6 @@
     "errorsFile": "devproxy-errors.json"
   },
   "rate": 50,
-  "labelMode": "text",
   "logLevel": "information",
   "newVersionNotification": "stable"
 }
