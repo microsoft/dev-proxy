@@ -218,14 +218,13 @@ public class MockResponsePlugin : BaseProxyPlugin
 
     private bool IsNthRequest(MockResponse mockResponse)
     {
-        if (mockResponse.Request is null || mockResponse.Request.Nth is null)
+        if (mockResponse.Request?.Nth is null)
         {
             // mock doesn't define an Nth property so it always qualifies
             return true;
         }
 
-        int nth;
-        _appliedMocks.TryGetValue(mockResponse.Request.Url, out nth);
+        _appliedMocks.TryGetValue(mockResponse.Request.Url, out var nth);
         nth++;
 
         return mockResponse.Request.Nth == nth;

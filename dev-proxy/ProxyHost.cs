@@ -127,7 +127,7 @@ internal class ProxyHost
                 };
                 _logLevelOption.AddValidator(input =>
                 {
-                    if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out var logLevel))
+                    if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out _))
                     {
                         input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid log level. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}";
                     }
@@ -201,7 +201,7 @@ internal class ProxyHost
         };
         _ipAddressOption.AddValidator(input =>
         {
-            if (!IPAddress.TryParse(input.Tokens.First().Value, out var ipAddress))
+            if (!IPAddress.TryParse(input.Tokens.First().Value, out _))
             {
                 input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid IP address";
             }

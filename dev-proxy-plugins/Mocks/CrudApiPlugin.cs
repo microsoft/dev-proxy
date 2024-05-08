@@ -228,10 +228,10 @@ public class CrudApiPlugin : BaseProxyPlugin
                 return jwt;
             };
         }
-        SecurityToken validatedToken;
+
         try
         {
-            var claimsPrincipal = handler.ValidateToken(tokenHeaderParts[1], validationParameters, out validatedToken);
+            var claimsPrincipal = handler.ValidateToken(tokenHeaderParts[1], validationParameters, out _);
 
             // does the token has valid roles/scopes
             if (authConfig.Roles.Any())
