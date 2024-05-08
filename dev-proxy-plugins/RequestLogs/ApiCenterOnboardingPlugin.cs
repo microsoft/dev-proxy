@@ -144,27 +144,26 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         var apiDefinitions = await LoadApiDefinitions(apis.Value);
 
-        var newApis = new List<Tuple<string, string>>();
+        var newApis = new List<(string method, string url)>();
         var interceptedRequests = e.RequestLogs
             .Where(l => l.MessageType == MessageType.InterceptedRequest)
             .Select(request =>
             {
                 var methodAndUrl = request.MessageLines.First().Split(' ');
-                return new Tuple<string, string>(methodAndUrl[0], methodAndUrl[1]);
+                return (method: methodAndUrl[0], url: methodAndUrl[1]);
             })
             .Distinct();
         foreach (var request in interceptedRequests)
         {
-            _logger?.LogDebug("Processing request {method} {url}...", request.Item1, request.Item2);
+            var (method, url) = request;
 
-            var requestMethod = request.Item1;
-            var requestUrl = request.Item2;
+            _logger?.LogDebug("Processing request {method} {url}...", method, url);
 
-            var apiDefinition = apiDefinitions.FirstOrDefault(x => requestUrl.Contains(x.Key)).Value;
-            if (apiDefinition?.Id is null)
+            var apiDefinition = apiDefinitions.FirstOrDefault(x => url.Contains(x.Key)).Value;
+            if (apiDefinition.Id is null)
             {
-                _logger?.LogDebug("No matching API definition not found for {requestUrl}. Adding new API...", requestUrl);
-                newApis.Add(new(requestMethod, requestUrl));
+                _logger?.LogDebug("No matching API definition not found for {url}. Adding new API...", url);
+                newApis.Add((method, url));
                 continue;
             }
 
@@ -172,25 +171,25 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
             if (apiDefinition.Definition is null)
             {
-                _logger?.LogDebug("API definition not found for {requestUrl} so nothing to compare to. Adding new API...", requestUrl);
-                newApis.Add(new(requestMethod, requestUrl));
+                _logger?.LogDebug("API definition not found for {url} so nothing to compare to. Adding new API...", url);
+                newApis.Add(new(method, url));
                 continue;
             }
 
-            var pathItem = FindMatchingPathItem(requestUrl, apiDefinition.Definition);
+            var pathItem = FindMatchingPathItem(url, apiDefinition.Definition);
             if (pathItem is null)
             {
-                _logger?.LogDebug("No matching path found for {requestUrl}. Adding new API...", requestUrl);
-                newApis.Add(new(requestMethod, requestUrl));
+                _logger?.LogDebug("No matching path found for {url}. Adding new API...", url);
+                newApis.Add(new(method, url));
                 continue;
             }
 
-            var operation = pathItem.Operations.FirstOrDefault(x => x.Key.ToString().Equals(requestMethod, StringComparison.OrdinalIgnoreCase)).Value;
+            var operation = pathItem.Operations.FirstOrDefault(x => x.Key.ToString().Equals(method, StringComparison.OrdinalIgnoreCase)).Value;
             if (operation is null)
             {
-                _logger?.LogDebug("No matching operation found for {requestMethod} {requestUrl}. Adding new API...", requestMethod, requestUrl);
+                _logger?.LogDebug("No matching operation found for {method} {url}. Adding new API...", method, url);
 
-                newApis.Add(new(requestMethod, requestUrl));
+                newApis.Add(new(method, url));
                 continue;
             }
         }
@@ -214,7 +213,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         foreach (var apiPerHost in apisPerSchemeAndHost)
         {
             newApisMessageChunks.Add($"{apiPerHost.Key}:");
-            newApisMessageChunks.AddRange(apiPerHost.Select(a => $"  {a.Item1} {a.Item2}"));
+            newApisMessageChunks.AddRange(apiPerHost.Select(a => $"  {a.method} {a.url}"));
         }
 
         _logger?.LogInformation(string.Join(Environment.NewLine, newApisMessageChunks));
@@ -228,7 +227,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         await CreateApisInApiCenter(apisPerSchemeAndHost, generatedOpenApiSpecs!);
     }
 
-    async Task CreateApisInApiCenter(IEnumerable<IGrouping<string, Tuple<string, string>>> apisPerHost, Dictionary<string, string> generatedOpenApiSpecs)
+    async Task CreateApisInApiCenter(IEnumerable<IGrouping<string, (string method, string url)>> apisPerHost, Dictionary<string, string> generatedOpenApiSpecs)
     {
         Debug.Assert(_httpClient is not null);
 
@@ -274,7 +273,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         _logger?.LogInformation("DONE");
     }
 
-    async Task<Api?> CreateApi(string schemeAndHost, IEnumerable<Tuple<string, string>> apiRequests)
+    async Task<Api?> CreateApi(string schemeAndHost, IEnumerable<(string method, string url)> apiRequests)
     {
         Debug.Assert(_httpClient is not null);
 
@@ -284,7 +283,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
         var title = $"New APIs: {schemeAndHost}";
         var description = new List<string>(["New APIs discovered by Dev Proxy", ""]);
-        description.AddRange(apiRequests.Select(a => $"  {a.Item1} {a.Item2}").ToArray());
+        description.AddRange(apiRequests.Select(a => $"  {a.method} {a.url}").ToArray());
         var payload = new
         {
             properties = new
