@@ -568,6 +568,10 @@ public class ProxyEngine
                 GlobalData = _globalData
             };
 
+            // necessary to repeat to make the response body
+            // of mocked requests available to plugins
+            e.HttpClient.Response.KeepBody = true;
+
             _logger.LogRequest([$"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}"], MessageType.InterceptedResponse, new LoggingContext(e));
             await _pluginEvents.RaiseProxyAfterResponse(proxyResponseArgs, _exceptionHandler);
             // clean up
