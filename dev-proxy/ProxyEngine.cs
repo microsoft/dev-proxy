@@ -43,6 +43,8 @@ public class ProxyEngine
 
     public static X509Certificate2? Certificate => _proxyServer?.CertificateManager.RootCertificate;
 
+    private ExceptionHandler _exceptionHandler => ex => _logger.LogError(ex, "An error occurred in a plugin");
+
     static ProxyEngine()
     {
         _proxyServer = new ProxyServer();
@@ -241,7 +243,7 @@ public class ProxyEngine
             }
             if (key == ConsoleKey.W)
             {
-                _pluginEvents.RaiseMockRequest(new EventArgs()).GetAwaiter().GetResult();
+                _pluginEvents.RaiseMockRequest(new EventArgs(), _exceptionHandler).GetAwaiter().GetResult();
             }
         } while (key != ConsoleKey.Escape);
     }
@@ -271,7 +273,10 @@ public class ProxyEngine
         // we let plugins handle previously recorded requests
         var clonedLogs = _requestLogs.ToArray();
         _requestLogs.Clear();
-        await _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs));
+        await _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs)
+        {
+            GlobalData = _globalData
+        }, _exceptionHandler);
     }
 
     private void PrintRecordingIndicator()
@@ -515,7 +520,7 @@ public class ProxyEngine
             GlobalData = _globalData
         };
 
-        await _pluginEvents.RaiseProxyBeforeRequest(proxyRequestArgs);
+        await _pluginEvents.RaiseProxyBeforeRequest(proxyRequestArgs, _exceptionHandler);
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!responseState.HasBeenSet)
@@ -549,7 +554,7 @@ public class ProxyEngine
                 await e.GetResponseBody();
             }
 
-            await _pluginEvents.RaiseProxyBeforeResponse(proxyResponseArgs);
+            await _pluginEvents.RaiseProxyBeforeResponse(proxyResponseArgs, _exceptionHandler);
         }
     }
     async Task OnAfterResponse(object sender, SessionEventArgs e)
@@ -563,8 +568,8 @@ public class ProxyEngine
                 GlobalData = _globalData
             };
 
-            _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedResponse, new LoggingContext(e));
-            await _pluginEvents.RaiseProxyAfterResponse(proxyResponseArgs);
+            _logger.LogRequest([$"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}"], MessageType.InterceptedResponse, new LoggingContext(e));
+            await _pluginEvents.RaiseProxyAfterResponse(proxyResponseArgs, _exceptionHandler);
             // clean up
             _pluginData.Remove(e.GetHashCode());
         }
