@@ -227,7 +227,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         await CreateApisInApiCenter(apisPerSchemeAndHost, generatedOpenApiSpecs!);
     }
 
-    async Task CreateApisInApiCenter(IEnumerable<IGrouping<string, (string method, string url)>> apisPerHost)
+    async Task CreateApisInApiCenter(IEnumerable<IGrouping<string, (string method, string url)>> apisPerHost, Dictionary<string, string> generatedOpenApiSpecs)
     {
         Debug.Assert(_httpClient is not null);
 
