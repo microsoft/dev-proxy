@@ -89,8 +89,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
         try
         {
             var response = JsonSerializer.Deserialize<JsonElement>(responseBody, ProxyUtils.JsonSerializerOptions);
-            JsonElement nextLinkProperty = new JsonElement();
-            if (response.TryGetProperty("@odata.nextLink", out nextLinkProperty))
+            if (response.TryGetProperty("@odata.nextLink", out var nextLinkProperty))
             {
                 nextLink = nextLinkProperty.GetString() ?? string.Empty;
             }

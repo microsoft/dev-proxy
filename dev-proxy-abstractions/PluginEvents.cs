@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Security.Cryptography.X509Certificates;
+using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
 
@@ -58,7 +59,13 @@ public class ThrottlingInfo
     }
 }
 
-public class ProxyHttpEventArgsBase
+public class ProxyEventArgsBase
+{
+    public Dictionary<string, object> SessionData { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> GlobalData { get; set; } = new Dictionary<string, object>();
+}
+
+public class ProxyHttpEventArgsBase : ProxyEventArgsBase
 {
     internal ProxyHttpEventArgsBase(SessionEventArgs session)
     {
@@ -66,8 +73,6 @@ public class ProxyHttpEventArgsBase
     }
 
     public SessionEventArgs Session { get; }
-    public Dictionary<string, object> SessionData { get; set; } = new Dictionary<string, object>();
-    public Dictionary<string, object> GlobalData { get; set; } = new Dictionary<string, object>();
 
     public bool HasRequestUrlMatch(ISet<UrlToWatch> watchedUrls)
     {
@@ -131,7 +136,7 @@ public class RequestLog
     }
 }
 
-public class RecordingArgs
+public class RecordingArgs : ProxyEventArgsBase
 {
     public RecordingArgs(IEnumerable<RequestLog> requestLogs)
     {
@@ -218,27 +223,27 @@ public class PluginEvents : IPluginEvents
         OptionsLoaded?.Invoke(this, args);
     }
 
-    public async Task RaiseProxyBeforeRequest(ProxyRequestArgs args)
+    public async Task RaiseProxyBeforeRequest(ProxyRequestArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (BeforeRequest is not null)
         {
-            await BeforeRequest.InvokeAsync(this, args, null);
+            await BeforeRequest.InvokeAsync(this, args, exceptionFunc);
         }
     }
 
-    public async Task RaiseProxyBeforeResponse(ProxyResponseArgs args)
+    public async Task RaiseProxyBeforeResponse(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (BeforeResponse is not null)
         {
-            await BeforeResponse.InvokeAsync(this, args, null);
+            await BeforeResponse.InvokeAsync(this, args, exceptionFunc);
         }
     }
 
-    public async Task RaiseProxyAfterResponse(ProxyResponseArgs args)
+    public async Task RaiseProxyAfterResponse(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (AfterResponse is not null)
         {
-            await AfterResponse.InvokeAsync(this, args, null);
+            await AfterResponse.InvokeAsync(this, args, exceptionFunc);
         }
     }
 
@@ -247,19 +252,19 @@ public class PluginEvents : IPluginEvents
         AfterRequestLog?.Invoke(this, args);
     }
 
-    public async Task RaiseRecordingStopped(RecordingArgs args)
+    public async Task RaiseRecordingStopped(RecordingArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (AfterRecordingStop is not null)
         {
-            await AfterRecordingStop.InvokeAsync(this, args, null);
+            await AfterRecordingStop.InvokeAsync(this, args, exceptionFunc);
         }
     }
 
-    public async Task RaiseMockRequest(EventArgs args)
+    public async Task RaiseMockRequest(EventArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (MockRequest is not null)
         {
-            await MockRequest.InvokeAsync(this, args, null);
+            await MockRequest.InvokeAsync(this, args, exceptionFunc);
         }
     }
 }
