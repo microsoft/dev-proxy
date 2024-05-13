@@ -123,8 +123,9 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
         {
             InnerHandler = new HttpClientHandler()
         };
-
-        _logger?.LogDebug("[{now}] Plugin {plugin} checking Azure auth...", DateTime.Now, Name);
+        
+        _logger?.LogDebug("Plugin {plugin} checking Azure auth...", Name);
+        
         try
         {
             _ = authenticationHandler.GetAccessToken(CancellationToken.None).Result;
@@ -138,7 +139,7 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             _logger?.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
             return;
         }
-        _logger?.LogDebug("[{now}] Plugin {plugin} auth confirmed...", DateTime.Now, Name);
+        _logger?.LogDebug("Plugin {plugin} auth confirmed...", Name);
 
         _httpClient = new HttpClient(authenticationHandler);
 

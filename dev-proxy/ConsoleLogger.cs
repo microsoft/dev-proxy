@@ -54,7 +54,7 @@ public class ConsoleLogger : IProxyLogger
     private void WriteDebug(string message)
     {
         Console.ForegroundColor = ConsoleColor.Gray;
-        Console.Error.WriteLine(message);
+        Console.Error.WriteLine($"[{DateTime.Now}] {message}");
         Console.ForegroundColor = _color;
     }
 
