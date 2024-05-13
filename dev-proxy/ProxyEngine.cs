@@ -152,7 +152,15 @@ public class ProxyEngine
             _logger.LogInformation("Configure your application to use this proxy's port and address");
         }
 
-        PrintHotkeys();
+        var isInteractive = !Console.IsInputRedirected &&
+            Environment.GetEnvironmentVariable("CI") is null;
+
+        if (isInteractive)
+        {
+            // only print hotkeys when they can be used
+            PrintHotkeys();
+        }
+
         Console.CancelKeyPress += Console_CancelKeyPress;
 
         if (_config.Record)
@@ -163,8 +171,7 @@ public class ProxyEngine
 
         // we need this check or proxy will fail with an exception
         // when run for example in VSCode's integrated terminal
-        if (!Console.IsInputRedirected &&
-            Environment.GetEnvironmentVariable("CI") is null)
+        if (isInteractive)
         {
             ReadKeys();
         }
