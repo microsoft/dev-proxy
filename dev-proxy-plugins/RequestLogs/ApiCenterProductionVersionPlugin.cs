@@ -89,6 +89,24 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             return;
         }
 
+        // load configuration from env vars
+        if (_configuration.SubscriptionId.StartsWith('@'))
+        {
+            _configuration.SubscriptionId = Environment.GetEnvironmentVariable(_configuration.SubscriptionId.Substring(1)) ?? _configuration.SubscriptionId;
+        }
+        if (_configuration.ResourceGroupName.StartsWith('@'))
+        {
+            _configuration.ResourceGroupName = Environment.GetEnvironmentVariable(_configuration.ResourceGroupName.Substring(1)) ?? _configuration.ResourceGroupName;
+        }
+        if (_configuration.ServiceName.StartsWith('@'))
+        {
+            _configuration.ServiceName = Environment.GetEnvironmentVariable(_configuration.ServiceName.Substring(1)) ?? _configuration.ServiceName;
+        }
+        if (_configuration.WorkspaceName.StartsWith('@'))
+        {
+            _configuration.WorkspaceName = Environment.GetEnvironmentVariable(_configuration.WorkspaceName.Substring(1)) ?? _configuration.WorkspaceName;
+        }
+
         var credentials = new List<TokenCredential>();
         // as defined in DefaultAzureCredential
         var tokenCredentialOptions = new TokenCredentialOptions
