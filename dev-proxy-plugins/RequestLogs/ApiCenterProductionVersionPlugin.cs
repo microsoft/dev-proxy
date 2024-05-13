@@ -36,8 +36,8 @@ internal class ApiCenterProductionVersionPluginConfiguration
     public string ResourceGroupName { get; set; } = "";
     public string ServiceName { get; set; } = "";
     public string WorkspaceName { get; set; } = "default";
-    public bool ExcludeDevCredentials { get; set; } = false;
-    public bool ExcludeProdCredentials { get; set; } = true;
+    public bool UseDevCredentials { get; set; } = true;
+    public bool UseProdCredentials { get; set; } = false;
 }
 
 public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
@@ -78,9 +78,14 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             _logger?.LogError("Specify ServiceName in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
             return;
         }
-        if (_configuration.ExcludeDevCredentials && _configuration.ExcludeProdCredentials)
+        if (!_configuration.UseDevCredentials && !_configuration.UseProdCredentials)
         {
-            _logger?.LogError("Both ExcludeDevCredentials and ExcludeProdCredentials are set to true. You need to use at least one set of credentials The {plugin} will not be used.", Name);
+            _logger?.LogError(
+                "Both {useDev} and {useProd} are set to false. You need to use at least one set of credentials The {plugin} will not be used.",
+                nameof(ApiCenterProductionVersionPluginConfiguration.UseDevCredentials),
+                nameof(ApiCenterProductionVersionPluginConfiguration.UseProdCredentials),
+                Name
+            );
             return;
         }
 
@@ -93,7 +98,7 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
                 NetworkTimeout = TimeSpan.FromSeconds(1)
             }
         };
-        if (!_configuration.ExcludeDevCredentials)
+        if (_configuration.UseDevCredentials)
         {
             credentials.AddRange([
                 new SharedTokenCacheCredential(),
@@ -104,7 +109,7 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
                 new AzureDeveloperCliCredential(),
             ]);
         }
-        if (!_configuration.ExcludeProdCredentials)
+        if (_configuration.UseProdCredentials)
         {
             credentials.AddRange([
                 new EnvironmentCredential(),
