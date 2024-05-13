@@ -47,7 +47,7 @@ public class ConsoleLogger : IProxyLogger
     private void WriteError(string message)
     {
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.Error.WriteLine($"ERROR: {message}");
+        Console.Error.WriteLine(message);
         Console.ForegroundColor = _color;
     }
 
