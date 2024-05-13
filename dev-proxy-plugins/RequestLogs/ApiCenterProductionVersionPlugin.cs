@@ -3,6 +3,8 @@
 
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
+using System.Dynamic;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Azure.Core;
 using Azure.Core.Diagnostics;
@@ -12,26 +14,20 @@ using Microsoft.DevProxy.Plugins;
 using Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Readers;
 
 internal class ApiInformation
 {
+    public string Name { get; set; } = "";
     public ApiInformationVersion[] Versions { get; set; } = [];
-    // deployment.properties.server.runtimeUri[]
-    public string[] Urls { get; set; } = [];
 }
 
 internal class ApiInformationVersion
 {
-    public ApiInformationVersionInformation Version { get; set; } = new();
-    public ApiLifecycleStage? LifecycleStage { get; set; }
-}
-
-internal class ApiInformationVersionInformation
-{
-    // properties.title
+    public string Title { get; set; } = "";
     public string Name { get; set; } = "";
-    // name
-    public string Id { get; set; } = "";
+    public ApiLifecycleStage? LifecycleStage { get; set; }
+    public string[] Urls { get; set; } = [];
 }
 
 internal class ApiCenterProductionVersionPluginConfiguration
@@ -155,44 +151,85 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
 
         Debug.Assert(_httpClient is not null);
 
-        var apis = await LoadApisFromApiCenter();
-        if (apis == null || !apis.Value.Any())
+        var apisFromApiCenter = await LoadApisFromApiCenter();
+        if (apisFromApiCenter == null || !apisFromApiCenter.Value.Any())
         {
             _logger?.LogInformation("No APIs found in API Center");
             return;
         }
 
         var apisInformation = new List<ApiInformation>();
-        foreach (var api in apis.Value)
+        foreach (var api in apisFromApiCenter.Value)
         {
-            var apiVersions = await LoadApiVersions(api);
-            if (apiVersions == null || !apiVersions.Value.Any())
+            var apiVersionsFromApiCenter = await LoadApiVersionsFromApiCenter(api);
+            if (apiVersionsFromApiCenter == null || !apiVersionsFromApiCenter.Value.Any())
             {
                 _logger?.LogInformation("No versions found for {api}", api.Properties?.Title);
                 continue;
             }
 
-            var apiInformationVersion = apiVersions.Value.Select(v => new ApiInformationVersion
+            var versions = new List<ApiInformationVersion>();
+            foreach (var versionFromApiCenter in apiVersionsFromApiCenter.Value)
             {
-                Version = new ApiInformationVersionInformation
-                {
-                    Name = v.Properties?.Title ?? "",
-                    Id = v.Id ?? ""
-                },
-                LifecycleStage = v.Properties?.LifecycleStage
-            }).ToArray();
+                Debug.Assert(versionFromApiCenter.Id is not null);
 
-            var apiDeployments = await LoadApiDeployments(api);
-            if (apiDeployments == null || !apiDeployments.Value.Any())
+                var definitionsFromApiCenter = await LoadApiDefinitionsForVersion(versionFromApiCenter.Id);
+                if (definitionsFromApiCenter is null || !definitionsFromApiCenter.Value.Any())
+                {
+                    _logger?.LogDebug("No definitions found for version {versionId}", versionFromApiCenter.Id);
+                    continue;
+                }
+
+                var apiUrls = new HashSet<string>();
+                foreach (var definitionFromApiCenter in definitionsFromApiCenter.Value)
+                {
+                    Debug.Assert(definitionFromApiCenter.Id is not null);
+
+                    await EnsureApiDefinition(definitionFromApiCenter);
+
+                    if (definitionFromApiCenter.Definition is null)
+                    {
+                        _logger?.LogDebug("API definition not found for {definitionId}", definitionFromApiCenter.Id);
+                        continue;
+                    }
+
+                    if (!definitionFromApiCenter.Definition.Servers.Any())
+                    {
+                        _logger?.LogDebug("No servers found for API definition {definitionId}", definitionFromApiCenter.Id);
+                        continue;
+                    }
+
+                    foreach (var server in definitionFromApiCenter.Definition.Servers)
+                    {
+                        apiUrls.Add(server.Url);
+                    }
+                }
+
+                if (!apiUrls.Any())
+                {
+                    _logger?.LogDebug("No URLs found for version {versionId}", versionFromApiCenter.Id);
+                    continue;
+                }
+
+                versions.Add(new ApiInformationVersion
+                {
+                    Title = versionFromApiCenter.Properties?.Title ?? "",
+                    Name = versionFromApiCenter.Name ?? "",
+                    LifecycleStage = versionFromApiCenter.Properties?.LifecycleStage,
+                    Urls = apiUrls.ToArray()
+                });
+            }
+
+            if (!versions.Any())
             {
-                _logger?.LogInformation("No deployments found for {api}", api.Properties?.Title);
+                _logger?.LogInformation("No versions found for {api}", api.Properties?.Title);
                 continue;
             }
 
             apisInformation.Add(new ApiInformation
             {
-                Versions = apiInformationVersion,
-                Urls = apiDeployments.Value.SelectMany(d => d.Properties?.Server?.RuntimeUri ?? Array.Empty<string>()).ToArray()
+                Name = api.Properties?.Title ?? "",
+                Versions = versions.ToArray()
             });
         }
 
@@ -219,15 +256,15 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             {
                 var productionVersions = apiInformation.Versions
                     .Where(v => v.LifecycleStage == ApiLifecycleStage.Production)
-                    .Select(v => v.Version.Name);
+                    .Select(v => v.Title);
 
                 if (productionVersions.Any())
                 {
-                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}. Upgrade to a production version of the API. Recommended versions: {versions}", urlAndMethodString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Version.Name, lifecycleStage, string.Join(", ", productionVersions));
+                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}. Upgrade to a production version of the API. Recommended versions: {versions}", urlAndMethodString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage, string.Join(", ", productionVersions));
                 }
                 else
                 {
-                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}.", urlAndMethodString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Version.Name, lifecycleStage);                    
+                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}.", urlAndMethodString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage);
                 }
             }
         }
@@ -235,9 +272,71 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
         _logger?.LogInformation("DONE");
     }
 
+    private async Task<Collection<ApiDefinition>?> LoadApiDefinitionsForVersion(string versionId)
+    {
+        Debug.Assert(_httpClient is not null);
+
+        _logger?.LogDebug("Loading API definitions for version {id}...", versionId);
+
+        var res = await _httpClient.GetStringAsync($"https://management.azure.com{versionId}/definitions?api-version=2024-03-01");
+        return JsonSerializer.Deserialize<Collection<ApiDefinition>>(res, _jsonSerializerOptions);
+    }
+
+    async Task EnsureApiDefinition(ApiDefinition apiDefinition)
+    {
+        Debug.Assert(_httpClient is not null);
+
+        if (apiDefinition.Definition is not null)
+        {
+            _logger?.LogDebug("API definition already loaded for {apiDefinitionId}", apiDefinition.Id);
+            return;
+        }
+
+        _logger?.LogDebug("Loading API definition for {apiDefinitionId}...", apiDefinition.Id);
+
+        var res = await _httpClient.GetStringAsync($"https://management.azure.com{apiDefinition.Id}?api-version=2024-03-01");
+        var definition = JsonSerializer.Deserialize<ApiDefinition>(res, _jsonSerializerOptions);
+        if (definition is null)
+        {
+            _logger?.LogError("Failed to deserialize API definition for {apiDefinitionId}", apiDefinition.Id);
+            return;
+        }
+
+        apiDefinition.Properties = definition.Properties;
+        if (apiDefinition.Properties?.Specification?.Name != "openapi")
+        {
+            _logger?.LogDebug("API definition is not OpenAPI for {apiDefinitionId}", apiDefinition.Id);
+            return;
+        }
+
+        var definitionRes = await _httpClient.PostAsync($"https://management.azure.com{apiDefinition.Id}/exportSpecification?api-version=2024-03-01", null);
+        var exportResult = await definitionRes.Content.ReadFromJsonAsync<ApiSpecExportResult>();
+        if (exportResult is null)
+        {
+            _logger?.LogError("Failed to deserialize exported API definition for {apiDefinitionId}", apiDefinition.Id);
+            return;
+        }
+
+        if (exportResult.Format != ApiSpecExportResultFormat.Inline)
+        {
+            _logger?.LogDebug("API definition is not inline for {apiDefinitionId}", apiDefinition.Id);
+            return;
+        }
+
+        try
+        {
+            apiDefinition.Definition = new OpenApiStringReader().Read(exportResult.Value, out _);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to parse OpenAPI document for {apiDefinitionId}", apiDefinition.Id);
+            return;
+        }
+    }
+
     private ApiInformation? FindMatchingApiInformation(string requestUrl, List<ApiInformation>? apisInformation)
     {
-        var apiInformation = apisInformation?.FirstOrDefault(a => a.Urls.Any(u => requestUrl.StartsWith(u)));
+        var apiInformation = apisInformation?.FirstOrDefault(a => a.Versions.Any(v => v.Urls.Any(u => requestUrl.StartsWith(u))));
         if (apiInformation is null)
         {
             _logger?.LogDebug("No matching API found for {request}", requestUrl);
@@ -259,9 +358,9 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
         foreach (var apiVersion in apiInformation.Versions)
         {
             // check URL
-            if (requestUrl.Contains(apiVersion.Version.Id) || requestUrl.Contains(apiVersion.Version.Name))
+            if (requestUrl.Contains(apiVersion.Name) || requestUrl.Contains(apiVersion.Title))
             {
-                _logger?.LogDebug("Version {version} found in URL {url}", $"{apiVersion.Version.Id}/{apiVersion.Version.Name}", requestUrl);
+                _logger?.LogDebug("Version {version} found in URL {url}", $"{apiVersion.Name}/{apiVersion.Title}", requestUrl);
                 version = apiVersion;
                 break;
             }
@@ -269,12 +368,12 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             // check headers
             Debug.Assert(request.Context is not null);
             var header = request.Context.Session.HttpClient.Request.Headers.FirstOrDefault(
-                h => h.Value.Contains(apiVersion.Version.Id) ||
-                h.Value.Contains(apiVersion.Version.Name)
+                h => h.Value.Contains(apiVersion.Name) ||
+                h.Value.Contains(apiVersion.Title)
             );
             if (header is not null)
             {
-                _logger?.LogDebug("Version {version} found in header {header}", $"{apiVersion.Version.Id}/{apiVersion.Version.Name}", header.Name);
+                _logger?.LogDebug("Version {version} found in header {header}", $"{apiVersion.Name}/{apiVersion.Title}", header.Name);
                 version = apiVersion;
                 break;
             }
@@ -289,7 +388,7 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
         return version.LifecycleStage;
     }
 
-    private async Task<Collection<ApiVersion>?> LoadApiVersions(Api api)
+    private async Task<Collection<ApiVersion>?> LoadApiVersionsFromApiCenter(Api api)
     {
         Debug.Assert(_httpClient is not null);
 

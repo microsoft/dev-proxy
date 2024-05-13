@@ -163,7 +163,8 @@ public class ProxyEngine
 
         // we need this check or proxy will fail with an exception
         // when run for example in VSCode's integrated terminal
-        if (!Console.IsInputRedirected)
+        if (!Console.IsInputRedirected &&
+            Environment.GetEnvironmentVariable("CI") is null)
         {
             ReadKeys();
         }
