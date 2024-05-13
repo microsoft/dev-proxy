@@ -142,11 +142,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         {
             _ = authenticationHandler.GetAccessToken(CancellationToken.None).Result;
         }
-        catch (Exception ex) when
-            // dev credential
-            (ex is AuthenticationFailedException ||
-            // prod credential
-            ex is AggregateException && ex.InnerException is CredentialUnavailableException)
+        catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
             return;
