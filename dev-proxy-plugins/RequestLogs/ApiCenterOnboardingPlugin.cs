@@ -75,6 +75,14 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         }
 
         var credentials = new List<TokenCredential>();
+        // as defined in DefaultAzureCredential
+        var tokenCredentialOptions = new TokenCredentialOptions
+        {
+            Retry =
+            {
+                NetworkTimeout = TimeSpan.FromSeconds(1)
+            }
+        };
         if (!_configuration.ExcludeDevCredentials)
         {
             credentials.AddRange([
@@ -91,7 +99,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             credentials.AddRange([
                 new EnvironmentCredential(),
                 new WorkloadIdentityCredential(),
-                new ManagedIdentityCredential()
+                new ManagedIdentityCredential(options: tokenCredentialOptions)
             ]);
         }
         _credential = new ChainedTokenCredential(credentials.ToArray());
@@ -111,7 +119,11 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         {
             _ = authenticationHandler.GetAccessToken(CancellationToken.None).Result;
         }
-        catch (AuthenticationFailedException ex)
+        catch (Exception ex) when
+            // dev credential
+            (ex is AuthenticationFailedException ||
+            // prod credential
+            ex is AggregateException && ex.InnerException is CredentialUnavailableException)
         {
             _logger?.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
             return;
