@@ -34,8 +34,7 @@ public class ConsoleLogger : IProxyLogger
 
     private void WriteLog(string message)
     {
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        Console.WriteLine($"[{timestamp}] {message}");
+        Console.WriteLine(message);
     }
 
     private void WriteWarning(string message)
@@ -47,17 +46,15 @@ public class ConsoleLogger : IProxyLogger
 
     private void WriteError(string message)
     {
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.Error.WriteLine($"[{timestamp}] ERROR: {message}");
+        Console.Error.WriteLine($"ERROR: {message}");
         Console.ForegroundColor = _color;
     }
 
     private void WriteDebug(string message)
     {
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         Console.ForegroundColor = ConsoleColor.Gray;
-        Console.Error.WriteLine($"[{timestamp}] {message}");
+        Console.Error.WriteLine($"[{DateTime.Now}] {message}");
         Console.ForegroundColor = _color;
     }
 
