@@ -147,6 +147,7 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
             {
                 { "scp", "user_impersonation" },
                 { "sub", "l3_roISQU222bULS9yi2k0XpqpOiMz5H3ZACo1GeXA" },
+                { "ver", "1.0" },
                 // Graph Connector Service
                 { "appid", "56c1da01-2129-48f7-9355-af6d59d42766" }
             },
