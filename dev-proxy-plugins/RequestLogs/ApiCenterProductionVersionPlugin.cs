@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
-using System.Dynamic;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Azure.Core;
@@ -36,15 +35,17 @@ internal class ApiCenterProductionVersionPluginConfiguration
     public string ResourceGroupName { get; set; } = "";
     public string ServiceName { get; set; } = "";
     public string WorkspaceName { get; set; } = "default";
-    public bool UseDevCredentials { get; set; } = true;
-    public bool UseProdCredentials { get; set; } = false;
 }
 
 public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
 {
     private ApiCenterProductionVersionPluginConfiguration _configuration = new();
     private readonly string[] _scopes = ["https://management.azure.com/.default"];
-    private TokenCredential _credential = new DefaultAzureCredential();
+    private TokenCredential _credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions() {
+        ExcludeInteractiveBrowserCredential = true,
+        // fails on Ubuntu
+        ExcludeSharedTokenCacheCredential = true
+    });
     private HttpClient? _httpClient;
     private JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
     {
@@ -78,16 +79,6 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             _logger?.LogError("Specify ServiceName in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
             return;
         }
-        if (!_configuration.UseDevCredentials && !_configuration.UseProdCredentials)
-        {
-            _logger?.LogError(
-                "Both {useDev} and {useProd} are set to false. You need to use at least one set of credentials The {plugin} will not be used.",
-                nameof(ApiCenterProductionVersionPluginConfiguration.UseDevCredentials),
-                nameof(ApiCenterProductionVersionPluginConfiguration.UseProdCredentials),
-                Name
-            );
-            return;
-        }
 
         // load configuration from env vars
         if (_configuration.SubscriptionId.StartsWith('@'))
@@ -106,36 +97,6 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
         {
             _configuration.WorkspaceName = Environment.GetEnvironmentVariable(_configuration.WorkspaceName.Substring(1)) ?? _configuration.WorkspaceName;
         }
-
-        var credentials = new List<TokenCredential>();
-        // as defined in DefaultAzureCredential
-        var tokenCredentialOptions = new TokenCredentialOptions
-        {
-            Retry =
-            {
-                NetworkTimeout = TimeSpan.FromSeconds(1)
-            }
-        };
-        if (_configuration.UseDevCredentials)
-        {
-            credentials.AddRange([
-                new SharedTokenCacheCredential(),
-                new VisualStudioCredential(),
-                new VisualStudioCodeCredential(),
-                new AzureCliCredential(),
-                new AzurePowerShellCredential(),
-                new AzureDeveloperCliCredential(),
-            ]);
-        }
-        if (_configuration.UseProdCredentials)
-        {
-            credentials.AddRange([
-                new EnvironmentCredential(),
-                new WorkloadIdentityCredential(),
-                new ManagedIdentityCredential(options: tokenCredentialOptions)
-            ]);
-        }
-        _credential = new ChainedTokenCredential(credentials.ToArray());
 
         if (_logger?.LogLevel == LogLevel.Debug)
         {

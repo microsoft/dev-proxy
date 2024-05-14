@@ -26,15 +26,17 @@ internal class ApiCenterOnboardingPluginConfiguration
     public string ServiceName { get; set; } = "";
     public string WorkspaceName { get; set; } = "default";
     public bool CreateApicEntryForNewApis { get; set; } = true;
-    public bool UseDevCredentials { get; set; } = true;
-    public bool UseProdCredentials { get; set; } = false;
 }
 
 public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 {
     private ApiCenterOnboardingPluginConfiguration _configuration = new();
     private readonly string[] _scopes = ["https://management.azure.com/.default"];
-    private TokenCredential _credential = new DefaultAzureCredential();
+    private TokenCredential _credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions() {
+        ExcludeInteractiveBrowserCredential = true,
+        // fails on Ubuntu
+        ExcludeSharedTokenCacheCredential = true
+    });
     private HttpClient? _httpClient;
     private JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
     {
@@ -68,16 +70,6 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             _logger?.LogError("Specify ServiceName in the {plugin} configuration. The {plugin} will not be used.", Name, Name);
             return;
         }
-        if (!_configuration.UseDevCredentials && !_configuration.UseProdCredentials)
-        {
-            _logger?.LogError(
-                "Both {useDev} and {useProd} are set to false. You need to use at least one set of credentials The {plugin} will not be used.",
-                nameof(ApiCenterOnboardingPluginConfiguration.UseDevCredentials),
-                nameof(ApiCenterOnboardingPluginConfiguration.UseProdCredentials),
-                Name
-            );
-            return;
-        }
 
         // load configuration from env vars
         if (_configuration.SubscriptionId.StartsWith('@'))
@@ -96,36 +88,6 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
         {
             _configuration.WorkspaceName = Environment.GetEnvironmentVariable(_configuration.WorkspaceName.Substring(1)) ?? _configuration.WorkspaceName;
         }
-
-        var credentials = new List<TokenCredential>();
-        // as defined in DefaultAzureCredential
-        var tokenCredentialOptions = new TokenCredentialOptions
-        {
-            Retry =
-            {
-                NetworkTimeout = TimeSpan.FromSeconds(1)
-            }
-        };
-        if (_configuration.UseDevCredentials)
-        {
-            credentials.AddRange([
-                new SharedTokenCacheCredential(),
-                new VisualStudioCredential(),
-                new VisualStudioCodeCredential(),
-                new AzureCliCredential(),
-                new AzurePowerShellCredential(),
-                new AzureDeveloperCliCredential(),
-            ]);
-        }
-        if (_configuration.UseProdCredentials)
-        {
-            credentials.AddRange([
-                new EnvironmentCredential(),
-                new WorkloadIdentityCredential(),
-                new ManagedIdentityCredential(options: tokenCredentialOptions)
-            ]);
-        }
-        _credential = new ChainedTokenCredential(credentials.ToArray());
 
         if (_logger?.LogLevel == LogLevel.Debug)
         {
