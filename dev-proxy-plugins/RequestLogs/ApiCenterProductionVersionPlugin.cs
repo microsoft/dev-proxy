@@ -132,7 +132,8 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             .Where(
                 l => l.MessageType == MessageType.InterceptedRequest &&
                 l.Context?.Session is not null
-            );
+            )
+            .DistinctBy(r => r.MessageLines.First());
         if (!interceptedRequests.Any())
         {
             _logger?.LogDebug("No requests to process");
