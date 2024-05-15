@@ -10,7 +10,6 @@ using System.CommandLine.Invocation;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -363,10 +362,9 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
                     {
                         _logger?.LogInformation("Minimal permissions:\r\n{minimalPermissions}\r\nPermissions on the token:\r\n{tokenPermissions}", string.Join(", ", minimalPermissions), string.Join(", ", permissionsFromAccessToken));
 
-
                         if (excessPermissions.Any())
                         {
-                            _logger?.LogWarning("The following permissions are unnecessary: {permissions}", excessPermissions);
+                            _logger?.LogWarning("The following permissions are unnecessary: {permissions}", string.Join(", ", excessPermissions));
                         }
                         else
                         {
@@ -376,7 +374,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
                 }
                 if (errors.Any())
                 {
-                    _logger?.LogError("Couldn't determine minimal permissions for the following URLs: {errors}", errors);
+                    _logger?.LogError("Couldn't determine minimal permissions for the following URLs: {errors}", string.Join(", ", errors));
                 }
             }
         }
