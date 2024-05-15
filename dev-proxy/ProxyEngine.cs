@@ -33,7 +33,9 @@ public class ProxyEngine
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
     private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
-    private Dictionary<string, object> _globalData = new();
+    private Dictionary<string, object> _globalData = new() {
+        { ProxyUtils.ReportsKey, new Dictionary<string, object>() }
+    };
 
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();

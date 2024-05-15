@@ -30,29 +30,39 @@ internal class PluginLoader
     public PluginLoaderResult LoadPlugins(IPluginEvents pluginEvents, IProxyContext proxyContext)
     {
         List<IProxyPlugin> plugins = new();
-        PluginConfig config = PluginConfig;
-        List<UrlToWatch> globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
-        ISet<UrlToWatch> defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
-        string? configFileDirectory = Path.GetDirectoryName(Path.GetFullPath(ProxyUtils.ReplacePathTokens(ProxyHost.ConfigFile)));
+        var config = PluginConfig;
+        var globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
+        var defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
+        var configFileDirectory = Path.GetDirectoryName(Path.GetFullPath(ProxyUtils.ReplacePathTokens(ProxyHost.ConfigFile)));
+        // key = location
+        var pluginContexts = new Dictionary<string, PluginLoadContext>();
+
         if (!string.IsNullOrEmpty(configFileDirectory))
         {
             foreach (PluginReference h in config.Plugins)
             {
                 if (!h.Enabled) continue;
                 // Load Handler Assembly if enabled
-                string pluginLocation = Path.GetFullPath(Path.Combine(configFileDirectory, ProxyUtils.ReplacePathTokens(h.PluginPath.Replace('\\', Path.DirectorySeparatorChar))));
-                PluginLoadContext pluginLoadContext = new PluginLoadContext(pluginLocation);
+                var pluginLocation = Path.GetFullPath(Path.Combine(configFileDirectory, ProxyUtils.ReplacePathTokens(h.PluginPath.Replace('\\', Path.DirectorySeparatorChar))));
+
+                if (!pluginContexts.TryGetValue(pluginLocation, out PluginLoadContext? pluginLoadContext))
+                {
+                    pluginLoadContext = new PluginLoadContext(pluginLocation);
+                    pluginContexts.Add(pluginLocation, pluginLoadContext);
+                }
+
                 _logger?.LogDebug("Loading plugin {pluginName} from: {pluginLocation}", h.Name, pluginLocation);
-                Assembly assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
-                IEnumerable<UrlToWatch>? pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
+                var assembly = pluginLoadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
+                var pluginUrlsList = h.UrlsToWatch?.Select(ConvertToRegex);
                 ISet<UrlToWatch>? pluginUrls = null;
+
                 if (pluginUrlsList is not null)
                 {
                     pluginUrls = pluginUrlsList.ToHashSet();
                     globallyWatchedUrls.AddRange(pluginUrlsList);
                 }
-                // Load Plugins from assembly
-                IProxyPlugin plugin = CreatePlugin(assembly, h);
+
+                var plugin = CreatePlugin(assembly, h);
                 _logger?.LogDebug("Registering plugin {pluginName}...", plugin.Name);
                 plugin.Register(
                     pluginEvents,

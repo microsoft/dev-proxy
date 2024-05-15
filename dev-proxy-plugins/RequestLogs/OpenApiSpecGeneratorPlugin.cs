@@ -323,11 +323,11 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
             var fileName = GetFileNameFromServerUrl(server.Url);
             var docString = openApiDoc.SerializeAsJson(OpenApiSpecVersion.OpenApi3_0);
 
-            _logger?.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
-            File.WriteAllText(fileName, docString);
-            generatedOpenApiSpecs.Add(server.Url, fileName);
+            ((Dictionary<string, object>)e.GlobalData[ProxyUtils.ReportsKey])[fileName] = docString;
 
-            _logger?.LogInformation("Created OpenAPI spec file {fileName}", fileName);
+            generatedOpenApiSpecs.Add(server.Url, docString);
+
+            _logger?.LogInformation("Created OpenAPI spec for {server}", server.Url);
         }
 
         // store the generated OpenAPI specs in the global data

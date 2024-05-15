@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
 
-internal class RequestInfo
+public class RequestInfo
 {
     [JsonPropertyName("requestUrl")]
     public string Url { get; set; } = string.Empty;

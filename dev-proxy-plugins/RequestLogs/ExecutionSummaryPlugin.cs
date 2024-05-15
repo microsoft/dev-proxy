@@ -5,10 +5,17 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
+
+public abstract class ExecutionSummaryPluginReportBase
+{
+    public required Dictionary<string, Dictionary<string, Dictionary<string, int>>> Data { get; init; }
+    public required IEnumerable<RequestLog> Logs { get; init; }
+}
+
+public class ExecutionSummaryPluginReportByUrl : ExecutionSummaryPluginReportBase;
+public class ExecutionSummaryPluginReportByMessageType : ExecutionSummaryPluginReportBase;
 
 internal enum SummaryGroupBy
 {
@@ -18,7 +25,6 @@ internal enum SummaryGroupBy
 
 internal class ExecutionSummaryPluginConfiguration
 {
-    public string FilePath { get; set; } = "";
     public SummaryGroupBy GroupBy { get; set; } = SummaryGroupBy.Url;
 }
 
@@ -26,39 +32,12 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 {
     public override string Name => nameof(ExecutionSummaryPlugin);
     private ExecutionSummaryPluginConfiguration _configuration = new();
-    private static readonly string _filePathOptionName = "--summary-file-path";
     private static readonly string _groupByOptionName = "--summary-group-by";
     private const string _requestsInterceptedMessage = "Requests intercepted";
     private const string _requestsPassedThroughMessage = "Requests passed through";
 
     public override Option[] GetOptions()
     {
-        var filePath = new Option<string?>(_filePathOptionName, "Path to the file where the summary should be saved. If not specified, the summary will be printed to the console. Path can be absolute or relative to the current working directory.")
-        {
-            ArgumentHelpName = "summary-file-path"
-        };
-        filePath.AddValidator(input =>
-        {
-            var outputFilePath = input.Tokens.First().Value;
-            if (string.IsNullOrEmpty(outputFilePath))
-            {
-                return;
-            }
-
-            var dirName = Path.GetDirectoryName(outputFilePath);
-            if (string.IsNullOrEmpty(dirName))
-            {
-                // current directory exists so no need to check
-                return;
-            }
-
-            var outputDir = Path.GetFullPath(dirName);
-            if (!Directory.Exists(outputDir))
-            {
-                input.ErrorMessage = $"The directory {outputDir} does not exist.";
-            }
-        });
-
         var groupBy = new Option<SummaryGroupBy?>(_groupByOptionName, "Specifies how the information should be grouped in the summary. Available options: `url` (default), `messageType`.")
         {
             ArgumentHelpName = "summary-group-by"
@@ -71,7 +50,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
             }
         });
 
-        return [filePath, groupBy];
+        return [groupBy];
     }
 
     public override void Register(IPluginEvents pluginEvents,
@@ -91,12 +70,6 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
     {
         InvocationContext context = e.Context;
 
-        var filePath = context.ParseResult.GetValueForOption<string?>(_filePathOptionName, e.Options);
-        if (filePath is not null)
-        {
-            _configuration.FilePath = filePath;
-        }
-
         var groupBy = context.ParseResult.GetValueForOption<SummaryGroupBy?>(_groupByOptionName, e.Options);
         if (groupBy is not null)
         {
@@ -111,124 +84,16 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
             return Task.CompletedTask;
         }
 
-        var report = _configuration.GroupBy switch
+        ExecutionSummaryPluginReportBase report = _configuration.GroupBy switch
         {
-            SummaryGroupBy.Url => GetGroupedByUrlReport(e.RequestLogs),
-            SummaryGroupBy.MessageType => GetGroupedByMessageTypeReport(e.RequestLogs),
+            SummaryGroupBy.Url => new ExecutionSummaryPluginReportByUrl { Data = GetGroupedByUrlData(e.RequestLogs), Logs = e.RequestLogs },
+            SummaryGroupBy.MessageType => new ExecutionSummaryPluginReportByMessageType { Data = GetGroupedByMessageTypeData(e.RequestLogs), Logs = e.RequestLogs },
             _ => throw new NotImplementedException()
         };
 
-        if (string.IsNullOrEmpty(_configuration.FilePath))
-        {
-            _logger?.LogInformation("Report:\r\n{report}", string.Join(Environment.NewLine, report));
-        }
-        else
-        {
-            File.WriteAllLines(_configuration.FilePath, report);
-        }
+        ((Dictionary<string, object>)e.GlobalData[ProxyUtils.ReportsKey])[Name] = report;
 
         return Task.CompletedTask;
-    }
-
-    private string[] GetGroupedByUrlReport(IEnumerable<RequestLog> requestLogs)
-    {
-        var report = new List<string>();
-        report.AddRange(GetReportTitle());
-        report.Add("## Requests");
-
-        var data = GetGroupedByUrlData(requestLogs);
-
-        var sortedMethodAndUrls = data.Keys.OrderBy(k => k);
-        foreach (var methodAndUrl in sortedMethodAndUrls)
-        {
-            report.AddRange(new[] {
-        "",
-        $"### {methodAndUrl}",
-      });
-
-            var sortedMessageTypes = data[methodAndUrl].Keys.OrderBy(k => k);
-            foreach (var messageType in sortedMessageTypes)
-            {
-                report.AddRange(new[] {
-          "",
-          $"#### {messageType}",
-          ""
-        });
-
-                var sortedMessages = data[methodAndUrl][messageType].Keys.OrderBy(k => k);
-                foreach (var message in sortedMessages)
-                {
-                    report.Add($"- ({data[methodAndUrl][messageType][message]}) {message}");
-                }
-            }
-        }
-
-        report.AddRange(GetSummary(requestLogs));
-
-        return report.ToArray();
-    }
-
-    private string[] GetGroupedByMessageTypeReport(IEnumerable<RequestLog> requestLogs)
-    {
-        var report = new List<string>();
-        report.AddRange(GetReportTitle());
-        report.Add("## Message types");
-
-        var data = GetGroupedByMessageTypeData(requestLogs);
-
-        var sortedMessageTypes = data.Keys.OrderBy(k => k);
-        foreach (var messageType in sortedMessageTypes)
-        {
-            report.AddRange(new[] {
-        "",
-        $"### {messageType}"
-      });
-
-            if (messageType == _requestsInterceptedMessage ||
-                messageType == _requestsPassedThroughMessage)
-            {
-                report.Add("");
-
-                var sortedMethodAndUrls = data[messageType][messageType].Keys.OrderBy(k => k);
-                foreach (var methodAndUrl in sortedMethodAndUrls)
-                {
-                    report.Add($"- ({data[messageType][messageType][methodAndUrl]}) {methodAndUrl}");
-                }
-            }
-            else
-            {
-                var sortedMessages = data[messageType].Keys.OrderBy(k => k);
-                foreach (var message in sortedMessages)
-                {
-                    report.AddRange(new[] {
-            "",
-            $"#### {message}",
-            ""
-          });
-
-                    var sortedMethodAndUrls = data[messageType][message].Keys.OrderBy(k => k);
-                    foreach (var methodAndUrl in sortedMethodAndUrls)
-                    {
-                        report.Add($"- ({data[messageType][message][methodAndUrl]}) {methodAndUrl}");
-                    }
-                }
-            }
-        }
-
-        report.AddRange(GetSummary(requestLogs));
-
-        return report.ToArray();
-    }
-
-    private string[] GetReportTitle()
-    {
-        return new string[]
-        {
-      "# Dev Proxy execution summary",
-      "",
-      $"Date: {DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}",
-      ""
-        };
     }
 
     // in this method we're producing the follow data structure
@@ -251,7 +116,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
                 var request = GetMethodAndUrl(log);
                 if (!data.ContainsKey(request))
                 {
-                    data.Add(request, new Dictionary<string, Dictionary<string, int>>());
+                    data.Add(request, []);
                 }
 
                 continue;
@@ -262,7 +127,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
             var readableMessageType = GetReadableMessageTypeForSummary(log.MessageType);
             if (!data[methodAndUrl].ContainsKey(readableMessageType))
             {
-                data[methodAndUrl].Add(readableMessageType, new Dictionary<string, int>());
+                data[methodAndUrl].Add(readableMessageType, []);
             }
 
             if (data[methodAndUrl][readableMessageType].ContainsKey(message))
@@ -349,7 +214,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
 
     private string GetRequestMessage(RequestLog requestLog)
     {
-        return String.Join(' ', requestLog.MessageLines);
+        return string.Join(' ', requestLog.MessageLines);
     }
 
     private string GetMethodAndUrl(RequestLog requestLog)
@@ -362,31 +227,6 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
         {
             return "Undefined";
         }
-    }
-
-    private string[] GetSummary(IEnumerable<RequestLog> requestLogs)
-    {
-        var data = requestLogs
-          .Where(log => log.MessageType != MessageType.InterceptedResponse)
-          .Select(log => GetReadableMessageTypeForSummary(log.MessageType))
-          .OrderBy(log => log)
-          .GroupBy(log => log)
-          .ToDictionary(group => group.Key, group => group.Count());
-
-        var summary = new List<string> {
-        "",
-        "## Summary",
-        "",
-        "Category|Count",
-        "--------|----:"
-    };
-
-        foreach (var messageType in data.Keys)
-        {
-            summary.Add($"{messageType}|{data[messageType]}");
-        }
-
-        return summary.ToArray();
     }
 
     private string GetReadableMessageTypeForSummary(MessageType messageType) => messageType switch
