@@ -852,12 +852,10 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
     {
         try
         {
-            using (JsonDocument doc = JsonDocument.Parse(jsonString))
-            {
-                JsonElement root = doc.RootElement;
-                var schema = GetSchemaFromJsonElement(root);
-                return schema;
-            }
+            using var doc = JsonDocument.Parse(jsonString);
+            JsonElement root = doc.RootElement;
+            var schema = GetSchemaFromJsonElement(root);
+            return schema;
         }
         catch
         {

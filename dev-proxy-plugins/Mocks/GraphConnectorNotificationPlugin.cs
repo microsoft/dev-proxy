@@ -38,7 +38,7 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
         configSection?.Bind(_graphConnectorConfiguration);
         _graphConnectorConfiguration.MockFile = _configuration.MockFile;
         _graphConnectorConfiguration.Request = _configuration.Request;
-        
+
         pluginEvents.BeforeRequest += OnBeforeRequest;
     }
 
@@ -96,43 +96,41 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
             return;
         }
 
-        using (var httpClient = new HttpClient())
+        using var httpClient = new HttpClient();
+        var requestMessage = GetRequestMessage();
+        if (requestMessage.Content is null)
         {
-            var requestMessage = GetRequestMessage();
-            if (requestMessage.Content is null)
+            _logger?.LogError("No body found in the mock request. Skipping.");
+            return;
+        }
+        var requestBody = await requestMessage.Content.ReadAsStringAsync();
+        requestBody = requestBody.Replace("@dynamic.validationToken", GetJwtToken());
+        requestMessage.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+        LoadTicket();
+
+        try
+        {
+            _logger?.LogRequest(["Sending Graph connector notification"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
+
+            var response = await httpClient.SendAsync(requestMessage);
+
+            if (response.StatusCode != HttpStatusCode.Accepted)
             {
-                _logger?.LogError("No body found in the mock request. Skipping.");
-                return;
+                _logger?.LogRequest([$"Incorrect response status code {(int)response.StatusCode} {response.StatusCode}. Expected: 202 Accepted"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
             }
-            var requestBody = await requestMessage.Content.ReadAsStringAsync();
-            requestBody = requestBody.Replace("@dynamic.validationToken", GetJwtToken());
-            requestMessage.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-            LoadTicket();
 
-            try
+            if (response.Content is not null)
             {
-                _logger?.LogRequest(["Sending Graph connector notification"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
-
-                var response = await httpClient.SendAsync(requestMessage);
-
-                if (response.StatusCode != HttpStatusCode.Accepted)
+                var content = await response.Content.ReadAsStringAsync();
+                if (!string.IsNullOrEmpty(content))
                 {
-                    _logger?.LogRequest([$"Incorrect response status code {(int)response.StatusCode} {response.StatusCode}. Expected: 202 Accepted"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
-                }
-
-                if (response.Content is not null)
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    if (!string.IsNullOrEmpty(content))
-                    {
-                        _logger?.LogRequest(["Received response body while empty response expected"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
-                    }
+                    _logger?.LogRequest(["Received response body while empty response expected"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
                 }
             }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "An error has occurred while sending the Graph connector notification to {url}", _configuration.Request.Url);
-            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "An error has occurred while sending the Graph connector notification to {url}", _configuration.Request.Url);
         }
     }
 

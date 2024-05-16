@@ -32,19 +32,15 @@ internal class MockResponsesLoader : IDisposable
 
         try
         {
-            using (FileStream stream = new FileStream(_responsesFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using var stream = new FileStream(_responsesFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            var responsesString = reader.ReadToEnd();
+            var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
+            IEnumerable<MockResponse>? configResponses = responsesConfig?.Mocks;
+            if (configResponses is not null)
             {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    var responsesString = reader.ReadToEnd();
-                    var responsesConfig = JsonSerializer.Deserialize<MockResponseConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
-                    IEnumerable<MockResponse>? configResponses = responsesConfig?.Mocks;
-                    if (configResponses is not null)
-                    {
-                        _configuration.Mocks = configResponses;
-                        _logger.LogInformation("Mock responses for {configResponseCount} url patterns loaded from {mockFile}", configResponses.Count(), _configuration.MocksFile);
-                    }
-                }
+                _configuration.Mocks = configResponses;
+                _logger.LogInformation("Mock responses for {configResponseCount} url patterns loaded from {mockFile}", configResponses.Count(), _configuration.MocksFile);
             }
         }
         catch (Exception ex)
