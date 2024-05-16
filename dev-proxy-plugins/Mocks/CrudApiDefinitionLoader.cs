@@ -29,41 +29,37 @@ internal class CrudApiDefinitionLoader : IDisposable
 
         try
         {
-            using (FileStream stream = new FileStream(_configuration.ApiFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    var apiDefinitionString = reader.ReadToEnd();
-                    var apiDefinitionConfig = JsonSerializer.Deserialize<CrudApiConfiguration>(apiDefinitionString, ProxyUtils.JsonSerializerOptions);
-                    _configuration.BaseUrl = apiDefinitionConfig?.BaseUrl ?? string.Empty;
-                    _configuration.DataFile = apiDefinitionConfig?.DataFile ?? string.Empty;
-                    _configuration.Auth = apiDefinitionConfig?.Auth ?? CrudApiAuthType.None;
-                    _configuration.EntraAuthConfig = apiDefinitionConfig?.EntraAuthConfig;
+            using var stream = new FileStream(_configuration.ApiFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            var apiDefinitionString = reader.ReadToEnd();
+            var apiDefinitionConfig = JsonSerializer.Deserialize<CrudApiConfiguration>(apiDefinitionString, ProxyUtils.JsonSerializerOptions);
+            _configuration.BaseUrl = apiDefinitionConfig?.BaseUrl ?? string.Empty;
+            _configuration.DataFile = apiDefinitionConfig?.DataFile ?? string.Empty;
+            _configuration.Auth = apiDefinitionConfig?.Auth ?? CrudApiAuthType.None;
+            _configuration.EntraAuthConfig = apiDefinitionConfig?.EntraAuthConfig;
 
-                    IEnumerable<CrudApiAction>? configResponses = apiDefinitionConfig?.Actions;
-                    if (configResponses is not null)
+            IEnumerable<CrudApiAction>? configResponses = apiDefinitionConfig?.Actions;
+            if (configResponses is not null)
+            {
+                _configuration.Actions = configResponses;
+                foreach (var action in _configuration.Actions)
+                {
+                    if (string.IsNullOrEmpty(action.Method))
                     {
-                        _configuration.Actions = configResponses;
-                        foreach (var action in _configuration.Actions)
+                        action.Method = action.Action switch
                         {
-                            if (string.IsNullOrEmpty(action.Method))
-                            {
-                                action.Method = action.Action switch
-                                {
-                                    CrudApiActionType.Create => "POST",
-                                    CrudApiActionType.GetAll => "GET",
-                                    CrudApiActionType.GetOne => "GET",
-                                    CrudApiActionType.GetMany => "GET",
-                                    CrudApiActionType.Merge => "PATCH",
-                                    CrudApiActionType.Update => "PUT",
-                                    CrudApiActionType.Delete => "DELETE",
-                                    _ => throw new InvalidOperationException($"Unknown action type {action.Action}")
-                                };
-                            }
-                        }
-                        _logger.LogInformation("{configResponseCount} actions for CRUD API loaded from {apiFile}", configResponses.Count(), _configuration.ApiFile);
+                            CrudApiActionType.Create => "POST",
+                            CrudApiActionType.GetAll => "GET",
+                            CrudApiActionType.GetOne => "GET",
+                            CrudApiActionType.GetMany => "GET",
+                            CrudApiActionType.Merge => "PATCH",
+                            CrudApiActionType.Update => "PUT",
+                            CrudApiActionType.Delete => "DELETE",
+                            _ => throw new InvalidOperationException($"Unknown action type {action.Action}")
+                        };
                     }
                 }
+                _logger.LogInformation("{configResponseCount} actions for CRUD API loaded from {apiFile}", configResponses.Count(), _configuration.ApiFile);
             }
         }
         catch (Exception ex)

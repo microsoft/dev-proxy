@@ -139,28 +139,26 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         try
         {
             var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString()}";
-            using (var client = new HttpClient())
+            using var client = new HttpClient();
+            var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
+            _logger?.LogDebug("Calling {url} with payload\r\n{stringPayload}", url, stringPayload);
+
+            var response = await client.PostAsJsonAsync(url, payload);
+            var content = await response.Content.ReadAsStringAsync();
+
+            _logger?.LogDebug("Response:\r\n{content}", content);
+
+            var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
+            var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
+            var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
+            if (minimalScopes.Any())
             {
-                var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
-                _logger?.LogDebug("Calling {url} with payload\r\n{stringPayload}", url, stringPayload);
+                _logger?.LogInformation("Minimal permissions:\r\n{permissions}", string.Join(", ", minimalScopes));
+            }
+            if (errors.Any())
+            {
 
-                var response = await client.PostAsJsonAsync(url, payload);
-                var content = await response.Content.ReadAsStringAsync();
-
-                _logger?.LogDebug("Response:\r\n{content}", content);
-
-                var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
-                var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
-                var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
-                if (minimalScopes.Any())
-                {
-                    _logger?.LogInformation("Minimal permissions:\r\n{permissions}", string.Join(", ", minimalScopes));
-                }
-                if (errors.Any())
-                {
-
-                    _logger?.LogError("Couldn't determine minimal permissions for the following URLs:\r\n{errors}", string.Join(Environment.NewLine, errors));
-                }
+                _logger?.LogError("Couldn't determine minimal permissions for the following URLs:\r\n{errors}", string.Join(Environment.NewLine, errors));
             }
         }
         catch (Exception ex)

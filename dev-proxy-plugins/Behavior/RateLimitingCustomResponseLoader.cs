@@ -31,17 +31,13 @@ internal class RateLimitingCustomResponseLoader : IDisposable
 
         try
         {
-            using (FileStream stream = new FileStream(_customResponseFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using var stream = new FileStream(_customResponseFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            var responseString = reader.ReadToEnd();
+            var response = JsonSerializer.Deserialize<MockResponseResponse>(responseString, ProxyUtils.JsonSerializerOptions);
+            if (response is not null)
             {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    var responseString = reader.ReadToEnd();
-                    var response = JsonSerializer.Deserialize<MockResponseResponse>(responseString, ProxyUtils.JsonSerializerOptions);
-                    if (response is not null)
-                    {
-                        _configuration.CustomResponse = response;
-                    }
-                }
+                _configuration.CustomResponse = response;
             }
         }
         catch (Exception ex)

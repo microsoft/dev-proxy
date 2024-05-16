@@ -32,19 +32,15 @@ internal class GenericErrorResponsesLoader : IDisposable
 
         try
         {
-            using (FileStream stream = new FileStream(_errorsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using var stream = new FileStream(_errorsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            var responsesString = reader.ReadToEnd();
+            var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
+            IEnumerable<GenericErrorResponse>? configResponses = responsesConfig?.Responses;
+            if (configResponses is not null)
             {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    var responsesString = reader.ReadToEnd();
-                    var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
-                    IEnumerable<GenericErrorResponse>? configResponses = responsesConfig?.Responses;
-                    if (configResponses is not null)
-                    {
-                        _configuration.Responses = configResponses;
-                        _logger.LogInformation("{configResponseCount} error responses loaded from {errorFile}", configResponses.Count(), _configuration.ErrorsFile);
-                    }
-                }
+                _configuration.Responses = configResponses;
+                _logger.LogInformation("{configResponseCount} error responses loaded from {errorFile}", configResponses.Count(), _configuration.ErrorsFile);
             }
         }
         catch (Exception ex)

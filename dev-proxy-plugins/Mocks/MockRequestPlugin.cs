@@ -97,20 +97,18 @@ public class MockRequestPlugin : BaseProxyPlugin
             return;
         }
 
-        using (var httpClient = new HttpClient())
+        using var httpClient = new HttpClient();
+        var requestMessage = GetRequestMessage();
+
+        try
         {
-            var requestMessage = GetRequestMessage();
+            _logger?.LogRequest(["Sending mock request"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
 
-            try
-            {
-                _logger?.LogRequest(["Sending mock request"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
-
-                await httpClient.SendAsync(requestMessage);
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "An error has occurred while sending the mock request to {url}", _configuration.Request.Url);
-            }
+            await httpClient.SendAsync(requestMessage);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "An error has occurred while sending the mock request to {url}", _configuration.Request.Url);
         }
     }
 }

@@ -336,46 +336,44 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
         try
         {
             var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString(scopeType)}";
-            using (var client = new HttpClient())
+            using var client = new HttpClient();
+            var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
+            _logger?.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
+
+            var response = await client.PostAsJsonAsync(url, payload);
+            var content = await response.Content.ReadAsStringAsync();
+
+            _logger?.LogDebug(string.Format("Response:{0}{1}", Environment.NewLine, content));
+
+            var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
+            var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
+            var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
+            if (minimalPermissions.Any())
             {
-                var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
-                _logger?.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
+                var excessPermissions = permissionsFromAccessToken
+                  .Where(p => !minimalPermissions.Contains(p))
+                  .ToArray();
 
-                var response = await client.PostAsJsonAsync(url, payload);
-                var content = await response.Content.ReadAsStringAsync();
+                permissionsInfo.MinimalPermissions = minimalPermissions;
+                permissionsInfo.ExcessPermissions = excessPermissions;
 
-                _logger?.LogDebug(string.Format("Response:{0}{1}", Environment.NewLine, content));
-
-                var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
-                var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
-                var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
-                if (minimalPermissions.Any())
+                if (string.IsNullOrEmpty(_configuration.FilePath))
                 {
-                    var excessPermissions = permissionsFromAccessToken
-                      .Where(p => !minimalPermissions.Contains(p))
-                      .ToArray();
+                    _logger?.LogInformation("Minimal permissions:\r\n{minimalPermissions}\r\nPermissions on the token:\r\n{tokenPermissions}", string.Join(", ", minimalPermissions), string.Join(", ", permissionsFromAccessToken));
 
-                    permissionsInfo.MinimalPermissions = minimalPermissions;
-                    permissionsInfo.ExcessPermissions = excessPermissions;
-
-                    if (string.IsNullOrEmpty(_configuration.FilePath))
+                    if (excessPermissions.Any())
                     {
-                        _logger?.LogInformation("Minimal permissions:\r\n{minimalPermissions}\r\nPermissions on the token:\r\n{tokenPermissions}", string.Join(", ", minimalPermissions), string.Join(", ", permissionsFromAccessToken));
-
-                        if (excessPermissions.Any())
-                        {
-                            _logger?.LogWarning("The following permissions are unnecessary: {permissions}", string.Join(", ", excessPermissions));
-                        }
-                        else
-                        {
-                            _logger?.LogInformation("The token has the minimal permissions required.");
-                        }
+                        _logger?.LogWarning("The following permissions are unnecessary: {permissions}", string.Join(", ", excessPermissions));
+                    }
+                    else
+                    {
+                        _logger?.LogInformation("The token has the minimal permissions required.");
                     }
                 }
-                if (errors.Any())
-                {
-                    _logger?.LogError("Couldn't determine minimal permissions for the following URLs: {errors}", string.Join(", ", errors));
-                }
+            }
+            if (errors.Any())
+            {
+                _logger?.LogError("Couldn't determine minimal permissions for the following URLs: {errors}", string.Join(", ", errors));
             }
         }
         catch (Exception ex)

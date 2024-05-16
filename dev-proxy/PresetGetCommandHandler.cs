@@ -166,38 +166,36 @@ public static class PresetGetCommandHandler
     {
         logger.LogDebug("Getting list of files in Dev Proxy samples repo...");
         var url = $"https://api.github.com/repos/pnp/proxy-samples/git/trees/main?recursive=1";
-        using (var client = new HttpClient())
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("dev-proxy", ProxyUtils.ProductVersion));
+        var response = await client.GetAsync(url);
+
+        if (response.IsSuccessStatusCode)
         {
-            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("dev-proxy", ProxyUtils.ProductVersion));
-            var response = await client.GetAsync(url);
-
-            if (response.IsSuccessStatusCode)
+            var content = await response.Content.ReadAsStringAsync();
+            var tree = JsonSerializer.Deserialize<GitHubTreeResponse>(content, ProxyUtils.JsonSerializerOptions);
+            if (tree is null)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                var tree = JsonSerializer.Deserialize<GitHubTreeResponse>(content, ProxyUtils.JsonSerializerOptions);
-                if (tree is null)
-                {
-                    throw new Exception("Failed to get list of files from GitHub");
-                }
-
-                var samplePath = $"samples/{sampleFolderName}";
-
-                var filesToDownload = tree.Tree
-                    .Where(f => f.Path.StartsWith(samplePath, StringComparison.OrdinalIgnoreCase) && f.Type == "blob")
-                    .Select(f => f.Path)
-                    .ToArray();
-
-                foreach (var file in filesToDownload)
-                {
-                    logger.LogDebug("Found file {file}", file);
-                }
-
-                return filesToDownload;
+                throw new Exception("Failed to get list of files from GitHub");
             }
-            else
+
+            var samplePath = $"samples/{sampleFolderName}";
+
+            var filesToDownload = tree.Tree
+                .Where(f => f.Path.StartsWith(samplePath, StringComparison.OrdinalIgnoreCase) && f.Type == "blob")
+                .Select(f => f.Path)
+                .ToArray();
+
+            foreach (var file in filesToDownload)
             {
-                throw new Exception($"Failed to get list of files from GitHub. Status code: {response.StatusCode}");
+                logger.LogDebug("Found file {file}", file);
             }
+
+            return filesToDownload;
+        }
+        else
+        {
+            throw new Exception($"Failed to get list of files from GitHub. Status code: {response.StatusCode}");
         }
     }
 
@@ -206,32 +204,28 @@ public static class PresetGetCommandHandler
         var url = $"https://raw.githubusercontent.com/pnp/proxy-samples/main/{filePath.Replace("#", "%23")}";
         logger.LogDebug("Downloading file {filePath}...", filePath);
 
-        using (var client = new HttpClient())
+        using var client = new HttpClient();
+        var response = await client.GetAsync(url);
+
+        if (response.IsSuccessStatusCode)
         {
-            var response = await client.GetAsync(url);
-
-            if (response.IsSuccessStatusCode)
+            var contentStream = await response.Content.ReadAsStreamAsync();
+            var filePathInsideSample = Path.GetRelativePath($"samples/{presetId}", filePath);
+            var directoryNameInsideSample = Path.GetDirectoryName(filePathInsideSample);
+            if (directoryNameInsideSample is not null)
             {
-                var contentStream = await response.Content.ReadAsStreamAsync();
-                var filePathInsideSample = Path.GetRelativePath($"samples/{presetId}", filePath);
-                var directoryNameInsideSample = Path.GetDirectoryName(filePathInsideSample);
-                if (directoryNameInsideSample is not null)
-                {
-                    Directory.CreateDirectory(Path.Combine(targetFolderPath, directoryNameInsideSample));
-                }
-                var localFilePath = Path.Combine(targetFolderPath, filePathInsideSample);
-
-                using (var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    await contentStream.CopyToAsync(fileStream);
-                }
-
-                logger.LogDebug("File downloaded successfully to {localFilePath}", localFilePath);
+                Directory.CreateDirectory(Path.Combine(targetFolderPath, directoryNameInsideSample));
             }
-            else
-            {
-                throw new Exception($"Failed to download file {url}. Status code: {response.StatusCode}");
-            }
+            var localFilePath = Path.Combine(targetFolderPath, filePathInsideSample);
+
+            using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await contentStream.CopyToAsync(fileStream);
+
+            logger.LogDebug("File downloaded successfully to {localFilePath}", localFilePath);
+        }
+        else
+        {
+            throw new Exception($"Failed to download file {url}. Status code: {response.StatusCode}");
         }
     }
 }

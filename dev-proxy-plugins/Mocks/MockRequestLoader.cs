@@ -32,19 +32,15 @@ internal class MockRequestLoader : IDisposable
 
         try
         {
-            using (FileStream stream = new FileStream(_requestFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using var stream = new FileStream(_requestFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            var requestString = reader.ReadToEnd();
+            var requestConfig = JsonSerializer.Deserialize<MockRequestConfiguration>(requestString, ProxyUtils.JsonSerializerOptions);
+            var configRequest = requestConfig?.Request;
+            if (configRequest is not null)
             {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    var requestString = reader.ReadToEnd();
-                    var requestConfig = JsonSerializer.Deserialize<MockRequestConfiguration>(requestString, ProxyUtils.JsonSerializerOptions);
-                    var configRequest = requestConfig?.Request;
-                    if (configRequest is not null)
-                    {
-                        _configuration.Request = configRequest;
-                        _logger.LogInformation("Mock request to url {url} loaded from {mockFile}", _configuration.Request.Url, _configuration.MockFile);
-                    }
-                }
+                _configuration.Request = configRequest;
+                _logger.LogInformation("Mock request to url {url} loaded from {mockFile}", _configuration.Request.Url, _configuration.MockFile);
             }
         }
         catch (Exception ex)
