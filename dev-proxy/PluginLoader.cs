@@ -84,7 +84,8 @@ internal class PluginLoader
     {
         foreach (Type type in assembly.GetTypes())
         {
-            if (typeof(IProxyPlugin).IsAssignableFrom(type))
+            if (type.Name == h.Name &&
+                typeof(IProxyPlugin).IsAssignableFrom(type))
             {
                 IProxyPlugin? result = Activator.CreateInstance(type) as IProxyPlugin;
                 if (result is not null && result.Name == h.Name)

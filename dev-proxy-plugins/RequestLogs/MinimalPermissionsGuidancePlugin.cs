@@ -31,7 +31,7 @@ public class MinimalPermissionsInfo
     public OperationInfo[] Operations { get; set; } = Array.Empty<OperationInfo>();
 }
 
-public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
+public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 {
     public override string Name => nameof(MinimalPermissionsGuidancePlugin);
 
@@ -159,7 +159,7 @@ public class MinimalPermissionsGuidancePlugin : BaseProxyPlugin
             await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
         }
 
-        ((Dictionary<string, object>)e.GlobalData[ProxyUtils.ReportsKey])[Name] = report;
+        StoreReport(report, e);
     }
 
     private (string method, string url)[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)

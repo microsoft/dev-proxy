@@ -287,6 +287,8 @@ public class ProxyEngine
         {
             GlobalData = _globalData
         }, _exceptionHandler);
+        
+        _logger.LogInformation("DONE");
     }
 
     private void PrintRecordingIndicator()

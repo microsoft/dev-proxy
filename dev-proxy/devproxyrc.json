@@ -2,28 +2,20 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.18.0/rc.schema.json",
   "plugins": [
     {
-      "name": "MinimalPermissionsPlugin",
+      "name": "RetryAfterPlugin",
+      "enabled": true,
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll"
+    },
+    {
+      "name": "GenericRandomErrorPlugin",
       "enabled": true,
       "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll",
-      "configSection": "minimalPermissionsPlugin"
-    },
-    {
-      "name": "PlainTextTransformer",
-      "enabled": true,
-      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll"
-    },
-    {
-      "name": "LoggerReporter",
-      "enabled": true,
-      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll"
+      "configSection": "genericRandomErrorPlugin"
     }
   ],
   "urlsToWatch": [
-    "https://graph.microsoft.com/*"
+    "https://jsonplaceholder.typicode.com/*"
   ],
-  "minimalPermissionsPlugin": {
-    "type": "delegated"
-  },
   "genericRandomErrorPlugin": {
     "errorsFile": "devproxy-errors.json"
   },

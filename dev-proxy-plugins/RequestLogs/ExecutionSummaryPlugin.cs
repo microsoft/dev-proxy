@@ -28,7 +28,7 @@ internal class ExecutionSummaryPluginConfiguration
     public SummaryGroupBy GroupBy { get; set; } = SummaryGroupBy.Url;
 }
 
-public class ExecutionSummaryPlugin : BaseProxyPlugin
+public class ExecutionSummaryPlugin : BaseReportingPlugin
 {
     public override string Name => nameof(ExecutionSummaryPlugin);
     private ExecutionSummaryPluginConfiguration _configuration = new();
@@ -91,7 +91,7 @@ public class ExecutionSummaryPlugin : BaseProxyPlugin
             _ => throw new NotImplementedException()
         };
 
-        ((Dictionary<string, object>)e.GlobalData[ProxyUtils.ReportsKey])[Name] = report;
+        StoreReport(report, e);
 
         return Task.CompletedTask;
     }

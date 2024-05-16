@@ -5,15 +5,17 @@ using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Azure.Core;
 using Azure.Core.Diagnostics;
 using Azure.Identity;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins;
 using Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Readers;
+
+namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
 public enum ApiCenterProductionVersionPluginReportItemStatus
 {
@@ -26,6 +28,7 @@ public class ApiCenterProductionVersionPluginReportItem
 {
     public required string Method { get; init; }
     public required string Url { get; init; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public required ApiCenterProductionVersionPluginReportItemStatus Status { get; init; }
     public string? Recommendation { get; init; }
 }
@@ -54,7 +57,7 @@ internal class ApiCenterProductionVersionPluginConfiguration
     public string WorkspaceName { get; set; } = "default";
 }
 
-public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
+public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 {
     private ApiCenterProductionVersionPluginConfiguration _configuration = new();
     private readonly string[] _scopes = ["https://management.azure.com/.default"];
@@ -290,6 +293,7 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
                     string.Format("Request {0} uses API version {1} which is defined as {2}. Upgrade to a production version of the API. Recommended versions: {3}", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage, string.Join(", ", productionVersions)) :
                     string.Format("Request {0} uses API version {1} which is defined as {2}.", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage);
 
+                _logger?.LogWarning(recommendation);
                 report.Add(new()
                 {
                     Method = methodAndUrl[0],
@@ -309,7 +313,7 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             }
         }
 
-        _logger?.LogDebug("DONE");
+        StoreReport(report, e);
     }
 
     private async Task<Collection<ApiDefinition>?> LoadApiDefinitionsForVersion(string versionId)

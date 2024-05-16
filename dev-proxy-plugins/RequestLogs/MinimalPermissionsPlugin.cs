@@ -25,7 +25,7 @@ internal class MinimalPermissionsPluginConfiguration
     public PermissionsType Type { get; set; } = PermissionsType.Delegated;
 }
 
-public class MinimalPermissionsPlugin : BaseProxyPlugin
+public class MinimalPermissionsPlugin : BaseReportingPlugin
 {
     public override string Name => nameof(MinimalPermissionsPlugin);
     private MinimalPermissionsPluginConfiguration _configuration = new();
@@ -62,7 +62,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
             var methodAndUrlString = request.MessageLines.First();
             var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
 
-            var uri = new Uri(methodAndUrl.Item2);
+            var uri = new Uri(methodAndUrl.url);
             if (!ProxyUtils.IsGraphUrl(uri))
             {
                 continue;
@@ -97,7 +97,7 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
         var report = await DetermineMinimalScopes(endpoints);
         if (report is not null)
         {
-            ((Dictionary<string, object>)e.GlobalData[ProxyUtils.ReportsKey])[Name] = report;
+            StoreReport(report, e);
         }
     }
 
@@ -164,6 +164,16 @@ public class MinimalPermissionsPlugin : BaseProxyPlugin
             var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
             var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
             var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
+
+            if (minimalScopes.Any())
+            {
+                _logger?.LogInformation("Minimal permissions:\r\n{permissions}", string.Join(", ", minimalScopes));
+            }
+            if (errors.Any())
+            {
+                _logger?.LogError("Couldn't determine minimal permissions for the following URLs:\r\n{errors}", string.Join(Environment.NewLine, errors));
+            }
+
             return new MinimalPermissionsPluginReport
             {
                 Requests = payload.ToArray(),

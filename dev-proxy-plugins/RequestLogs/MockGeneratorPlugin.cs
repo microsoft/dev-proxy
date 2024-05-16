@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
-public class MockGeneratorPlugin : BaseProxyPlugin
+public class MockGeneratorPlugin : BaseReportingPlugin
 {
     public override string Name => nameof(MockGeneratorPlugin);
 
@@ -84,9 +84,17 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         mocks.Sort((a, b) => b.Request!.Url.CompareTo(a.Request!.Url));
 
         var mocksFile = new MockResponseConfiguration { Mocks = mocks };
-        ((Dictionary<string, object>)e.GlobalData[ProxyUtils.ReportsKey])[Name] = mocksFile;
 
-        _logger?.LogInformation("Created mock file {mocksCount} mocks", mocks.Count);
+        _logger?.LogDebug("Serializing mocks...");
+        var mocksFileJson = JsonSerializer.Serialize(mocksFile, ProxyUtils.JsonSerializerOptions);
+        var fileName = $"mocks-{DateTime.Now:yyyyMMddHHmmss}.json";
+
+        _logger?.LogDebug("Writing mocks to {fileName}...", fileName);
+        File.WriteAllText(fileName, mocksFileJson);
+
+        _logger?.LogInformation("Created mock file {fileName} with {mocksCount} mocks", fileName, mocks.Count);
+
+        StoreReport(fileName, e);
 
         return Task.CompletedTask;
     }
