@@ -441,22 +441,13 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             {
                 _logger?.LogDebug("Path {urlPath} contains parameters and will be converted to Regex", urlPathFromSpec);
 
-                // we need this check due to a bug/limitation in OpenAPI.NET
-                // which doesn't include parameters defined by $ref in the
-                // Parameters collection, so we can have parameters in the path
-                // that are not in the Parameters collection
-                if (urlPathFromSpec.Count(c => c == '{') == path.Value.Parameters.Count)
-                {
-                    foreach (var parameter in path.Value.Parameters)
-                    {
-                        urlPathFromSpec = urlPathFromSpec.Replace($"{{{parameter.Name}}}", $"([^/]+)");
-                    }
-                }
-                else
-                {
-                    // force replace all parameters with regex
-                    urlPathFromSpec = Regex.Replace(urlPathFromSpec, @"\{[^}]+\}", $"([^/]+)");
-                }
+                // force replace all parameters with regex
+                // this is more robust than replacing parameters by name
+                // because it's possible to define parameters both on the path
+                // and operations and sometimes, parameters are defined only
+                // on the operation. This way, we cover all cases, and we don't
+                // care about the parameter anyway here
+                urlPathFromSpec = Regex.Replace(urlPathFromSpec, @"\{[^}]+\}", $"([^/]+)");
 
                 _logger?.LogDebug("Converted path to Regex: {urlPath}", urlPathFromSpec);
                 var regex = new Regex($"^{urlPathFromSpec}$");
