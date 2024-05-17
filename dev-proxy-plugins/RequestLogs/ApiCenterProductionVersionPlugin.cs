@@ -229,16 +229,21 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
 
         foreach (var request in interceptedRequests)
         {
-            var urlAndMethodString = request.MessageLines.First();
-            var urlAndMethod = urlAndMethodString.Split(' ');
+            var methodAndUrlString = request.MessageLines.First();
+            var methodAndUrl = methodAndUrlString.Split(' ');
+            if (methodAndUrl[0] == "OPTIONS")
+            {
+                _logger?.LogDebug("Skipping OPTIONS request {request}", methodAndUrl[1]);
+                continue;
+            }
 
-            var apiInformation = FindMatchingApiInformation(urlAndMethod[1], apisInformation);
+            var apiInformation = FindMatchingApiInformation(methodAndUrl[1], apisInformation);
             if (apiInformation == null)
             {
                 continue;
             }
 
-            var lifecycleStage = FindMatchingApiLifecycleStage(request, urlAndMethod[1], apiInformation);
+            var lifecycleStage = FindMatchingApiLifecycleStage(request, methodAndUrl[1], apiInformation);
             if (lifecycleStage == null)
             {
                 continue;
@@ -252,11 +257,11 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
 
                 if (productionVersions.Any())
                 {
-                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}. Upgrade to a production version of the API. Recommended versions: {versions}", urlAndMethodString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage, string.Join(", ", productionVersions));
+                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}. Upgrade to a production version of the API. Recommended versions: {versions}", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage, string.Join(", ", productionVersions));
                 }
                 else
                 {
-                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}.", urlAndMethodString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage);
+                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}.", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage);
                 }
             }
         }
