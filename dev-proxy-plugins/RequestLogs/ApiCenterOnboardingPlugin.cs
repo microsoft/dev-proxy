@@ -32,7 +32,8 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 {
     private ApiCenterOnboardingPluginConfiguration _configuration = new();
     private readonly string[] _scopes = ["https://management.azure.com/.default"];
-    private TokenCredential _credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions() {
+    private TokenCredential _credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+    {
         ExcludeInteractiveBrowserCredential = true,
         // fails on Ubuntu
         ExcludeSharedTokenCacheCredential = true
@@ -145,6 +146,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
                 var methodAndUrl = request.MessageLines.First().Split(' ');
                 return (method: methodAndUrl[0], url: methodAndUrl[1]);
             })
+            .Where(r => !r.method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
             .Distinct();
         foreach (var request in interceptedRequests)
         {
@@ -425,43 +427,58 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
     OpenApiPathItem? FindMatchingPathItem(string requestUrl, OpenApiDocument openApiDocument)
     {
+        var url = new Uri(requestUrl);
+        var urlPathFromRequest = url.AbsolutePath;
+
         foreach (var path in openApiDocument.Paths)
         {
-            var urlPath = path.Key;
-            _logger?.LogDebug("Checking path {urlPath}...", urlPath);
+            var urlPathFromSpec = path.Key;
+            _logger?.LogDebug("Checking path {urlPath}...", urlPathFromSpec);
 
             // check if path contains parameters. If it does,
             // replace them with regex
-            if (urlPath.Contains('{'))
+            if (urlPathFromSpec.Contains('{'))
             {
-                _logger?.LogDebug("Path {urlPath} contains parameters and will be converted to Regex", urlPath);
+                _logger?.LogDebug("Path {urlPath} contains parameters and will be converted to Regex", urlPathFromSpec);
 
-                foreach (var parameter in path.Value.Parameters)
+                // we need this check due to a bug/limitation in OpenAPI.NET
+                // which doesn't include parameters defined by $ref in the
+                // Parameters collection, so we can have parameters in the path
+                // that are not in the Parameters collection
+                if (urlPathFromSpec.Count(c => c == '{') == path.Value.Parameters.Count)
                 {
-                    urlPath = urlPath.Replace($"{{{parameter.Name}}}", $"([^/]+)");
+                    foreach (var parameter in path.Value.Parameters)
+                    {
+                        urlPathFromSpec = urlPathFromSpec.Replace($"{{{parameter.Name}}}", $"([^/]+)");
+                    }
+                }
+                else
+                {
+                    // force replace all parameters with regex
+                    urlPathFromSpec = Regex.Replace(urlPathFromSpec, @"\{[^}]+\}", $"([^/]+)");
                 }
 
-                _logger?.LogDebug("Converted path to Regex: {urlPath}", urlPath);
-                var regex = new Regex(urlPath);
-                if (regex.IsMatch(requestUrl))
+                _logger?.LogDebug("Converted path to Regex: {urlPath}", urlPathFromSpec);
+                var regex = new Regex($"^{urlPathFromSpec}$");
+                if (regex.IsMatch(urlPathFromRequest))
                 {
-                    _logger?.LogDebug("Regex matches {requestUrl}", requestUrl);
+                    _logger?.LogDebug("Regex matches {requestUrl}", urlPathFromRequest);
 
                     return path.Value;
                 }
 
-                _logger?.LogDebug("Regex does not match {requestUrl}", requestUrl);
+                _logger?.LogDebug("Regex does not match {requestUrl}", urlPathFromRequest);
             }
             else
             {
-                if (requestUrl.Contains(urlPath, StringComparison.OrdinalIgnoreCase))
+                if (urlPathFromRequest.Equals(urlPathFromSpec, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger?.LogDebug("{requestUrl} contains {urlPath}", requestUrl, urlPath);
+                    _logger?.LogDebug("{requestUrl} matches {urlPath}", requestUrl, urlPathFromSpec);
 
                     return path.Value;
                 }
 
-                _logger?.LogDebug("{requestUrl} doesn't contain {urlPath}", requestUrl, urlPath);
+                _logger?.LogDebug("{requestUrl} doesn't match {urlPath}", requestUrl, urlPathFromSpec);
             }
         }
 
@@ -524,9 +541,9 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
                         foreach (var definition in definitions.Value)
                         {
                             Debug.Assert(definition.Id is not null);
-                            
+
                             await EnsureApiDefinition(definition);
-                        
+
                             if (definition.Definition is null)
                             {
                                 _logger?.LogDebug("API definition not found for {definitionId}", definition.Id);
