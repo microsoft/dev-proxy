@@ -153,7 +153,8 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             _logger?.LogDebug("Processing request {method} {url}...", method, url);
 
             var apiDefinition = apiDefinitions.FirstOrDefault(x => url.Contains(x.Key)).Value;
-            if (apiDefinition.Id is null)
+            if (apiDefinition is null ||
+                apiDefinition.Id is null)
             {
                 _logger?.LogDebug("No matching API definition not found for {url}. Adding new API...", url);
                 newApis.Add((method, url));
