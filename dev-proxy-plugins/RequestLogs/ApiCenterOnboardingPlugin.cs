@@ -439,7 +439,8 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
             var serverUrl = new Uri(server.Url);
             var serverPath = serverUrl.AbsolutePath.TrimEnd('/');
-            var urlPathFromRequest = requestUrl.Replace(server.Url.TrimEnd('/'), "", StringComparison.OrdinalIgnoreCase);
+            var requestUri = new Uri(requestUrl);
+            var urlPathFromRequest = requestUri.GetLeftPart(UriPartial.Path).Replace(server.Url.TrimEnd('/'), "", StringComparison.OrdinalIgnoreCase);
 
             foreach (var path in openApiDocument.Paths)
             {
