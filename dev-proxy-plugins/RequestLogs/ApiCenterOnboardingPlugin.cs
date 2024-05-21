@@ -154,7 +154,7 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
             _logger?.LogDebug("Processing request {method} {url}...", method, url);
 
-            var apiDefinition = apiDefinitions.FirstOrDefault(x => url.Contains(x.Key)).Value;
+            var apiDefinition = apiDefinitions.FirstOrDefault(x => url.StartsWith(x.Key, StringComparison.OrdinalIgnoreCase)).Value;
             if (apiDefinition is null ||
                 apiDefinition.Id is null)
             {
@@ -427,49 +427,61 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
     OpenApiPathItem? FindMatchingPathItem(string requestUrl, OpenApiDocument openApiDocument)
     {
-        var url = new Uri(requestUrl);
-        var urlPathFromRequest = url.AbsolutePath;
-
-        foreach (var path in openApiDocument.Paths)
+        foreach (var server in openApiDocument.Servers)
         {
-            var urlPathFromSpec = path.Key;
-            _logger?.LogDebug("Checking path {urlPath}...", urlPathFromSpec);
+            _logger?.LogDebug("Checking server URL {serverUrl}...", server.Url);
 
-            // check if path contains parameters. If it does,
-            // replace them with regex
-            if (urlPathFromSpec.Contains('{'))
+            if (!requestUrl.StartsWith(server.Url, StringComparison.OrdinalIgnoreCase))
             {
-                _logger?.LogDebug("Path {urlPath} contains parameters and will be converted to Regex", urlPathFromSpec);
-
-                // force replace all parameters with regex
-                // this is more robust than replacing parameters by name
-                // because it's possible to define parameters both on the path
-                // and operations and sometimes, parameters are defined only
-                // on the operation. This way, we cover all cases, and we don't
-                // care about the parameter anyway here
-                urlPathFromSpec = Regex.Replace(urlPathFromSpec, @"\{[^}]+\}", $"([^/]+)");
-
-                _logger?.LogDebug("Converted path to Regex: {urlPath}", urlPathFromSpec);
-                var regex = new Regex($"^{urlPathFromSpec}$");
-                if (regex.IsMatch(urlPathFromRequest))
-                {
-                    _logger?.LogDebug("Regex matches {requestUrl}", urlPathFromRequest);
-
-                    return path.Value;
-                }
-
-                _logger?.LogDebug("Regex does not match {requestUrl}", urlPathFromRequest);
+                _logger?.LogDebug("Request URL {requestUrl} does not match server URL {serverUrl}", requestUrl, server.Url);
+                continue;
             }
-            else
+
+            var serverUrl = new Uri(server.Url);
+            var serverPath = serverUrl.AbsolutePath.TrimEnd('/');
+            var urlPathFromRequest = requestUrl.Replace(server.Url.TrimEnd('/'), "", StringComparison.OrdinalIgnoreCase);
+
+            foreach (var path in openApiDocument.Paths)
             {
-                if (urlPathFromRequest.Equals(urlPathFromSpec, StringComparison.OrdinalIgnoreCase))
+                var urlPathFromSpec = path.Key;
+                _logger?.LogDebug("Checking path {urlPath}...", urlPathFromSpec);
+
+                // check if path contains parameters. If it does,
+                // replace them with regex
+                if (urlPathFromSpec.Contains('{'))
                 {
-                    _logger?.LogDebug("{requestUrl} matches {urlPath}", requestUrl, urlPathFromSpec);
+                    _logger?.LogDebug("Path {urlPath} contains parameters and will be converted to Regex", urlPathFromSpec);
 
-                    return path.Value;
+                    // force replace all parameters with regex
+                    // this is more robust than replacing parameters by name
+                    // because it's possible to define parameters both on the path
+                    // and operations and sometimes, parameters are defined only
+                    // on the operation. This way, we cover all cases, and we don't
+                    // care about the parameter anyway here
+                    urlPathFromSpec = Regex.Replace(urlPathFromSpec, @"\{[^}]+\}", $"([^/]+)");
+
+                    _logger?.LogDebug("Converted path to Regex: {urlPath}", urlPathFromSpec);
+                    var regex = new Regex($"^{urlPathFromSpec}$");
+                    if (regex.IsMatch(urlPathFromRequest))
+                    {
+                        _logger?.LogDebug("Regex matches {requestUrl}", urlPathFromRequest);
+
+                        return path.Value;
+                    }
+
+                    _logger?.LogDebug("Regex does not match {requestUrl}", urlPathFromRequest);
                 }
+                else
+                {
+                    if (urlPathFromRequest.Equals(urlPathFromSpec, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger?.LogDebug("{requestUrl} matches {urlPath}", requestUrl, urlPathFromSpec);
 
-                _logger?.LogDebug("{requestUrl} doesn't match {urlPath}", requestUrl, urlPathFromSpec);
+                        return path.Value;
+                    }
+
+                    _logger?.LogDebug("{requestUrl} doesn't match {urlPath}", requestUrl, urlPathFromSpec);
+                }
             }
         }
 
