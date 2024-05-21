@@ -503,7 +503,18 @@ public class ProxyEngine
     {
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
         {
-            _pluginData.Add(e.GetHashCode(), new Dictionary<string, object>());
+            _pluginData.Add(e.GetHashCode(), []);
+            var responseState = new ResponseState();
+            var proxyRequestArgs = new ProxyRequestArgs(e, responseState)
+            {
+                SessionData = _pluginData[e.GetHashCode()],
+                GlobalData = _globalData
+            };
+            if (!proxyRequestArgs.HasRequestUrlMatch(_urlsToWatch))
+            {
+                return;
+            }
+
 
             // we need to keep the request body for further processing
             // by plugins
@@ -515,23 +526,16 @@ public class ProxyEngine
 
             e.UserData = e.HttpClient.Request;
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
-            await HandleRequest(e);
+            await HandleRequest(e, proxyRequestArgs);
         }
     }
 
-    private async Task HandleRequest(SessionEventArgs e)
+    private async Task HandleRequest(SessionEventArgs e, ProxyRequestArgs proxyRequestArgs)
     {
-        ResponseState responseState = new ResponseState();
-        var proxyRequestArgs = new ProxyRequestArgs(e, responseState)
-        {
-            SessionData = _pluginData[e.GetHashCode()],
-            GlobalData = _globalData
-        };
-
         await _pluginEvents.RaiseProxyBeforeRequest(proxyRequestArgs, _exceptionHandler);
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
-        if (!responseState.HasBeenSet)
+        if (!proxyRequestArgs.ResponseState.HasBeenSet)
         {
             _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e));
             AddProxyHeader(e.HttpClient.Request);
@@ -554,6 +558,10 @@ public class ProxyEngine
                 SessionData = _pluginData[e.GetHashCode()],
                 GlobalData = _globalData
             };
+            if (!proxyResponseArgs.HasRequestUrlMatch(_urlsToWatch))
+            {
+                return;
+            }
 
             // necessary to make the response body available to plugins
             e.HttpClient.Response.KeepBody = true;
@@ -575,6 +583,12 @@ public class ProxyEngine
                 SessionData = _pluginData[e.GetHashCode()],
                 GlobalData = _globalData
             };
+            if (!proxyResponseArgs.HasRequestUrlMatch(_urlsToWatch))
+            {
+                // clean up
+                _pluginData.Remove(e.GetHashCode());
+                return;
+            }
 
             // necessary to repeat to make the response body
             // of mocked requests available to plugins
@@ -605,7 +619,7 @@ public class ProxyEngine
         // set e.clientCertificate to override
         return Task.CompletedTask;
     }
-    
+
     private void PrintHotkeys()
     {
         Console.WriteLine("Hotkeys: issue (w)eb request, (r)ecord, (s)top recording, (c)lear screen");
