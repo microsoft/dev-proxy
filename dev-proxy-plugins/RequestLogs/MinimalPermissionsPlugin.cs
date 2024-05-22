@@ -7,6 +7,7 @@ using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 

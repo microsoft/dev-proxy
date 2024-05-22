@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.RequestLogs;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Reporters;
@@ -19,37 +20,41 @@ public class JsonReporter : BaseReporter
         { typeof(ExecutionSummaryPluginReportByMessageType), TransformExecutionSummary },
     };
 
+    public JsonReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     protected override string GetReport(KeyValuePair<string, object> report)
     {
-        _logger?.LogDebug("Serializing report {reportKey}...", report.Key);
+        Logger.LogDebug("Serializing report {reportKey}...", report.Key);
 
         var reportData = report.Value;
         var reportType = reportData.GetType();
 
         if (_transformers.TryGetValue(reportType, out var transform))
         {
-            _logger?.LogDebug("Transforming {reportType} using {transform}...", reportType.Name, transform.Method.Name);
+            Logger.LogDebug("Transforming {reportType} using {transform}...", reportType.Name, transform.Method.Name);
             reportData = transform(reportData);
         }
         else
         {
-            _logger?.LogDebug("No transformer found for {reportType}", reportType.Name);
+            Logger.LogDebug("No transformer found for {reportType}", reportType.Name);
         }
 
         if (reportData is string strVal)
         {
-            _logger?.LogDebug("{reportKey} is a string. Checking if it's JSON...", report.Key);
+            Logger.LogDebug("{reportKey} is a string. Checking if it's JSON...", report.Key);
 
             try
             {
                 JsonSerializer.Deserialize<object>(strVal);
-                _logger?.LogDebug("{reportKey} is already JSON, ignore", report.Key);
+                Logger.LogDebug("{reportKey} is already JSON, ignore", report.Key);
                 // already JSON, ignore
                 return strVal;
             }
             catch
             {
-                _logger?.LogDebug("{reportKey} is not JSON, serializing...", report.Key);
+                Logger.LogDebug("{reportKey} is not JSON, serializing...", report.Key);
             }
         }
 

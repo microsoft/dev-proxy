@@ -35,19 +35,15 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 {
     public override string Name => nameof(MinimalPermissionsGuidancePlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
+    public MinimalPermissionsGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
 
     public override void Register()
     {
         base.Register();
 
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
-    {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
-
-        pluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
 
     private async Task AfterRecordingStop(object? sender, RecordingArgs e)

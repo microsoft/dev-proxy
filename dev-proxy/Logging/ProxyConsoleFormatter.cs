@@ -17,22 +17,11 @@ public class ProxyConsoleFormatter : ConsoleFormatter
     private const string _boxBottomLeft = "\u2570 ";
     // used to align single-line messages
     private const string _boxSpacing = "  ";
-    private Dictionary<int, List<RequestLog>> _requestLogs = new();
+    private Dictionary<int, List<RequestLog>> _requestLogs = [];
     private ConsoleFormatterOptions _options;
-    const string labelSpacing = "  ";
-    const string interceptedRequest = "request";
-    const string passedThrough = "api";
-    const string chaos = "chaos";
-    const string warning = "warning";
-    const string mock = "mock";
-    const string normal = "log";
-    const string fail = "fail";
-    const string tip = "tip";
-    const string error = "error";
-    const string info = "info";
-    private readonly static string[] allLabels = [interceptedRequest, passedThrough, chaos, warning, mock, normal, fail, tip];
-    private readonly static int maxLabelLength = allLabels.Max(l => l.Length);
-    private readonly static string noLabelSpacing = new string(' ', maxLabelLength + 2);
+    const string labelSpacing = " ";
+    // label length + 2
+    private readonly static string noLabelSpacing = new string(' ', 4 + 2);
 
     public ProxyConsoleFormatter(IOptions<ConsoleFormatterOptions> options) : base("devproxy")
     {
@@ -133,82 +122,20 @@ public class ProxyConsoleFormatter : ConsoleFormatter
 
     private void WriteMessageBoxedWithInvertedLabels(string? message, LogLevel logLevel, TextWriter textWriter)
     {
-        var label = normal;
-        var fgColor = Console.ForegroundColor;
-        var bgColor = Console.BackgroundColor;
-
-        switch (logLevel)
-        {
-            case LogLevel.Information:
-                label = info;
-                fgColor = ConsoleColor.Blue;
-                break;
-            case LogLevel.Warning:
-                label = warning;
-                bgColor = ConsoleColor.DarkYellow;
-                break;
-            case LogLevel.Error:
-                label = error;
-                bgColor = ConsoleColor.DarkRed;
-                break;
-            case LogLevel.Debug:
-                label = "debug";
-                fgColor = ConsoleColor.Gray;
-                break;
-        }
-
-        var leadingSpaces = new string(' ', maxLabelLength - label.Length);
+        var label = GetLogLevelString(logLevel);
+        var (bgColor, fgColor) = GetLogLevelColor(logLevel);
 
         if (message is not null)
         {
-            textWriter.Write(leadingSpaces);
             textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-            textWriter.Write($"{labelSpacing}{_boxSpacing}{message}");
+            textWriter.Write($"{labelSpacing}{_boxSpacing}{(logLevel == LogLevel.Debug ? $"[{DateTime.Now}] " : "")}{message}");
         }
     }
 
     private void WriteLogMessageBoxedWithInvertedLabels(string[] message, MessageType messageType, TextWriter textWriter, bool lastMessage = false)
     {
-        var label = normal;
-        var fgColor = Console.ForegroundColor;
-        var bgColor = Console.BackgroundColor;
-
-        switch (messageType)
-        {
-            case MessageType.InterceptedRequest:
-                label = interceptedRequest;
-                fgColor = ConsoleColor.Gray;
-                break;
-            case MessageType.PassedThrough:
-                label = passedThrough;
-                bgColor = ConsoleColor.Gray;
-                break;
-            case MessageType.Chaos:
-                label = chaos;
-                bgColor = ConsoleColor.DarkRed;
-                break;
-            case MessageType.Warning:
-                label = warning;
-                bgColor = ConsoleColor.DarkYellow;
-                break;
-            case MessageType.Mocked:
-                label = mock;
-                bgColor = ConsoleColor.DarkMagenta;
-                break;
-            case MessageType.Failed:
-                label = fail;
-                bgColor = ConsoleColor.DarkRed;
-                break;
-            case MessageType.Tip:
-                label = tip;
-                bgColor = ConsoleColor.DarkBlue;
-                break;
-            case MessageType.Normal:
-                label = normal;
-                break;
-        }
-
-        var leadingSpaces = new string(' ', maxLabelLength - label.Length);
+        var label = GetMessageTypeString(messageType);
+        var (bgColor, fgColor) = GetMessageTypeColor(messageType);
 
         switch (messageType)
         {
@@ -216,16 +143,14 @@ public class ProxyConsoleFormatter : ConsoleFormatter
                 // always one line (method + URL)
                 // print label and top of the box
                 textWriter.WriteLine();
-                textWriter.Write(leadingSpaces);
                 textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-                textWriter.WriteLine($"{labelSpacing}{_boxTopLeft}{message[0]}");
+                textWriter.WriteLine($"{(label.Length < 4 ? " " : "")}{labelSpacing}{_boxTopLeft}{message[0]}");
                 break;
             default:
                 if (message.Length == 1)
                 {
-                    textWriter.Write(leadingSpaces);
                     textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-                    textWriter.WriteLine($"{labelSpacing}{(lastMessage ? _boxBottomLeft : _boxLeft)}{message[0]}");
+                    textWriter.WriteLine($"{(label.Length < 4 ? " " : "")}{labelSpacing}{(lastMessage ? _boxBottomLeft : _boxLeft)}{message[0]}");
                 }
                 else
                 {
@@ -234,9 +159,8 @@ public class ProxyConsoleFormatter : ConsoleFormatter
                         if (i == 0)
                         {
                             // print label and middle of the box
-                            textWriter.Write(leadingSpaces);
                             textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-                            textWriter.WriteLine($"{labelSpacing}{_boxLeft}{message[i]}");
+                            textWriter.WriteLine($"{(label.Length < 4 ? " " : "")}{labelSpacing}{_boxLeft}{message[i]}");
                         }
                         else if (i < message.Length - 1)
                         {
@@ -252,5 +176,70 @@ public class ProxyConsoleFormatter : ConsoleFormatter
                 }
                 break;
         }
+    }
+
+    // from https://github.com/dotnet/runtime/blob/198a2596229f69b8e02902bfb4ffc2a30be3b339/src/libraries/Microsoft.Extensions.Logging.Console/src/SimpleConsoleFormatter.cs#L154
+    private static string GetLogLevelString(LogLevel logLevel)
+    {
+        return logLevel switch
+        {
+            LogLevel.Trace => "trce",
+            LogLevel.Debug => "dbug",
+            LogLevel.Information => "info",
+            LogLevel.Warning => "warn",
+            LogLevel.Error => "fail",
+            LogLevel.Critical => "crit",
+            _ => throw new ArgumentOutOfRangeException(nameof(logLevel))
+        };
+    }
+
+    private static (ConsoleColor bg, ConsoleColor fg) GetLogLevelColor(LogLevel logLevel)
+    {
+        var fgColor = Console.ForegroundColor;
+        var bgColor = Console.BackgroundColor;
+
+        return logLevel switch
+        {
+            LogLevel.Information => (bgColor, ConsoleColor.Blue),
+            LogLevel.Warning => (ConsoleColor.DarkYellow, fgColor),
+            LogLevel.Error => (ConsoleColor.DarkRed, fgColor),
+            LogLevel.Debug => (bgColor, ConsoleColor.Gray),
+            LogLevel.Trace => (bgColor, ConsoleColor.Gray),
+            _ => (bgColor, fgColor)
+        };
+    }
+
+    private static string GetMessageTypeString(MessageType messageType)
+    {
+        return messageType switch
+        {
+            MessageType.InterceptedRequest => "req",
+            MessageType.InterceptedResponse => "res",
+            MessageType.PassedThrough => "api",
+            MessageType.Chaos => "oops",
+            MessageType.Warning => "warn",
+            MessageType.Mocked => "mock",
+            MessageType.Failed => "fail",
+            MessageType.Tip => "tip",
+            _ => "    "
+        };
+    }
+
+    private static (ConsoleColor bg, ConsoleColor fg) GetMessageTypeColor(MessageType messageType)
+    {
+        var fgColor = Console.ForegroundColor;
+        var bgColor = Console.BackgroundColor;
+
+        return messageType switch
+        {
+            MessageType.InterceptedRequest => (bgColor, ConsoleColor.Gray),
+            MessageType.PassedThrough => (ConsoleColor.Gray, fgColor),
+            MessageType.Chaos => (ConsoleColor.DarkRed, fgColor),
+            MessageType.Warning => (ConsoleColor.DarkYellow, fgColor),
+            MessageType.Mocked => (ConsoleColor.DarkMagenta, fgColor),
+            MessageType.Failed => (ConsoleColor.DarkRed, fgColor),
+            MessageType.Tip => (ConsoleColor.DarkBlue, fgColor),
+            _ => (bgColor, fgColor)
+        };
     }
 }

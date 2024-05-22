@@ -36,6 +36,7 @@ public class ProxyEngine
     private Dictionary<string, object> _globalData = new() {
         { ProxyUtils.ReportsKey, new Dictionary<string, object>() }
     };
+    private static readonly object consoleLock = new object();
 
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();

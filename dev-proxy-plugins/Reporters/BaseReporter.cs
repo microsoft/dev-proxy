@@ -9,16 +9,17 @@ namespace Microsoft.DevProxy.Plugins.Reporters;
 
 public abstract class BaseReporter : BaseProxyPlugin
 {
+    protected BaseReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public virtual string FileExtension => throw new NotImplementedException();
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        pluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
 
     protected abstract string? GetReport(KeyValuePair<string, object> report);
@@ -29,32 +30,32 @@ public abstract class BaseReporter : BaseProxyPlugin
             e.GlobalData[ProxyUtils.ReportsKey] is not Dictionary<string, object> reports ||
             !reports.Any())
         {
-            _logger?.LogDebug("No reports found");
+            Logger.LogDebug("No reports found");
             return Task.CompletedTask;
         }
 
         foreach (var report in reports)
         {
-            _logger?.LogDebug("Transforming report {reportKey}...", report.Key);
+            Logger.LogDebug("Transforming report {reportKey}...", report.Key);
 
             var reportContents = GetReport(report);
 
             if (string.IsNullOrEmpty(reportContents))
             {
-                _logger?.LogDebug("Report {reportKey} is empty, ignore", report.Key);
+                Logger.LogDebug("Report {reportKey} is empty, ignore", report.Key);
                 continue;
             }
 
             var fileName = $"{report.Key}_{Name}{FileExtension}";
-            _logger?.LogDebug("File name for report {report}: {fileName}", report.Key, fileName);
+            Logger.LogDebug("File name for report {report}: {fileName}", report.Key, fileName);
 
             if (File.Exists(fileName))
             {
-                _logger?.LogDebug("File {fileName} already exists, appending timestamp", fileName);
+                Logger.LogDebug("File {fileName} already exists, appending timestamp", fileName);
                 fileName = $"{report.Key}_{Name}_{DateTime.Now:yyyyMMddHHmmss}{FileExtension}";
             }
 
-            _logger?.LogDebug("Writing report {reportKey} to {fileName}...", report.Key, fileName);
+            Logger.LogDebug("Writing report {reportKey} to {fileName}...", report.Key, fileName);
             File.WriteAllText(fileName, reportContents);
         }
 

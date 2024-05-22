@@ -118,20 +118,20 @@ public static class MSGraphDbUtils
 
             foreach (var path in document.Paths)
             {
-                logger.LogDebug("Endpoint {graphVersion}{key}...", graphVersion, path.Key);
+                logger.LogTrace("Endpoint {graphVersion}{key}...", graphVersion, path.Key);
 
                 // Get the GET operation for this path
                 var getOperation = path.Value.Operations.FirstOrDefault(o => o.Key == OperationType.Get).Value;
                 if (getOperation == null)
                 {
-                    logger.LogDebug("No GET operation found for {graphVersion}{key}", graphVersion, path.Key);
+                    logger.LogTrace("No GET operation found for {graphVersion}{key}", graphVersion, path.Key);
                     continue;
                 }
 
                 // Check if the GET operation has a $select parameter
                 var hasSelect = getOperation.Parameters.Any(p => p.Name == "$select");
 
-                logger.LogDebug("Inserting endpoint {graphVersion}{key} with hasSelect={hasSelect}...", graphVersion, path.Key, hasSelect);
+                logger.LogTrace("Inserting endpoint {graphVersion}{key} with hasSelect={hasSelect}...", graphVersion, path.Key, hasSelect);
                 insertEndpoint.Parameters["@path"].Value = path.Key;
                 insertEndpoint.Parameters["@graphVersion"].Value = graphVersion;
                 insertEndpoint.Parameters["@hasSelect"].Value = hasSelect;

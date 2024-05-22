@@ -256,7 +256,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             var methodAndUrl = methodAndUrlString.Split(' ');
             if (methodAndUrl[0] == "OPTIONS")
             {
-                _logger?.LogDebug("Skipping OPTIONS request {request}", methodAndUrl[1]);
+                Logger.LogDebug("Skipping OPTIONS request {request}", methodAndUrl[1]);
                 continue;
             }
 

@@ -65,14 +65,16 @@ internal class PluginLoader
                     globallyWatchedUrls.AddRange(pluginUrlsList);
                 }
 
-                var plugin = CreatePlugin(assembly, h);
-                _logger?.LogDebug("Registering plugin {pluginName}...", plugin.Name);
-                plugin.Register(
+                var plugin = CreatePlugin(
+                    assembly,
+                    h,
                     pluginEvents,
                     proxyContext,
                     (pluginUrls != null && pluginUrls.Any()) ? pluginUrls : defaultUrlsToWatch,
                     h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection)
                 );
+                _logger?.LogDebug("Registering plugin {pluginName}...", plugin.Name);
+                plugin.Register();
                 _logger?.LogDebug("Plugin {pluginName} registered.", plugin.Name);
                 plugins.Add(plugin);
             }
@@ -94,7 +96,7 @@ internal class PluginLoader
     {
         foreach (Type type in assembly.GetTypes())
         {
-            if (type.Name == h.Name &&
+            if (type.Name == pluginReference.Name &&
                 typeof(IProxyPlugin).IsAssignableFrom(type))
             {
                 IProxyPlugin? result = Activator.CreateInstance(type, [pluginEvents, context, _logger, urlsToWatch, configSection]) as IProxyPlugin;
