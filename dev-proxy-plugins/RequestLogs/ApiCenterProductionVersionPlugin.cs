@@ -5,15 +5,35 @@ using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Azure.Core;
 using Azure.Core.Diagnostics;
 using Azure.Identity;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins;
 using Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Readers;
+
+namespace Microsoft.DevProxy.Plugins.RequestLogs;
+
+public enum ApiCenterProductionVersionPluginReportItemStatus
+{
+    NotRegistered,
+    NonProduction,
+    Production
+}
+
+public class ApiCenterProductionVersionPluginReportItem
+{
+    public required string Method { get; init; }
+    public required string Url { get; init; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public required ApiCenterProductionVersionPluginReportItemStatus Status { get; init; }
+    public string? Recommendation { get; init; }
+}
+
+public class ApiCenterProductionVersionPluginReport: List<ApiCenterProductionVersionPluginReportItem>;
 
 internal class ApiInformation
 {
@@ -37,7 +57,7 @@ internal class ApiCenterProductionVersionPluginConfiguration
     public string WorkspaceName { get; set; } = "default";
 }
 
-public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
+public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 {
     private ApiCenterProductionVersionPluginConfiguration _configuration = new();
     private readonly string[] _scopes = ["https://management.azure.com/.default"];
@@ -227,6 +247,8 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
 
         _logger?.LogInformation("Analyzing recorded requests...");
 
+        var report = new ApiCenterProductionVersionPluginReport();
+
         foreach (var request in interceptedRequests)
         {
             var methodAndUrlString = request.MessageLines.First();
@@ -240,12 +262,24 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
             var apiInformation = FindMatchingApiInformation(methodAndUrl[1], apisInformation);
             if (apiInformation == null)
             {
+                report.Add(new()
+                {
+                    Method = methodAndUrl[0],
+                    Url = methodAndUrl[1],
+                    Status = ApiCenterProductionVersionPluginReportItemStatus.NotRegistered
+                });
                 continue;
             }
 
             var lifecycleStage = FindMatchingApiLifecycleStage(request, methodAndUrl[1], apiInformation);
             if (lifecycleStage == null)
             {
+                report.Add(new()
+                {
+                    Method = methodAndUrl[0],
+                    Url = methodAndUrl[1],
+                    Status = ApiCenterProductionVersionPluginReportItemStatus.NotRegistered
+                });
                 continue;
             }
 
@@ -255,18 +289,31 @@ public class ApiCenterProductionVersionPlugin : BaseProxyPlugin
                     .Where(v => v.LifecycleStage == ApiLifecycleStage.Production)
                     .Select(v => v.Title);
 
-                if (productionVersions.Any())
+                var recommendation = productionVersions.Any() ?
+                    string.Format("Request {0} uses API version {1} which is defined as {2}. Upgrade to a production version of the API. Recommended versions: {3}", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage, string.Join(", ", productionVersions)) :
+                    string.Format("Request {0} uses API version {1} which is defined as {2}.", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage);
+
+                _logger?.LogWarning(recommendation);
+                report.Add(new()
                 {
-                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}. Upgrade to a production version of the API. Recommended versions: {versions}", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage, string.Join(", ", productionVersions));
-                }
-                else
+                    Method = methodAndUrl[0],
+                    Url = methodAndUrl[1],
+                    Status = ApiCenterProductionVersionPluginReportItemStatus.NonProduction,
+                    Recommendation = recommendation
+                });
+            }
+            else
+            {
+                report.Add(new()
                 {
-                    _logger?.LogWarning("Request {request} uses API version {version} which is defined as {lifecycleStage}.", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage);
-                }
+                    Method = methodAndUrl[0],
+                    Url = methodAndUrl[1],
+                    Status = ApiCenterProductionVersionPluginReportItemStatus.Production
+                });
             }
         }
 
-        _logger?.LogInformation("DONE");
+        StoreReport(report, e);
     }
 
     private async Task<Collection<ApiDefinition>?> LoadApiDefinitionsForVersion(string versionId)

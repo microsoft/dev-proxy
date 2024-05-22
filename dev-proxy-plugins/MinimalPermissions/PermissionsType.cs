@@ -1,6 +1,6 @@
 namespace Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
 
-internal enum PermissionsType
+public enum PermissionsType
 {
     Application,
     Delegated

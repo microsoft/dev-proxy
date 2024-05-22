@@ -19,6 +19,25 @@ using Microsoft.OpenApi.Readers;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
+public class ApiCenterOnboardingPluginReportExistingApiInfo
+{
+    public required string MethodAndUrl { get; init; }
+    public required string ApiDefinitionId { get; init; }
+    public required string OperationId { get; init; }
+}
+
+public class ApiCenterOnboardingPluginReportNewApiInfo
+{
+    public required string Method { get; init; }
+    public required string Url { get; init; }
+}
+
+public class ApiCenterOnboardingPluginReport
+{
+    public required ApiCenterOnboardingPluginReportExistingApiInfo[] ExistingApis { get; init; }
+    public required ApiCenterOnboardingPluginReportNewApiInfo[] NewApis { get; init; }
+}
+
 internal class ApiCenterOnboardingPluginConfiguration
 {
     public string SubscriptionId { get; set; } = "";
@@ -28,7 +47,7 @@ internal class ApiCenterOnboardingPluginConfiguration
     public bool CreateApicEntryForNewApis { get; set; } = true;
 }
 
-public class ApiCenterOnboardingPlugin : BaseProxyPlugin
+public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 {
     private ApiCenterOnboardingPluginConfiguration _configuration = new();
     private readonly string[] _scopes = ["https://management.azure.com/.default"];
@@ -148,6 +167,9 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
             })
             .Where(r => !r.method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
             .Distinct();
+
+        var existingApis = new List<ApiCenterOnboardingPluginReportExistingApiInfo>();
+
         foreach (var request in interceptedRequests)
         {
             var (method, url) = request;
@@ -188,20 +210,42 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
                 newApis.Add(new(method, url));
                 continue;
             }
+
+            existingApis.Add(new ApiCenterOnboardingPluginReportExistingApiInfo
+            {
+                MethodAndUrl = $"{method} {url}",
+                ApiDefinitionId = apiDefinition.Id,
+                OperationId = operation.OperationId
+            });
         }
 
         if (!newApis.Any())
         {
             _logger?.LogInformation("No new APIs found");
+            StoreReport(new ApiCenterOnboardingPluginReport
+            {
+                ExistingApis = existingApis.ToArray(),
+                NewApis = Array.Empty<ApiCenterOnboardingPluginReportNewApiInfo>()
+            }, e);
             return;
         }
 
         // dedupe newApis
         newApis = newApis.Distinct().ToList();
 
+        StoreReport(new ApiCenterOnboardingPluginReport
+        {
+            ExistingApis = existingApis.ToArray(),
+            NewApis = newApis.Select(a => new ApiCenterOnboardingPluginReportNewApiInfo
+            {
+                Method = a.method,
+                Url = a.url
+            }).ToArray()
+        }, e);
+
         var apisPerSchemeAndHost = newApis.GroupBy(x =>
         {
-            var u = new Uri(x.Item2);
+            var u = new Uri(x.url);
             return u.GetLeftPart(UriPartial.Authority);
         });
 
@@ -265,8 +309,6 @@ public class ApiCenterOnboardingPlugin : BaseProxyPlugin
 
             await ImportApiDefinition(apiDefinition.Id, openApiSpecFilePath);
         }
-
-        _logger?.LogInformation("DONE");
     }
 
     async Task<Api?> CreateApi(string schemeAndHost, IEnumerable<(string method, string url)> apiRequests)

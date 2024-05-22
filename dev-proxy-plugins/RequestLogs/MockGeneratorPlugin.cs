@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
-public class MockGeneratorPlugin : BaseProxyPlugin
+public class MockGeneratorPlugin : BaseReportingPlugin
 {
     public override string Name => nameof(MockGeneratorPlugin);
 
@@ -93,6 +93,8 @@ public class MockGeneratorPlugin : BaseProxyPlugin
         File.WriteAllText(fileName, mocksFileJson);
 
         _logger?.LogInformation("Created mock file {fileName} with {mocksCount} mocks", fileName, mocks.Count);
+
+        StoreReport(fileName, e);
 
         return Task.CompletedTask;
     }

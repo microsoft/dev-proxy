@@ -17,6 +17,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
+public class OpenApiSpecGeneratorPluginReportItem
+{
+    public required string ServerUrl { get; init; }
+    public required string FileName { get; init; }
+}
+
+public class OpenApiSpecGeneratorPluginReport : List<OpenApiSpecGeneratorPluginReportItem>
+{
+    public OpenApiSpecGeneratorPluginReport() : base() { }
+
+    public OpenApiSpecGeneratorPluginReport(IEnumerable<OpenApiSpecGeneratorPluginReportItem> collection) : base(collection) { }
+}
+
 class GeneratedByOpenApiExtension : IOpenApiExtension
 {
     public void Write(IOpenApiWriter writer, OpenApiSpecVersion specVersion)
@@ -28,7 +41,7 @@ class GeneratedByOpenApiExtension : IOpenApiExtension
     }
 }
 
-public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
+public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
 {
     // from: https://github.com/jonluca/har-to-openapi/blob/0d44409162c0a127cdaccd60b0a270ecd361b829/src/utils/headers.ts
     private static readonly string[] standardHeaders =
@@ -325,10 +338,19 @@ public class OpenApiSpecGeneratorPlugin : BaseProxyPlugin
 
             _logger?.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
             File.WriteAllText(fileName, docString);
+
             generatedOpenApiSpecs.Add(server.Url, fileName);
 
             _logger?.LogInformation("Created OpenAPI spec file {fileName}", fileName);
         }
+
+        StoreReport(new OpenApiSpecGeneratorPluginReport(
+                generatedOpenApiSpecs
+                .Select(kvp => new OpenApiSpecGeneratorPluginReportItem
+                {
+                    ServerUrl = kvp.Key,
+                    FileName = kvp.Value
+                })), e);
 
         // store the generated OpenAPI specs in the global data
         // for use by other plugins
