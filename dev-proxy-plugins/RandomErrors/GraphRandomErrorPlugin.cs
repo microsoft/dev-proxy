@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -30,7 +31,6 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
 {
     private static readonly string _allowedErrorsOptionName = "--allowed-errors";
     private readonly GraphRandomErrorConfiguration _configuration = new();
-    private IProxyConfiguration? _proxyConfiguration;
 
     public override string Name => nameof(GraphRandomErrorPlugin);
 
@@ -85,15 +85,14 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
             }
         }
     };
-    private readonly Random _random;
+    private readonly Random _random = new();
 
-    public GraphRandomErrorPlugin()
+    public GraphRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
-        _random = new Random();
     }
 
     // uses config to determine if a request should be failed
-    private GraphRandomErrorFailMode ShouldFail(ProxyRequestArgs e) => _random.Next(1, 100) <= _proxyConfiguration?.Rate ? GraphRandomErrorFailMode.Random : GraphRandomErrorFailMode.PassThru;
+    private GraphRandomErrorFailMode ShouldFail(ProxyRequestArgs e) => _random.Next(1, 100) <= Context.Configuration.Rate ? GraphRandomErrorFailMode.Random : GraphRandomErrorFailMode.PassThru;
 
     private void FailResponse(ProxyRequestArgs e)
     {
@@ -194,7 +193,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
             }),
             ProxyUtils.JsonSerializerOptions
         );
-        _logger?.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(e.Session));
+        Logger.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(e.Session));
         session.GenericResponse(body ?? string.Empty, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)));
     }
 
@@ -210,7 +209,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         var headers = ProxyUtils.BuildGraphResponseHeaders(request, requestId, requestDate);
 
         string body = JsonSerializer.Serialize(response, ProxyUtils.JsonSerializerOptions);
-        _logger?.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
+        Logger.LogRequest(new[] { $"{(int)errorStatus} {errorStatus.ToString()}" }, MessageType.Chaos, new LoggingContext(ev.Session));
         session.GenericResponse(body, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)));
     }
 
@@ -228,22 +227,13 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         return [_allowedErrors];
     }
 
-    public override void Register(IPluginEvents pluginEvents,
-                         IProxyContext context,
-                         ISet<UrlToWatch> urlsToWatch,
-                         IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        configSection?.Bind(_configuration);
-        pluginEvents.OptionsLoaded += OnOptionsLoaded;
-        pluginEvents.BeforeRequest += OnRequest;
-
-        // needed to get the failure rate configuration
-        // must keep reference of the whole config rather than just rate
-        // because rate is an int and can be set through command line args
-        // which is done after plugins have been registered
-        _proxyConfiguration = context.Configuration;
+        ConfigSection?.Bind(_configuration);
+        PluginEvents.OptionsLoaded += OnOptionsLoaded;
+        PluginEvents.BeforeRequest += OnRequest;
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
@@ -268,12 +258,12 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
     {
         var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet
-            && _urlsToWatch is not null
-            && e.ShouldExecute(_urlsToWatch))
+            && UrlsToWatch is not null
+            && e.ShouldExecute(UrlsToWatch))
         {
             var failMode = ShouldFail(e);
 
-            if (failMode == GraphRandomErrorFailMode.PassThru && _proxyConfiguration?.Rate != 100)
+            if (failMode == GraphRandomErrorFailMode.PassThru && Context.Configuration.Rate != 100)
             {
                 return Task.CompletedTask;
             }

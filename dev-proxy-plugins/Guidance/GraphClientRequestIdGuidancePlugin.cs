@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using Titanium.Web.Proxy.Http;
 
@@ -9,31 +10,32 @@ namespace Microsoft.DevProxy.Plugins.Guidance;
 
 public class GraphClientRequestIdGuidancePlugin : BaseProxyPlugin
 {
+    public GraphClientRequestIdGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(GraphClientRequestIdGuidancePlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        pluginEvents.BeforeRequest += BeforeRequest;
+        PluginEvents.BeforeRequest += BeforeRequest;
     }
 
     private Task BeforeRequest(object? sender, ProxyRequestArgs e)
     {
         Request request = e.Session.HttpClient.Request;
-        if (_urlsToWatch is not null &&
-          e.HasRequestUrlMatch(_urlsToWatch) &&
+        if (UrlsToWatch is not null &&
+          e.HasRequestUrlMatch(UrlsToWatch) &&
           e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
           WarnNoClientRequestId(request))
         {
-            _logger?.LogRequest(BuildAddClientRequestIdMessage(request), MessageType.Warning, new LoggingContext(e.Session));
+            Logger.LogRequest(BuildAddClientRequestIdMessage(request), MessageType.Warning, new LoggingContext(e.Session));
 
             if (!ProxyUtils.IsSdkRequest(request))
             {
-                _logger?.LogRequest(MessageUtils.BuildUseSdkMessage(request), MessageType.Tip, new LoggingContext(e.Session));
+                Logger.LogRequest(MessageUtils.BuildUseSdkMessage(request), MessageType.Tip, new LoggingContext(e.Session));
             }
         }
 

@@ -30,19 +30,18 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
 {
     private readonly GenericRandomErrorConfiguration _configuration = new();
     private GenericErrorResponsesLoader? _loader = null;
-    private IProxyConfiguration? _proxyConfiguration;
 
     public override string Name => nameof(GenericRandomErrorPlugin);
 
-    private readonly Random _random;
+    private readonly Random _random = new();
 
-    public GenericRandomErrorPlugin()
+    public GenericRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
         _random = new Random();
     }
 
     // uses config to determine if a request should be failed
-    private GenericRandomErrorFailMode ShouldFail(ProxyRequestArgs e) => _random.Next(1, 100) <= _proxyConfiguration?.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
+    private GenericRandomErrorFailMode ShouldFail(ProxyRequestArgs e) => _random.Next(1, 100) <= Context.Configuration.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
 
     private void FailResponse(ProxyRequestArgs e, GenericRandomErrorFailMode failMode)
     {
@@ -97,7 +96,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             var filePath = Path.Combine(Path.GetDirectoryName(_configuration.ErrorsFile) ?? "", ProxyUtils.ReplacePathTokens(body.Trim('"').Substring(1)));
             if (!File.Exists(filePath))
             {
-                _logger?.LogError("File {filePath} not found. Serving file path in the mock response", (string?)filePath);
+                Logger.LogError("File {filePath} not found. Serving file path in the mock response", (string?)filePath);
                 session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
             }
             else
@@ -110,34 +109,23 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
         {
             session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
         }
-        _logger?.LogRequest(new[] { $"{error.StatusCode} {statusCode.ToString()}" }, MessageType.Chaos, new LoggingContext(e.Session));
+        Logger.LogRequest([$"{error.StatusCode} {statusCode.ToString()}"], MessageType.Chaos, new LoggingContext(e.Session));
     }
 
     // throttle requests per host
     private string BuildThrottleKey(Request r) => r.RequestUri.Host;
 
-    public override void Register(IPluginEvents pluginEvents,
-                         IProxyContext context,
-                         ISet<UrlToWatch> urlsToWatch,
-                         IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        _proxyConfiguration = context.Configuration;
+        ConfigSection?.Bind(_configuration);
+        _configuration.ErrorsFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.ErrorsFile ?? string.Empty), Path.GetDirectoryName(Context.Configuration.ConfigFile ?? string.Empty) ?? string.Empty);
 
-        configSection?.Bind(_configuration);
-        _configuration.ErrorsFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.ErrorsFile ?? string.Empty), Path.GetDirectoryName(_proxyConfiguration?.ConfigFile ?? string.Empty) ?? string.Empty);
+        _loader = new GenericErrorResponsesLoader(Logger, _configuration);
 
-        _loader = new GenericErrorResponsesLoader(_logger!, _configuration);
-
-        pluginEvents.Init += OnInit;
-        pluginEvents.BeforeRequest += OnRequest;
-
-        // needed to get the failure rate configuration
-        // must keep reference of the whole config rather than just rate
-        // because rate is an int and can be set through command line args
-        // which is done after plugins have been registered
-        _proxyConfiguration = context.Configuration;
+        PluginEvents.Init += OnInit;
+        PluginEvents.BeforeRequest += OnRequest;
     }
 
     private void OnInit(object? sender, InitArgs e)
@@ -149,12 +137,12 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
     {
         var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet
-            && _urlsToWatch is not null
-            && e.ShouldExecute(_urlsToWatch))
+            && UrlsToWatch is not null
+            && e.ShouldExecute(UrlsToWatch))
         {
             var failMode = ShouldFail(e);
 
-            if (failMode == GenericRandomErrorFailMode.PassThru && _proxyConfiguration?.Rate != 100)
+            if (failMode == GenericRandomErrorFailMode.PassThru && Context.Configuration?.Rate != 100)
             {
                 return Task.CompletedTask;
             }

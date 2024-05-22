@@ -73,30 +73,31 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    public ApiCenterProductionVersionPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(ApiCenterProductionVersionPlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        configSection?.Bind(_configuration);
+        ConfigSection?.Bind(_configuration);
 
         if (string.IsNullOrEmpty(_configuration.SubscriptionId))
         {
-            _logger?.LogError("Specify SubscriptionId in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
+            Logger.LogError("Specify SubscriptionId in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
             return;
         }
         if (string.IsNullOrEmpty(_configuration.ResourceGroupName))
         {
-            _logger?.LogError("Specify ResourceGroupName in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
+            Logger.LogError("Specify ResourceGroupName in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
             return;
         }
         if (string.IsNullOrEmpty(_configuration.ServiceName))
         {
-            _logger?.LogError("Specify ServiceName in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
+            Logger.LogError("Specify ServiceName in the ApiCenterProductionVersionPlugin configuration. The ApiCenterProductionVersionPlugin will not be used.");
             return;
         }
 
@@ -118,7 +119,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             _configuration.WorkspaceName = Environment.GetEnvironmentVariable(_configuration.WorkspaceName.Substring(1)) ?? _configuration.WorkspaceName;
         }
 
-        if (_logger?.LogLevel == LogLevel.Debug)
+        if (Logger.IsEnabled(LogLevel.Debug) == true)
         {
             var consoleListener = AzureEventSourceListener.CreateConsoleLogger(EventLevel.Verbose);
         }
@@ -128,7 +129,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             InnerHandler = new HttpClientHandler()
         };
         
-        _logger?.LogDebug("Plugin {plugin} checking Azure auth...", Name);
+        Logger.LogDebug("Plugin {plugin} checking Azure auth...", Name);
         
         try
         {
@@ -136,14 +137,14 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
+            Logger.LogError(ex, "Failed to authenticate with Azure. The {plugin} will not be used.", Name);
             return;
         }
-        _logger?.LogDebug("Plugin {plugin} auth confirmed...", Name);
+        Logger.LogDebug("Plugin {plugin} auth confirmed...", Name);
 
         _httpClient = new HttpClient(authenticationHandler);
 
-        pluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
 
     private async Task AfterRecordingStop(object sender, RecordingArgs e)
@@ -155,18 +156,18 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             );
         if (!interceptedRequests.Any())
         {
-            _logger?.LogDebug("No requests to process");
+            Logger.LogDebug("No requests to process");
             return;
         }
 
-        _logger?.LogInformation("Checking if recorded API requests use production APIs as defined in API Center...");
+        Logger.LogInformation("Checking if recorded API requests use production APIs as defined in API Center...");
 
         Debug.Assert(_httpClient is not null);
 
         var apisFromApiCenter = await LoadApisFromApiCenter();
         if (apisFromApiCenter == null || !apisFromApiCenter.Value.Any())
         {
-            _logger?.LogInformation("No APIs found in API Center");
+            Logger.LogInformation("No APIs found in API Center");
             return;
         }
 
@@ -176,7 +177,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             var apiVersionsFromApiCenter = await LoadApiVersionsFromApiCenter(api);
             if (apiVersionsFromApiCenter == null || !apiVersionsFromApiCenter.Value.Any())
             {
-                _logger?.LogInformation("No versions found for {api}", api.Properties?.Title);
+                Logger.LogInformation("No versions found for {api}", api.Properties?.Title);
                 continue;
             }
 
@@ -188,7 +189,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
                 var definitionsFromApiCenter = await LoadApiDefinitionsForVersion(versionFromApiCenter.Id);
                 if (definitionsFromApiCenter is null || !definitionsFromApiCenter.Value.Any())
                 {
-                    _logger?.LogDebug("No definitions found for version {versionId}", versionFromApiCenter.Id);
+                    Logger.LogDebug("No definitions found for version {versionId}", versionFromApiCenter.Id);
                     continue;
                 }
 
@@ -201,13 +202,13 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
                     if (definitionFromApiCenter.Definition is null)
                     {
-                        _logger?.LogDebug("API definition not found for {definitionId}", definitionFromApiCenter.Id);
+                        Logger.LogDebug("API definition not found for {definitionId}", definitionFromApiCenter.Id);
                         continue;
                     }
 
                     if (!definitionFromApiCenter.Definition.Servers.Any())
                     {
-                        _logger?.LogDebug("No servers found for API definition {definitionId}", definitionFromApiCenter.Id);
+                        Logger.LogDebug("No servers found for API definition {definitionId}", definitionFromApiCenter.Id);
                         continue;
                     }
 
@@ -219,7 +220,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
                 if (!apiUrls.Any())
                 {
-                    _logger?.LogDebug("No URLs found for version {versionId}", versionFromApiCenter.Id);
+                    Logger.LogDebug("No URLs found for version {versionId}", versionFromApiCenter.Id);
                     continue;
                 }
 
@@ -234,7 +235,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
             if (!versions.Any())
             {
-                _logger?.LogInformation("No versions found for {api}", api.Properties?.Title);
+                Logger.LogInformation("No versions found for {api}", api.Properties?.Title);
                 continue;
             }
 
@@ -245,7 +246,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             });
         }
 
-        _logger?.LogInformation("Analyzing recorded requests...");
+        Logger.LogInformation("Analyzing recorded requests...");
 
         var report = new ApiCenterProductionVersionPluginReport();
 
@@ -255,7 +256,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             var methodAndUrl = methodAndUrlString.Split(' ');
             if (methodAndUrl[0] == "OPTIONS")
             {
-                _logger?.LogDebug("Skipping OPTIONS request {request}", methodAndUrl[1]);
+                Logger.LogDebug("Skipping OPTIONS request {request}", methodAndUrl[1]);
                 continue;
             }
 
@@ -293,7 +294,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
                     string.Format("Request {0} uses API version {1} which is defined as {2}. Upgrade to a production version of the API. Recommended versions: {3}", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage, string.Join(", ", productionVersions)) :
                     string.Format("Request {0} uses API version {1} which is defined as {2}.", methodAndUrlString, apiInformation.Versions.First(v => v.LifecycleStage == lifecycleStage).Title, lifecycleStage);
 
-                _logger?.LogWarning(recommendation);
+                Logger.LogWarning(recommendation);
                 report.Add(new()
                 {
                     Method = methodAndUrl[0],
@@ -320,7 +321,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("Loading API definitions for version {id}...", versionId);
+        Logger.LogDebug("Loading API definitions for version {id}...", versionId);
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com{versionId}/definitions?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<ApiDefinition>>(res, _jsonSerializerOptions);
@@ -332,24 +333,24 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
         if (apiDefinition.Definition is not null)
         {
-            _logger?.LogDebug("API definition already loaded for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogDebug("API definition already loaded for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
-        _logger?.LogDebug("Loading API definition for {apiDefinitionId}...", apiDefinition.Id);
+        Logger.LogDebug("Loading API definition for {apiDefinitionId}...", apiDefinition.Id);
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com{apiDefinition.Id}?api-version=2024-03-01");
         var definition = JsonSerializer.Deserialize<ApiDefinition>(res, _jsonSerializerOptions);
         if (definition is null)
         {
-            _logger?.LogError("Failed to deserialize API definition for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogError("Failed to deserialize API definition for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
         apiDefinition.Properties = definition.Properties;
         if (apiDefinition.Properties?.Specification?.Name != "openapi")
         {
-            _logger?.LogDebug("API definition is not OpenAPI for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogDebug("API definition is not OpenAPI for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
@@ -357,13 +358,13 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
         var exportResult = await definitionRes.Content.ReadFromJsonAsync<ApiSpecExportResult>();
         if (exportResult is null)
         {
-            _logger?.LogError("Failed to deserialize exported API definition for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogError("Failed to deserialize exported API definition for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
         if (exportResult.Format != ApiSpecExportResultFormat.Inline)
         {
-            _logger?.LogDebug("API definition is not inline for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogDebug("API definition is not inline for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
 
@@ -373,7 +374,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to parse OpenAPI document for {apiDefinitionId}", apiDefinition.Id);
+            Logger.LogError(ex, "Failed to parse OpenAPI document for {apiDefinitionId}", apiDefinition.Id);
             return;
         }
     }
@@ -383,11 +384,11 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
         var apiInformation = apisInformation?.FirstOrDefault(a => a.Versions.Any(v => v.Urls.Any(u => requestUrl.StartsWith(u))));
         if (apiInformation is null)
         {
-            _logger?.LogDebug("No matching API found for {request}", requestUrl);
+            Logger.LogDebug("No matching API found for {request}", requestUrl);
         }
         else
         {
-            _logger?.LogDebug("Found matching API information for {request}", requestUrl);
+            Logger.LogDebug("Found matching API information for {request}", requestUrl);
         }
 
         return apiInformation;
@@ -404,7 +405,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             // check URL
             if (requestUrl.Contains(apiVersion.Name) || requestUrl.Contains(apiVersion.Title))
             {
-                _logger?.LogDebug("Version {version} found in URL {url}", $"{apiVersion.Name}/{apiVersion.Title}", requestUrl);
+                Logger.LogDebug("Version {version} found in URL {url}", $"{apiVersion.Name}/{apiVersion.Title}", requestUrl);
                 version = apiVersion;
                 break;
             }
@@ -417,7 +418,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             );
             if (header is not null)
             {
-                _logger?.LogDebug("Version {version} found in header {header}", $"{apiVersion.Name}/{apiVersion.Title}", header.Name);
+                Logger.LogDebug("Version {version} found in header {header}", $"{apiVersion.Name}/{apiVersion.Title}", header.Name);
                 version = apiVersion;
                 break;
             }
@@ -425,7 +426,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
         if (version is null)
         {
-            _logger?.LogDebug("No matching version found for {request}", requestUrl);
+            Logger.LogDebug("No matching version found for {request}", requestUrl);
             return null;
         }
 
@@ -436,7 +437,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("Loading versions for {api}...", api.Properties?.Title);
+        Logger.LogDebug("Loading versions for {api}...", api.Properties?.Title);
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com{api.Id}/versions?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<ApiVersion>>(res, _jsonSerializerOptions);
@@ -446,7 +447,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogInformation("Loading APIs from API Center...");
+        Logger.LogInformation("Loading APIs from API Center...");
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}/workspaces/{_configuration.WorkspaceName}/apis?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<Api>>(res, _jsonSerializerOptions);
@@ -456,7 +457,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
     {
         Debug.Assert(_httpClient is not null);
 
-        _logger?.LogDebug("Loading API deployments for {api}...", api.Properties?.Title);
+        Logger.LogDebug("Loading API deployments for {api}...", api.Properties?.Title);
 
         var res = await _httpClient.GetStringAsync($"https://management.azure.com{api.Id}/deployments?api-version=2024-03-01");
         return JsonSerializer.Deserialize<Collection<ApiDeployment>>(res, _jsonSerializerOptions);

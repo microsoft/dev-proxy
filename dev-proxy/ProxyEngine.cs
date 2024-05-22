@@ -24,7 +24,7 @@ enum ToggleSystemProxyAction
 public class ProxyEngine
 {
     private readonly PluginEvents _pluginEvents;
-    private readonly IProxyLogger _logger;
+    private readonly ILogger _logger;
     private readonly ProxyConfiguration _config;
     private static ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
@@ -36,6 +36,7 @@ public class ProxyEngine
     private Dictionary<string, object> _globalData = new() {
         { ProxyUtils.ReportsKey, new Dictionary<string, object>() }
     };
+    private static readonly object consoleLock = new object();
 
     private bool _isRecording = false;
     private List<RequestLog> _requestLogs = new List<RequestLog>();
@@ -58,7 +59,7 @@ public class ProxyEngine
         _proxyServer.CertificateManager.CreateRootCertificate();
     }
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, IProxyLogger logger)
+    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
@@ -293,7 +294,7 @@ public class ProxyEngine
 
     private void PrintRecordingIndicator()
     {
-        lock (ConsoleLogger.ConsoleLock)
+        lock (consoleLock)
         {
             if (_isRecording)
             {
@@ -528,6 +529,8 @@ public class ProxyEngine
                 await e.GetRequestBodyAsString();
             }
 
+            using var scope = _logger.BeginScope(e.HttpClient.Request.Method, e.HttpClient.Request.Url, e.GetHashCode());
+
             e.UserData = e.HttpClient.Request;
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
             await HandleRequest(e, proxyRequestArgs);
@@ -541,7 +544,7 @@ public class ProxyEngine
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!proxyRequestArgs.ResponseState.HasBeenSet)
         {
-            _logger?.LogRequest(new[] { "Passed through" }, MessageType.PassedThrough, new LoggingContext(e));
+            _logger?.LogRequest(["Passed through"], MessageType.PassedThrough, new LoggingContext(e));
             AddProxyHeader(e.HttpClient.Request);
         }
     }
@@ -566,6 +569,8 @@ public class ProxyEngine
             {
                 return;
             }
+
+            using var scope = _logger.BeginScope(e.HttpClient.Request.Method, e.HttpClient.Request.Url, e.GetHashCode());
 
             // necessary to make the response body available to plugins
             e.HttpClient.Response.KeepBody = true;
@@ -598,8 +603,13 @@ public class ProxyEngine
             // of mocked requests available to plugins
             e.HttpClient.Response.KeepBody = true;
 
-            _logger.LogRequest([$"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}"], MessageType.InterceptedResponse, new LoggingContext(e));
+            using var scope = _logger.BeginScope(e.HttpClient.Request.Method, e.HttpClient.Request.Url, e.GetHashCode());
+
+            var message = $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}";
+            _logger.LogRequest([message], MessageType.InterceptedResponse, new LoggingContext(e));
             await _pluginEvents.RaiseProxyAfterResponse(proxyResponseArgs, _exceptionHandler);
+            _logger.LogRequest([message], MessageType.FinishedProcessingRequest, new LoggingContext(e));
+
             // clean up
             _pluginData.Remove(e.GetHashCode());
         }
@@ -626,6 +636,7 @@ public class ProxyEngine
 
     private void PrintHotkeys()
     {
+        Console.WriteLine("");
         Console.WriteLine("Hotkeys: issue (w)eb request, (r)ecord, (s)top recording, (c)lear screen");
         Console.WriteLine("Press CTRL+C to stop Dev Proxy");
         Console.WriteLine("");

@@ -28,22 +28,23 @@ class ExternalConnectionSchemaProperty
 
 public class GraphConnectorGuidancePlugin : BaseProxyPlugin
 {
+    public GraphConnectorGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(GraphConnectorGuidancePlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        pluginEvents.BeforeRequest += BeforeRequest;
+        PluginEvents.BeforeRequest += BeforeRequest;
     }
 
     private Task BeforeRequest(object sender, ProxyRequestArgs e)
     {
-        if (_urlsToWatch is null ||
-          !e.HasRequestUrlMatch(_urlsToWatch) ||
+        if (UrlsToWatch is null ||
+          !e.HasRequestUrlMatch(UrlsToWatch) ||
           e.Session.HttpClient.Request.Method.ToUpper() != "PATCH")
         {
             return Task.CompletedTask;
@@ -54,14 +55,14 @@ public class GraphConnectorGuidancePlugin : BaseProxyPlugin
             var schemaString = e.Session.HttpClient.Request.BodyString;
             if (string.IsNullOrEmpty(schemaString))
             {
-                _logger?.LogRequest([ "No schema found in the request body." ], MessageType.Failed, new LoggingContext(e.Session));
+                Logger.LogRequest([ "No schema found in the request body." ], MessageType.Failed, new LoggingContext(e.Session));
                 return Task.CompletedTask;
             }
 
             var schema = JsonSerializer.Deserialize<ExternalConnectionSchema>(schemaString, ProxyUtils.JsonSerializerOptions);
             if (schema is null || schema.Properties is null)
             {
-                _logger?.LogRequest([ "Invalid schema found in the request body." ], MessageType.Failed, new LoggingContext(e.Session));
+                Logger.LogRequest([ "Invalid schema found in the request body." ], MessageType.Failed, new LoggingContext(e.Session));
                 return Task.CompletedTask;
             }
 
@@ -95,7 +96,7 @@ public class GraphConnectorGuidancePlugin : BaseProxyPlugin
                     !hasUrl ? "url" : ""
                 ];
 
-                _logger?.LogRequest(
+                Logger.LogRequest(
                     [
                         $"The schema is missing the following semantic labels: {string.Join(", ", missingLabels.Where(s => s != ""))}.",
                         "Ingested content might not show up in Microsoft Copilot for Microsoft 365.",
@@ -107,7 +108,7 @@ public class GraphConnectorGuidancePlugin : BaseProxyPlugin
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occurred while deserializing the request body");
+            Logger.LogError(ex, "An error has occurred while deserializing the request body");
         }
 
         return Task.CompletedTask;

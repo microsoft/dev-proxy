@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using Titanium.Web.Proxy.Http;
 
@@ -9,26 +10,27 @@ namespace Microsoft.DevProxy.Plugins.Guidance;
 
 public class ODSPSearchGuidancePlugin : BaseProxyPlugin
 {
+    public ODSPSearchGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(ODSPSearchGuidancePlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+        base.Register();
 
-        pluginEvents.BeforeRequest += BeforeRequest;
+        PluginEvents.BeforeRequest += BeforeRequest;
     }
 
     private Task BeforeRequest(object sender, ProxyRequestArgs e)
     {
         Request request = e.Session.HttpClient.Request;
-        if (_urlsToWatch is not null &&
-            e.HasRequestUrlMatch(_urlsToWatch) &&
+        if (UrlsToWatch is not null &&
+            e.HasRequestUrlMatch(UrlsToWatch) &&
             e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
             WarnDeprecatedSearch(request))
-            _logger?.LogRequest(BuildUseGraphSearchMessage(), MessageType.Warning, new LoggingContext(e.Session));
+            Logger.LogRequest(BuildUseGraphSearchMessage(), MessageType.Warning, new LoggingContext(e.Session));
 
         return Task.CompletedTask;
     }

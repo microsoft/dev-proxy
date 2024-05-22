@@ -15,7 +15,8 @@ public enum MessageType
     Failed,
     Chaos,
     Mocked,
-    InterceptedResponse
+    InterceptedResponse,
+    FinishedProcessingRequest
 }
 
 public class LoggingContext

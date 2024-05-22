@@ -4,6 +4,7 @@
 using System.Text;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.RequestLogs;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Reporters;
@@ -27,21 +28,25 @@ public class PlainTextReporter : BaseReporter
     private const string _requestsInterceptedMessage = "Requests intercepted";
     private const string _requestsPassedThroughMessage = "Requests passed through";
 
+    public PlainTextReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     protected override string? GetReport(KeyValuePair<string, object> report)
     {
-        _logger?.LogDebug("Transforming {report}...", report.Key);
+        Logger.LogDebug("Transforming {report}...", report.Key);
 
         var reportType = report.Value.GetType();
 
         if (_transformers.TryGetValue(reportType, out var transform))
         {
-            _logger?.LogDebug("Transforming {reportType} using {transform}...", reportType.Name, transform.Method);
+            Logger.LogDebug("Transforming {reportType} using {transform}...", reportType.Name, transform.Method);
 
             return transform(report.Value);
         }
         else
         {
-            _logger?.LogDebug("No transformer found for {reportType}", reportType.Name);
+            Logger.LogDebug("No transformer found for {reportType}", reportType.Name);
             return null;
         }
     }

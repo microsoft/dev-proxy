@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.Behavior;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Titanium.Web.Proxy.Models;
 
@@ -13,6 +14,10 @@ namespace Microsoft.DevProxy.Plugins.Mocks;
 
 public class GraphMockResponsePlugin : MockResponsePlugin
 {
+    public GraphMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
+
     public override string Name => nameof(GraphMockResponsePlugin);
 
     protected override async Task OnRequest(object? sender, ProxyRequestArgs e)
@@ -70,7 +75,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                     }
                 };
 
-                _logger?.LogRequest([$"502 {request.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
+                Logger.LogRequest([$"502 {request.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
             }
             else
             {
@@ -106,7 +111,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                         var filePath = Path.Combine(Path.GetDirectoryName(_configuration.MocksFile) ?? "", ProxyUtils.ReplacePathTokens(bodyString.Trim('"').Substring(1)));
                         if (!File.Exists(filePath))
                         {
-                            _logger?.LogError("File {filePath} not found. Serving file path in the mock response", filePath);
+                            Logger.LogError("File {filePath} not found. Serving file path in the mock response", filePath);
                             body = bodyString;
                         }
                         else
@@ -128,7 +133,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
                     Body = body
                 };
 
-                _logger?.LogRequest([$"{mockResponse.Response?.StatusCode ?? 200} {mockResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
+                Logger.LogRequest([$"{mockResponse.Response?.StatusCode ?? 200} {mockResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
             }
 
             responses.Add(response);
@@ -144,7 +149,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
         var batchResponseString = JsonSerializer.Serialize(batchResponse, ProxyUtils.JsonSerializerOptions);
         ProcessMockResponse(ref batchResponseString, batchHeaders, e, null);
         e.Session.GenericResponse(batchResponseString ?? string.Empty, HttpStatusCode.OK, batchHeaders.Select(h => new HttpHeader(h.Name, h.Value)));
-        _logger?.LogRequest([$"200 {e.Session.HttpClient.Request.RequestUri}"], MessageType.Mocked, new LoggingContext(e.Session));
+        Logger.LogRequest([$"200 {e.Session.HttpClient.Request.RequestUri}"], MessageType.Mocked, new LoggingContext(e.Session));
         e.ResponseState.HasBeenSet = true;
     }
 

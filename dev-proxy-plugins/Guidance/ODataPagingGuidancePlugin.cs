@@ -14,22 +14,23 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
     public override string Name => nameof(ODataPagingGuidancePlugin);
     private IList<string> pagingUrls = new List<string>();
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
+    }
 
-        pluginEvents.BeforeRequest += OnBeforeRequest;
-        pluginEvents.BeforeResponse += OnBeforeResponse;
+    public override void Register()
+    {
+        base.Register();
+
+        PluginEvents.BeforeRequest += OnBeforeRequest;
+        PluginEvents.BeforeResponse += OnBeforeResponse;
     }
 
     private Task OnBeforeRequest(object? sender, ProxyRequestArgs e)
     {
-        if (_urlsToWatch is null ||
+        if (UrlsToWatch is null ||
             e.Session.HttpClient.Request.Method != "GET" ||
-            !e.HasRequestUrlMatch(_urlsToWatch))
+            !e.HasRequestUrlMatch(UrlsToWatch))
         {
             return Task.CompletedTask;
         }
@@ -37,7 +38,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
         if (IsODataPagingUrl(e.Session.HttpClient.Request.RequestUri) &&
             !pagingUrls.Contains(e.Session.HttpClient.Request.Url))
         {
-            _logger?.LogRequest(BuildIncorrectPagingUrlMessage(), MessageType.Warning, new LoggingContext(e.Session));
+            Logger.LogRequest(BuildIncorrectPagingUrlMessage(), MessageType.Warning, new LoggingContext(e.Session));
         }
 
         return Task.CompletedTask;
@@ -45,8 +46,8 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
 
     private async Task OnBeforeResponse(object? sender, ProxyResponseArgs e)
     {
-        if (_urlsToWatch is null ||
-            !e.HasRequestUrlMatch(_urlsToWatch) ||
+        if (UrlsToWatch is null ||
+            !e.HasRequestUrlMatch(UrlsToWatch) ||
             e.Session.HttpClient.Request.Method != "GET" ||
             e.Session.HttpClient.Response.StatusCode >= 300 ||
             e.Session.HttpClient.Response.ContentType is null ||
@@ -96,13 +97,13 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
         }
         catch (Exception e)
         {
-            _logger?.LogDebug(e, "An error has occurred while parsing the response body");
+            Logger.LogDebug(e, "An error has occurred while parsing the response body");
         }
 
         return nextLink;
     }
 
-    private static string GetNextLinkFromXml(string responseBody)
+    private string GetNextLinkFromXml(string responseBody)
     {
         var nextLink = string.Empty;
 
@@ -117,7 +118,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
         }
         catch (Exception e)
         {
-            Console.WriteLine(e.Message);
+            Logger.LogError(e.Message);
         }
 
         return nextLink;

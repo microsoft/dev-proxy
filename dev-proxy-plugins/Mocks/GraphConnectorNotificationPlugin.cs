@@ -22,24 +22,22 @@ public class GraphConnectorNotificationConfiguration : MockRequestConfiguration
 public class GraphConnectorNotificationPlugin : MockRequestPlugin
 {
     private string? _ticket = null;
-    private IProxyContext? _context;
     private GraphConnectorNotificationConfiguration _graphConnectorConfiguration = new();
+
+    public GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    {
+    }
 
     public override string Name => nameof(GraphConnectorNotificationPlugin);
 
-    public override void Register(IPluginEvents pluginEvents,
-                            IProxyContext context,
-                            ISet<UrlToWatch> urlsToWatch,
-                            IConfigurationSection? configSection = null)
+    public override void Register()
     {
-        _context = context;
-
-        base.Register(pluginEvents, context, urlsToWatch, configSection);
-        configSection?.Bind(_graphConnectorConfiguration);
+        base.Register();
+        ConfigSection?.Bind(_graphConnectorConfiguration);
         _graphConnectorConfiguration.MockFile = _configuration.MockFile;
         _graphConnectorConfiguration.Request = _configuration.Request;
-
-        pluginEvents.BeforeRequest += OnBeforeRequest;
+        
+        PluginEvents.BeforeRequest += OnBeforeRequest;
     }
 
     private Task OnBeforeRequest(object sender, ProxyRequestArgs e)
@@ -78,13 +76,13 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
         var ticketFromHeader = request.Headers.FirstOrDefault(h => h.Name.Equals("GraphConnectors-Ticket", StringComparison.OrdinalIgnoreCase))?.Value;
         if (ticketFromHeader is null)
         {
-            _logger?.LogRequest(["No ticket header found in the Graph connector notification"], MessageType.Failed, new LoggingContext(session));
+            Logger.LogRequest(["No ticket header found in the Graph connector notification"], MessageType.Failed, new LoggingContext(session));
             return;
         }
 
         if (ticketFromHeader != _ticket)
         {
-            _logger?.LogRequest([$"Ticket on the request does not match the expected ticket. Expected: {_ticket}. Request: {ticketFromHeader}"], MessageType.Failed, new LoggingContext(session));
+            Logger.LogRequest([$"Ticket on the request does not match the expected ticket. Expected: {_ticket}. Request: {ticketFromHeader}"], MessageType.Failed, new LoggingContext(session));
         }
     }
 
@@ -92,7 +90,7 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
     {
         if (_configuration.Request is null)
         {
-            _logger?.LogDebug("No mock request is configured. Skipping.");
+            Logger.LogDebug("No mock request is configured. Skipping.");
             return;
         }
 
@@ -100,7 +98,7 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
         var requestMessage = GetRequestMessage();
         if (requestMessage.Content is null)
         {
-            _logger?.LogError("No body found in the mock request. Skipping.");
+            Logger.LogError("No body found in the mock request. Skipping.");
             return;
         }
         var requestBody = await requestMessage.Content.ReadAsStringAsync();
@@ -110,13 +108,13 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
 
         try
         {
-            _logger?.LogRequest(["Sending Graph connector notification"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
+            Logger.LogRequest(["Sending Graph connector notification"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
 
             var response = await httpClient.SendAsync(requestMessage);
 
             if (response.StatusCode != HttpStatusCode.Accepted)
             {
-                _logger?.LogRequest([$"Incorrect response status code {(int)response.StatusCode} {response.StatusCode}. Expected: 202 Accepted"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
+                Logger.LogRequest([$"Incorrect response status code {(int)response.StatusCode} {response.StatusCode}. Expected: 202 Accepted"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
             }
 
             if (response.Content is not null)
@@ -124,19 +122,19 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
                 var content = await response.Content.ReadAsStringAsync();
                 if (!string.IsNullOrEmpty(content))
                 {
-                    _logger?.LogRequest(["Received response body while empty response expected"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
+                    Logger.LogRequest(["Received response body while empty response expected"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occurred while sending the Graph connector notification to {url}", _configuration.Request.Url);
+            Logger.LogError(ex, "An error has occurred while sending the Graph connector notification to {url}", _configuration.Request.Url);
         }
     }
 
     private string GetJwtToken()
     {
-        var signingCredentials = new X509SigningCredentials(_context?.Certificate, SecurityAlgorithms.RsaSha256);
+        var signingCredentials = new X509SigningCredentials(Context.Certificate, SecurityAlgorithms.RsaSha256);
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -168,7 +166,7 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
 
         if (_configuration.Request?.Body is null)
         {
-            _logger?.LogWarning("No body found in the Graph connector notification. Ticket will not be loaded.");
+            Logger.LogWarning("No body found in the Graph connector notification. Ticket will not be loaded.");
             return;
         }
 
@@ -179,12 +177,12 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
 
             if (string.IsNullOrEmpty(_ticket))
             {
-                _logger?.LogError("No ticket found in the Graph connector notification body");
+                Logger.LogError("No ticket found in the Graph connector notification body");
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error has occurred while reading the ticket from the Graph connector notification body");
+            Logger.LogError(ex, "An error has occurred while reading the ticket from the Graph connector notification body");
         }
     }
 }

@@ -32,7 +32,7 @@ public static class MSGraphDbUtils
         }
     }
 
-    public static async Task<int> GenerateMSGraphDb(IProxyLogger logger, bool skipIfUpdatedToday = false)
+    public static async Task<int> GenerateMSGraphDb(ILogger logger, bool skipIfUpdatedToday = false)
     {
         var appFolder = ProxyUtils.AppFolder;
         if (string.IsNullOrEmpty(appFolder))
@@ -75,7 +75,7 @@ public static class MSGraphDbUtils
 
     }
 
-    private static void CreateDb(SqliteConnection dbConnection, IProxyLogger logger)
+    private static void CreateDb(SqliteConnection dbConnection, ILogger logger)
     {
         logger.LogInformation("Creating database...");
 
@@ -97,7 +97,7 @@ public static class MSGraphDbUtils
         createIndex.ExecuteNonQuery();
     }
 
-    private static void FillData(SqliteConnection dbConnection, IProxyLogger logger)
+    private static void FillData(SqliteConnection dbConnection, ILogger logger)
     {
         logger.LogInformation("Filling database...");
 
@@ -118,20 +118,20 @@ public static class MSGraphDbUtils
 
             foreach (var path in document.Paths)
             {
-                logger.LogDebug("Endpoint {graphVersion}{key}...", graphVersion, path.Key);
+                logger.LogTrace("Endpoint {graphVersion}{key}...", graphVersion, path.Key);
 
                 // Get the GET operation for this path
                 var getOperation = path.Value.Operations.FirstOrDefault(o => o.Key == OperationType.Get).Value;
                 if (getOperation == null)
                 {
-                    logger.LogDebug("No GET operation found for {graphVersion}{key}", graphVersion, path.Key);
+                    logger.LogTrace("No GET operation found for {graphVersion}{key}", graphVersion, path.Key);
                     continue;
                 }
 
                 // Check if the GET operation has a $select parameter
                 var hasSelect = getOperation.Parameters.Any(p => p.Name == "$select");
 
-                logger.LogDebug("Inserting endpoint {graphVersion}{key} with hasSelect={hasSelect}...", graphVersion, path.Key, hasSelect);
+                logger.LogTrace("Inserting endpoint {graphVersion}{key} with hasSelect={hasSelect}...", graphVersion, path.Key, hasSelect);
                 insertEndpoint.Parameters["@path"].Value = path.Key;
                 insertEndpoint.Parameters["@graphVersion"].Value = graphVersion;
                 insertEndpoint.Parameters["@hasSelect"].Value = hasSelect;
@@ -143,7 +143,7 @@ public static class MSGraphDbUtils
         logger.LogInformation("Inserted {endpointCount} endpoints in the database", i);
     }
 
-    private static async Task UpdateOpenAPIGraphFilesIfNecessary(string folder, IProxyLogger logger)
+    private static async Task UpdateOpenAPIGraphFilesIfNecessary(string folder, ILogger logger)
     {
         logger.LogInformation("Checking for updated OpenAPI files...");
 
@@ -176,7 +176,7 @@ public static class MSGraphDbUtils
         }
     }
 
-    private static async Task LoadOpenAPIFiles(string folder, IProxyLogger logger)
+    private static async Task LoadOpenAPIFiles(string folder, ILogger logger)
     {
         logger.LogInformation("Loading OpenAPI files...");
 

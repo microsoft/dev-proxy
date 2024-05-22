@@ -3,17 +3,33 @@
 
 using Microsoft.DevProxy;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.DevProxy.Logging;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using System.CommandLine;
 
 PluginEvents pluginEvents = new PluginEvents();
-IProxyLogger logger = new ConsoleLogger(ProxyCommandHandler.Configuration, pluginEvents);
-// set the log level if specified through args
-if (ProxyHost.LogLevel is not null)
+
+ILogger BuildLogger()
 {
-    logger.LogLevel = ProxyHost.LogLevel.Value;
+    var loggerFactory = LoggerFactory.Create(builder =>
+    {
+        builder
+            .AddConsole(options =>
+            {
+                options.FormatterName = "devproxy";
+                options.LogToStandardErrorThreshold = LogLevel.Warning;
+            })
+            .AddConsoleFormatter<ProxyConsoleFormatter, ConsoleFormatterOptions>()
+            .AddRequestLogger(pluginEvents)
+            .SetMinimumLevel(ProxyHost.LogLevel ?? ProxyCommandHandler.Configuration.LogLevel);
+    });
+    return loggerFactory.CreateLogger("devproxy");
 }
-IProxyContext context = new ProxyContext(logger, ProxyCommandHandler.Configuration, ProxyEngine.Certificate);
+
+var logger = BuildLogger();
+
+IProxyContext context = new ProxyContext(ProxyCommandHandler.Configuration, ProxyEngine.Certificate);
 ProxyHost proxyHost = new();
 
 // this is where the root command is created which contains all commands and subcommands
@@ -21,7 +37,7 @@ RootCommand rootCommand = proxyHost.GetRootCommand(logger);
 
 // store the global options that are created automatically for us
 // rootCommand doesn't return the global options, so we have to store them manually
-string[] globalOptions = { "--version", "--help", "-h", "/h", "-?", "/?" };
+string[] globalOptions = ["--version", "--help", "-h", "/h", "-?", "/?"];
 
 // check if any of the global options are present
 var hasGlobalOption = args.Any(arg => globalOptions.Contains(arg));
