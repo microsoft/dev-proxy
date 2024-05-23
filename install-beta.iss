@@ -32,6 +32,7 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 OutputDir=.
+ChangesEnvironment=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
