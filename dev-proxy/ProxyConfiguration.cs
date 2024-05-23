@@ -36,5 +36,6 @@ public class ProxyConfiguration : IProxyConfiguration
     public string ConfigFile { get; set; } = "devproxyrc.json";
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public ReleaseType NewVersionNotification { get; set; } = ReleaseType.Stable;
+    public MockRequestHeader[]? FilterByHeaders { get; set; }
 }
 
