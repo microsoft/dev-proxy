@@ -10,10 +10,12 @@ internal class ProxyContext : IProxyContext
 {
     public IProxyConfiguration Configuration { get; }
     public X509Certificate2? Certificate { get; }
+    public ILanguageModelClient LanguageModelClient { get; }
 
-    public ProxyContext(IProxyConfiguration configuration, X509Certificate2? certificate)
+    public ProxyContext(IProxyConfiguration configuration, X509Certificate2? certificate, ILanguageModelClient languageModelClient)
     {
         Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         Certificate = certificate;
+        LanguageModelClient = languageModelClient;
     }
 }

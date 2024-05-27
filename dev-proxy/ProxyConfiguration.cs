@@ -4,6 +4,7 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.DevProxy.LanguageModel;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
@@ -36,5 +37,6 @@ public class ProxyConfiguration : IProxyConfiguration
     public string ConfigFile { get; set; } = "devproxyrc.json";
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public ReleaseType NewVersionNotification { get; set; } = ReleaseType.Stable;
+    public LanguageModelConfiguration? LanguageModel { get; set; }
 }
 

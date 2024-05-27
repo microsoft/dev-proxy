@@ -102,34 +102,39 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         var logLevel = logEntry.LogLevel;
         var message = logEntry.Formatter(logEntry.State, logEntry.Exception);
 
-        WriteMessageBoxedWithInvertedLabels(message, logLevel, textWriter);
+        WriteMessageBoxedWithInvertedLabels(message, logLevel, scopeProvider, textWriter);
 
         if (logEntry.Exception is not null)
         {
             textWriter.Write($" Exception Details: {logEntry.Exception}");
         }
 
+        textWriter.WriteLine();
+    }
+
+    private void WriteMessageBoxedWithInvertedLabels(string? message, LogLevel logLevel, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
+    {
+        if (message is null)
+        {
+            return;
+        }
+
+        var label = GetLogLevelString(logLevel);
+        var (bgColor, fgColor) = GetLogLevelColor(logLevel);
+
+        textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
+        textWriter.Write($"{labelSpacing}{_boxSpacing}{(logLevel == LogLevel.Debug ? $"[{DateTime.Now}] " : "")}");
+
         if (_options.IncludeScopes && scopeProvider is not null)
         {
             scopeProvider.ForEachScope((scope, state) =>
             {
-                state.Write(" => ");
                 state.Write(scope);
+                state.Write(": ");
             }, textWriter);
         }
-        textWriter.WriteLine();
-    }
 
-    private void WriteMessageBoxedWithInvertedLabels(string? message, LogLevel logLevel, TextWriter textWriter)
-    {
-        var label = GetLogLevelString(logLevel);
-        var (bgColor, fgColor) = GetLogLevelColor(logLevel);
-
-        if (message is not null)
-        {
-            textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-            textWriter.Write($"{labelSpacing}{_boxSpacing}{(logLevel == LogLevel.Debug ? $"[{DateTime.Now}] " : "")}{message}");
-        }
+        textWriter.Write(message);
     }
 
     private void WriteLogMessageBoxedWithInvertedLabels(string[] message, MessageType messageType, TextWriter textWriter, bool lastMessage = false)
