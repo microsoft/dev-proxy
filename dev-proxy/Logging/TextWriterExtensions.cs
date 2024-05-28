@@ -18,6 +18,12 @@ public static class TextWriterExtensions
 
     public static void WriteColoredMessage(this TextWriter textWriter, string message, ConsoleColor? background, ConsoleColor? foreground)
     {
+        if (Console.IsOutputRedirected)
+        {
+            textWriter.Write(message);
+            return;
+        }
+        
         // Order: backgroundcolor, foregroundcolor, Message, reset foregroundcolor, reset backgroundcolor
         if (background.HasValue)
         {
