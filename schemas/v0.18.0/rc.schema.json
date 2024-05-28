@@ -11,22 +11,14 @@
       "type": "string",
       "format": "ipv4"
     },
-    "labelMode": {
-      "type": "string",
-      "enum": [
-        "debug",
-        "text",
-        "icon",
-        "nerdFont"
-      ]
-    },
     "logLevel": {
       "type": "string",
       "enum": [
         "debug",
         "information",
         "warning",
-        "error"
+        "error",
+        "trace"
       ]
     },
     "newVersionNotification": {
