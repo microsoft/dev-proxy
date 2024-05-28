@@ -34,11 +34,15 @@ Set-Location .\devproxy | Out-Null
 # Get the full path of the current directory
 $full_path = Resolve-Path .
 
-# Get the latest Dev Proxy version
-Write-Host "Getting latest Dev Proxy version..."
-$response = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/dev-proxy/releases/latest" -ErrorAction Stop
-$version = $response.tag_name
-Write-Host "Latest version is $version"
+if (-not $env:DEV_PROXY_VERSION) {
+    # Get the latest Dev Proxy version
+    Write-Host "Getting latest Dev Proxy version..."
+    $response = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/dev-proxy/releases/latest" -ErrorAction Stop
+    $version = $response.tag_name
+    Write-Host "Latest version is $version"
+} else {
+    $version = $env:DEV_PROXY_VERSION
+}
 
 # Download Dev Proxy
 Write-Host "Downloading Dev Proxy $version..."
