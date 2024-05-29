@@ -237,6 +237,12 @@ public static class ModelExtensions
             }
         }
 
+        logger.LogDebug(
+            "Loaded API definitions from API Center for APIs:{newLine}- {apis}",
+            Environment.NewLine,
+            string.Join($"{Environment.NewLine}- ", apiDefinitions.Keys)
+        );
+
         return apiDefinitions;
     }
 
@@ -257,6 +263,24 @@ public static class ModelExtensions
         {
             logger.LogDebug("{request} matches API {api}", requestUrl, api.Api.Name);
             return api.Api;
+        }
+    }
+
+    internal static Api? FindApiByDefinition(this Api[] apis, ApiDefinition apiDefinition, ILogger logger)
+    {
+        var api = apis
+            .FirstOrDefault(a =>
+                (a.Versions?.Any(v => v.Definitions?.Any(d => d.Id == apiDefinition.Id) == true) == true) ||
+                (a.Deployments?.Any(d => d.Properties?.DefinitionId == apiDefinition.Id) == true));
+        if (api is null)
+        {
+            logger.LogDebug("No matching API found for {apiDefinitionId}", apiDefinition.Id);
+            return null;
+        }
+        else
+        {
+            logger.LogDebug("API {api} found for {apiDefinitionId}", api.Name, apiDefinition.Id);
+            return api;
         }
     }
 }

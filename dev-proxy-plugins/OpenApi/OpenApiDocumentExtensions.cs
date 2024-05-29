@@ -8,7 +8,7 @@ namespace Microsoft.OpenApi.Models;
 
 public static class OpenApiDocumentExtensions
 {
-    public static OpenApiPathItem? FindMatchingPathItem(this OpenApiDocument openApiDocument, string requestUrl, ILogger logger)
+    public static KeyValuePair<string, OpenApiPathItem>? FindMatchingPathItem(this OpenApiDocument openApiDocument, string requestUrl, ILogger logger)
     {
         foreach (var server in openApiDocument.Servers)
         {
@@ -50,7 +50,7 @@ public static class OpenApiDocumentExtensions
                     {
                         logger.LogDebug("Regex matches {requestUrl}", urlPathFromRequest);
 
-                        return path.Value;
+                        return path;
                     }
 
                     logger.LogDebug("Regex does not match {requestUrl}", urlPathFromRequest);
@@ -60,8 +60,7 @@ public static class OpenApiDocumentExtensions
                     if (urlPathFromRequest.Equals(urlPathFromSpec, StringComparison.OrdinalIgnoreCase))
                     {
                         logger.LogDebug("{requestUrl} matches {urlPath}", requestUrl, urlPathFromSpec);
-
-                        return path.Value;
+                        return path;
                     }
 
                     logger.LogDebug("{requestUrl} doesn't match {urlPath}", requestUrl, urlPathFromSpec);
@@ -70,5 +69,47 @@ public static class OpenApiDocumentExtensions
         }
 
         return null;
+    }
+
+    public static string[] GetEffectiveScopes(this OpenApiOperation operation, OpenApiDocument openApiDocument, ILogger logger)
+    {
+        var oauth2Scheme = openApiDocument.GetOAuth2Schemes().FirstOrDefault();
+        if (oauth2Scheme is null)
+        {
+            logger.LogDebug("No OAuth2 schemes found in OpenAPI document");
+            return [];
+        }
+
+        var globalScopes = new string[] { };
+        var globalOAuth2Requirement = openApiDocument.SecurityRequirements
+            .FirstOrDefault(req => req.ContainsKey(oauth2Scheme));
+        if (globalOAuth2Requirement is not null)
+        {
+            globalScopes = [.. globalOAuth2Requirement[oauth2Scheme]];
+        }
+
+        if (operation.Security is null)
+        {
+            logger.LogDebug("No security requirements found in operation {operation}", operation.OperationId);
+            return globalScopes;
+        }
+
+        var operationOAuth2Requirement = operation.Security
+            .Where(req => req.ContainsKey(oauth2Scheme))
+            .SelectMany(req => req[oauth2Scheme]);
+        if (operationOAuth2Requirement is not null)
+        {
+            return operationOAuth2Requirement.ToArray();
+        }
+
+        return [];
+    }
+
+    public static OpenApiSecurityScheme[] GetOAuth2Schemes(this OpenApiDocument openApiDocument)
+    {
+        return openApiDocument.Components.SecuritySchemes
+            .Where(s => s.Value.Type == SecuritySchemeType.OAuth2)
+            .Select(s => s.Value)
+            .ToArray();
     }
 }
