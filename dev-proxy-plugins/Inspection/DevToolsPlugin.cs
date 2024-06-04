@@ -23,6 +23,12 @@ public enum PreferredBrowser
 public class DevToolsPluginConfiguration
 {
     public PreferredBrowser PreferredBrowser { get; set; } = PreferredBrowser.Edge;
+
+    /// <summary>
+    /// Path to the browser executable.
+    /// If not set, the plugin will try to find the browser executable based on the PreferredBrowser.
+    /// </summary>
+    public string PreferredBrowserPath { get; set; } = string.Empty;
 }
 
 public class DevToolsPlugin : BaseProxyPlugin
@@ -52,7 +58,7 @@ public class DevToolsPlugin : BaseProxyPlugin
 
     private static int GetFreePort()
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
@@ -61,6 +67,19 @@ public class DevToolsPlugin : BaseProxyPlugin
 
     private string GetChromiumProcessName(DevToolsPluginConfiguration configuration)
     {
+        if (!string.IsNullOrWhiteSpace(configuration.PreferredBrowserPath))
+        {
+            Logger.LogInformation("PreferredBrowserPath was set to {path}. Ignoring PreferredBrowser setting.", configuration.PreferredBrowserPath);
+            return configuration.PreferredBrowserPath;
+        }
+
+        // if not windows or OSX return error 
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            Logger.LogError("Unsupported operating system. For Linux please set PreferredBrowserPath in the configuration.");
+            return string.Empty;
+        }
+
         return configuration.PreferredBrowser switch
         {
             PreferredBrowser.Chrome => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -83,6 +102,25 @@ public class DevToolsPlugin : BaseProxyPlugin
         webSocket.Start();
 
         var processName = GetChromiumProcessName(_configuration);
+
+        // check if the browser is installed
+        if (!File.Exists(processName))
+        {
+            Logger.LogError("Browser executable not found at {processName}", processName);
+            return;
+        }
+
+        // find if the process is already running
+        var processes = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(processName));
+
+        if (processes.Length > 0)
+        {
+            Logger.LogError(@"Found existing process {processName} with Id {processId}. 
+            Could not start DevTools plugin. 
+            Please close existing browser windows before starting DevTools plugin.", processName, processes[0].Id);
+            return;
+        }
+
         var inspectionUrl = $"http://localhost:9222/devtools/inspector.html?ws=localhost:{port}";
         var args = $"{inspectionUrl} --remote-debugging-port=9222 --profile-directory=devproxy";
 
