@@ -40,6 +40,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 {
     private ApiCenterProductionVersionPluginConfiguration _configuration = new();
     private ApiCenterClient? _apiCenterClient;
+    private Api[]? _apis;
 
     public ApiCenterProductionVersionPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
@@ -72,7 +73,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             return;
         }
 
-        Logger.LogDebug("Plugin {plugin} checking Azure auth...", Name);
+        Logger.LogInformation("Plugin {plugin} connecting to Azure...", Name);
         try
         {
             _ = _apiCenterClient.GetAccessToken(CancellationToken.None).Result;
@@ -104,14 +105,18 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
         Debug.Assert(_apiCenterClient is not null);
 
-        var apisFromApiCenter = await _apiCenterClient.GetApis();
-        if (apisFromApiCenter == null || !apisFromApiCenter.Any())
+        if (_apis is null)
+        {
+            _apis = await _apiCenterClient.GetApis();
+        }
+
+        if (_apis == null || !_apis.Any())
         {
             Logger.LogInformation("No APIs found in API Center");
             return;
         }
 
-        foreach (var api in apisFromApiCenter)
+        foreach (var api in _apis)
         {
             Debug.Assert(api.Id is not null);
 
@@ -173,7 +178,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
                 continue;
             }
 
-            var api = apisFromApiCenter.FindApiByUrl(url, Logger);
+            var api = _apis.FindApiByUrl(url, Logger);
             if (api == null)
             {
                 report.Add(new()
