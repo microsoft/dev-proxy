@@ -43,9 +43,14 @@ full_path=$(pwd)
 
 set -e # Terminates program immediately if any command below exits with a non-zero exit status
 
-echo "Getting latest beta Dev Proxy version..."
-version=$(curl -s "https://api.github.com/repos/microsoft/dev-proxy/releases?per_page=1" | awk -F: '/"tag_name"/ {print $2}' | sed 's/[", ]//g')
-echo "Latest beta version is $version"
+if [ -z "$0" ]
+then
+    echo "Getting latest beta Dev Proxy version..."
+    version=$(curl -s "https://api.github.com/repos/microsoft/dev-proxy/releases?per_page=1" | awk -F: '/"tag_name"/ {print $2}' | sed 's/[", ]//g')
+    echo "Latest beta version is $version"
+else
+    version=$0
+fi
 
 echo "Downloading Dev Proxy $version..."
 
