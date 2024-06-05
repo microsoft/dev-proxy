@@ -456,10 +456,7 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         var response = session.HttpClient.Response;
 
         var resource = GetLastNonTokenSegment(request.RequestUri.Segments);
-        var path = new OpenApiPathItem
-        {
-            Description = $"Provides operations to manage {resource}"
-        };
+        var path = new OpenApiPathItem();
 
         var method = request.Method.ToUpperInvariant() switch
         {
@@ -475,7 +472,7 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         };
         var operation = new OpenApiOperation
         {
-            Summary = $"{method} {resource}",
+            Description = $"{method} {resource}",
             // will be replaced later after the path has been parametrized
             OperationId = $"{method}.{resource}"
         };
