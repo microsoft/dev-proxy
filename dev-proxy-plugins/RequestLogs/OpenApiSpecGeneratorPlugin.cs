@@ -298,14 +298,14 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
 
-    private Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStop(object? sender, RecordingArgs e)
     {
         Logger.LogInformation("Creating OpenAPI spec from recorded requests...");
 
         if (!e.RequestLogs.Any())
         {
             Logger.LogDebug("No requests to process");
-            return Task.CompletedTask;
+            return;
         }
 
         var openApiDocs = new List<OpenApiDocument>();
@@ -334,7 +334,16 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
                 var pathItem = GetOpenApiPathItem(request.Context.Session);
                 var parametrizedPath = ParametrizePath(pathItem, request.Context.Session.HttpClient.Request.RequestUri);
                 var operationInfo = pathItem.Operations.First();
-                operationInfo.Value.OperationId = GetOperationId(operationInfo.Key.ToString(), parametrizedPath);
+                operationInfo.Value.OperationId = await GetOperationId(
+                    operationInfo.Key.ToString(),
+                    request.Context.Session.HttpClient.Request.RequestUri.GetLeftPart(UriPartial.Authority),
+                    parametrizedPath
+                );
+                operationInfo.Value.Description = await GetOperationDescription(
+                    operationInfo.Key.ToString(),
+                    request.Context.Session.HttpClient.Request.RequestUri.GetLeftPart(UriPartial.Authority),
+                    parametrizedPath
+                );
                 AddOrMergePathItem(openApiDocs, pathItem, request.Context.Session.HttpClient.Request.RequestUri, parametrizedPath);
             }
             catch (Exception ex)
@@ -370,8 +379,6 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         // store the generated OpenAPI specs in the global data
         // for use by other plugins
         e.GlobalData[GeneratedOpenApiSpecsKey] = generatedOpenApiSpecs;
-
-        return Task.CompletedTask;
     }
 
     /**
@@ -441,9 +448,18 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         return "item";
     }
 
-    private string GetOperationId(string method, string parametrizedPath)
+    private async Task<string> GetOperationId(string method, string serverUrl, string parametrizedPath)
     {
-        return $"{method}{parametrizedPath.Replace('/', '.')}";
+        var prompt = $"For the specified request, generate an operation ID, compatible with an OpenAPI spec. Respond with just the ID in plain-text format. For example, for request such as `GET https://api.contoso.com/books/{{books-id}}` you return `getBookById`. For a request like `GET https://api.contoso.com/books/{{books-id}}/authors` you return `getAuthorsForBookById`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
+        var id = await Context.LanguageModelClient.GenerateCompletion(prompt);
+        return id ?? $"{method}{parametrizedPath.Replace('/', '.')}";
+    }
+
+    private async Task<string> GetOperationDescription(string method, string serverUrl, string parametrizedPath)
+    {
+        var prompt = $"You're an expert in OpenAPI. You help developers build great OpenAPI specs for use with LLMs. For the specified request, generate a one-sentence description. Respond with just the description. For example, for a request such as `GET https://api.contoso.com/books/{{books-id}}` you return `Get a book by ID`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
+        var description = await Context.LanguageModelClient.GenerateCompletion(prompt);
+        return description ?? $"{method} {parametrizedPath}";
     }
 
     /**
@@ -472,6 +488,7 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         };
         var operation = new OpenApiOperation
         {
+            // will be replaced later after the path has been parametrized
             Description = $"{method} {resource}",
             // will be replaced later after the path has been parametrized
             OperationId = $"{method}.{resource}"
