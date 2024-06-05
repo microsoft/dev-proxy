@@ -117,6 +117,10 @@ jobs:
         with:
           name: installer-dev-proxy-${{ github.ref_name }}-${{ matrix.architecture }}
           path: ./${{ env.release }}/dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}.exe
+      - name: Installer SHA256 hash
+        if: contains(matrix.architecture, 'win-')
+        run: |
+          $(Get-FileHash ./${{ env.release }}/dev-proxy-installer-${{ matrix.architecture }}-${{ github.ref_name }}.exe -Algorithm SHA256).Hash
   create_release:
     name: Create Release
     needs: [publish_binaries]
