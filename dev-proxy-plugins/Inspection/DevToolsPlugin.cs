@@ -28,6 +28,7 @@ public class DevToolsPluginConfiguration
     /// Path to the browser executable.
     /// If not set, the plugin will try to find the browser executable based on the PreferredBrowser.
     /// </summary>
+    /// <remarks> It is recommended to set this value on Linux, where chrome can be installed with: npx playwright install chrome </remarks>
     public string PreferredBrowserPath { get; set; } = string.Empty;
 }
 
@@ -115,16 +116,15 @@ public class DevToolsPlugin : BaseProxyPlugin
 
         if (processes.Length > 0)
         {
-            Logger.LogError(@"Found existing process {processName} with Id {processId}. 
-            Could not start DevTools plugin. 
-            Please close existing browser windows before starting DevTools plugin.", processName, processes[0].Id);
+            var ids = string.Join(", ", processes.Select(p => p.Id.ToString()));
+            Logger.LogError(@"Found existing process {processName} with Id {processIds}. Could not start {name}. Please close existing browser windows before starting {name}", processName, ids, Name, Name);
             return;
         }
 
         var inspectionUrl = $"http://localhost:9222/devtools/inspector.html?ws=localhost:{port}";
         var args = $"{inspectionUrl} --remote-debugging-port=9222 --profile-directory=devproxy";
 
-        Logger.LogInformation("DevTools available at {inspectionUrl}", inspectionUrl);
+        Logger.LogInformation("{name} available at {inspectionUrl}", Name, inspectionUrl);
 
         var process = new Process
         {
