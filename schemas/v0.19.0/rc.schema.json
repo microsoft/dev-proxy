@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dev Proxy config",
+  "description": "Configuration for Dev Proxy",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type":"string"
+    },
+    "ipAddress": {
+      "type": "string",
+      "format": "ipv4"
+    },
+    "logLevel": {
+      "type": "string",
+      "enum": [
+        "debug",
+        "information",
+        "warning",
+        "error",
+        "trace"
+      ]
+    },
+    "newVersionNotification": {
+      "type": "string",
+      "enum": [
+        "none",
+        "stable",
+        "beta"
+      ]
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "pluginPath": {
+            "type": "string"
+          },
+          "configSection": {
+            "type": "string"
+          },
+          "urlsToWatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "enabled",
+          "pluginPath"
+        ]
+      }
+    },
+    "port": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "record": {
+      "type": "boolean"
+    },
+    "urlsToWatch": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "watchPids": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "watchProcessNames": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "plugins"
+  ],
+  "additionalProperties": true
+}
