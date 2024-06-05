@@ -42,6 +42,8 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 {
     private ApiCenterOnboardingPluginConfiguration _configuration = new();
     private ApiCenterClient? _apiCenterClient;
+    private Api[]? _apis;
+    private Dictionary<string, ApiDefinition>? _apiDefinitionsByUrl;
 
     public ApiCenterOnboardingPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
@@ -74,7 +76,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
             return;
         }
 
-        Logger.LogDebug("Plugin {plugin} checking Azure auth...", Name);
+        Logger.LogInformation("Plugin {plugin} connecting to Azure...", Name);
         try
         {
             _ = _apiCenterClient.GetAccessToken(CancellationToken.None).Result;
@@ -101,14 +103,21 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
         Debug.Assert(_apiCenterClient is not null);
 
-        var apis = await _apiCenterClient.GetApis();
-        if (apis == null || !apis.Any())
+        if (_apis is null)
+        {
+            _apis = await _apiCenterClient.GetApis();
+        }
+
+        if (_apis == null || !_apis.Any())
         {
             Logger.LogInformation("No APIs found in API Center");
             return;
         }
 
-        var apiDefinitions = await apis.GetApiDefinitionsByUrl(_apiCenterClient, Logger);
+        if (_apiDefinitionsByUrl is null)
+        {
+            _apiDefinitionsByUrl = await _apis.GetApiDefinitionsByUrl(_apiCenterClient, Logger);
+        }
 
         var newApis = new List<(string method, string url)>();
         var interceptedRequests = e.RequestLogs
@@ -129,7 +138,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
             Logger.LogDebug("Processing request {method} {url}...", method, url);
 
-            var apiDefinition = apiDefinitions.FirstOrDefault(x =>
+            var apiDefinition = _apiDefinitionsByUrl.FirstOrDefault(x =>
                 url.StartsWith(x.Key, StringComparison.OrdinalIgnoreCase)).Value;
             if (apiDefinition is null ||
                 apiDefinition.Id is null)
