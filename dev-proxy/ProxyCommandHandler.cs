@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Microsoft.DevProxy.LanguageModel;
 
 namespace Microsoft.DevProxy;
 

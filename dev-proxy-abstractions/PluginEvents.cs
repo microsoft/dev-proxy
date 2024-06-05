@@ -15,6 +15,7 @@ public interface IProxyContext
 {
     IProxyConfiguration Configuration { get; }
     X509Certificate2? Certificate { get; }
+    ILanguageModelClient LanguageModelClient { get; }
 }
 
 public class ThrottlerInfo
