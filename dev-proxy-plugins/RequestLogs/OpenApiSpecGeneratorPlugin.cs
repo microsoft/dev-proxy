@@ -41,6 +41,11 @@ class GeneratedByOpenApiExtension : IOpenApiExtension
     }
 }
 
+internal class OpenApiSpecGeneratorPluginConfiguration
+{
+    public bool IncludeOptionsRequests { get; set; } = false;
+}
+
 public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
 {
     // from: https://github.com/jonluca/har-to-openapi/blob/0d44409162c0a127cdaccd60b0a270ecd361b829/src/utils/headers.ts
@@ -281,12 +286,14 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
     }
 
     public override string Name => nameof(OpenApiSpecGeneratorPlugin);
+    private OpenApiSpecGeneratorPluginConfiguration _configuration = new();
     public static readonly string GeneratedOpenApiSpecsKey = "GeneratedOpenApiSpecs";
-
 
     public override void Register()
     {
         base.Register();
+
+        ConfigSection?.Bind(_configuration);
 
         PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
@@ -309,6 +316,13 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
               request.Context is null ||
               request.Context.Session is null)
             {
+                continue;
+            }
+
+            if (!_configuration.IncludeOptionsRequests &&
+                request.Context.Session.HttpClient.Request.Method.ToUpperInvariant() == "OPTIONS")
+            {
+                Logger.LogDebug("Skipping OPTIONS request {url}...", request.Context.Session.HttpClient.Request.RequestUri);
                 continue;
             }
 
@@ -458,10 +472,7 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         var response = session.HttpClient.Response;
 
         var resource = GetLastNonTokenSegment(request.RequestUri.Segments);
-        var path = new OpenApiPathItem
-        {
-            Description = $"Provides operations to manage {resource}"
-        };
+        var path = new OpenApiPathItem();
 
         var method = request.Method.ToUpperInvariant() switch
         {

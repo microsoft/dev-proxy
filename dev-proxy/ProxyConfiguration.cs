@@ -38,5 +38,5 @@ public class ProxyConfiguration : IProxyConfiguration
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public ReleaseType NewVersionNotification { get; set; } = ReleaseType.Stable;
     public LanguageModelConfiguration? LanguageModel { get; set; }
+    public MockRequestHeader[]? FilterByHeaders { get; set; }
 }
-

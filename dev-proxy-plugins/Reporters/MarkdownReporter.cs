@@ -16,6 +16,7 @@ public class MarkdownReporter : BaseReporter
 
     private readonly Dictionary<Type, Func<object, string?>> _transformers = new()
     {
+        { typeof(ApiCenterMinimalPermissionsPluginReport), TransformApiCenterMinimalPermissionsReport },
         { typeof(ApiCenterOnboardingPluginReport), TransformApiCenterOnboardingReport },
         { typeof(ApiCenterProductionVersionPluginReport), TransformApiCenterProductionVersionReport },
         { typeof(ExecutionSummaryPluginReportByUrl), TransformExecutionSummaryByUrl },
@@ -99,6 +100,92 @@ public class MarkdownReporter : BaseReporter
         }
 
         sb.AppendLine();
+
+        return sb.ToString();
+    }
+
+    private static string? TransformApiCenterMinimalPermissionsReport(object report)
+    {
+        var apiCenterMinimalPermissionsReport = (ApiCenterMinimalPermissionsPluginReport)report;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("# Azure API Center minimal permissions report")
+            .AppendLine();
+
+        sb.AppendLine("## ℹ️ Summary")
+            .AppendLine()
+            .AppendLine("<table>")
+            .AppendFormat("<tr><td>🔎 APIs inspected</td><td align=\"right\">{0}</td></tr>{1}", apiCenterMinimalPermissionsReport.Results.Length, Environment.NewLine)
+            .AppendFormat("<tr><td>🔎 Requests inspected</td><td align=\"right\">{0}</td></tr>{1}", apiCenterMinimalPermissionsReport.Results.Sum(r => r.Requests.Length), Environment.NewLine)
+            .AppendFormat("<tr><td>✅ APIs called using minimal permissions</td><td align=\"right\">{0}</td></tr>{1}", apiCenterMinimalPermissionsReport.Results.Count(r => r.UsesMinimalPermissions), Environment.NewLine)
+            .AppendFormat("<tr><td>🛑 APIs called using excessive permissions</td><td align=\"right\">{0}</td></tr>{1}", apiCenterMinimalPermissionsReport.Results.Count(r => !r.UsesMinimalPermissions), Environment.NewLine)
+            .AppendFormat("<tr><td>⚠️ Unmatched requests</td><td align=\"right\">{0}</td></tr>{1}", apiCenterMinimalPermissionsReport.UnmatchedRequests.Length, Environment.NewLine)
+            .AppendFormat("<tr><td>🛑 Errors</td><td align=\"right\">{0}</td></tr>{1}", apiCenterMinimalPermissionsReport.Errors.Length, Environment.NewLine)
+            .AppendLine("</table>")
+            .AppendLine();
+
+        sb.AppendLine("## 🔌 APIs")
+            .AppendLine();
+
+        if (apiCenterMinimalPermissionsReport.Results.Any())
+        {
+            foreach (var apiResult in apiCenterMinimalPermissionsReport.Results)
+            {
+                sb.AppendFormat("### {0}{1}", apiResult.ApiName, Environment.NewLine)
+                    .AppendLine()
+                    .AppendFormat(apiResult.UsesMinimalPermissions ? "✅ Called using minimal permissions{0}" : "🛑 Called using excessive permissions{0}", Environment.NewLine)
+                    .AppendLine()
+                    .AppendLine("#### Permissions")
+                    .AppendLine()
+                    .AppendFormat("- Minimal permissions: {0}{1}", string.Join(", ", apiResult.MinimalPermissions.Order().Select(p => $"`{p}`")), Environment.NewLine)
+                    .AppendFormat("- Permissions on the token: {0}{1}", string.Join(", ", apiResult.TokenPermissions.Order().Select(p => $"`{p}`")), Environment.NewLine)
+                    .AppendFormat("- Excessive permissions: {0}{1}", apiResult.ExcessivePermissions.Any() ? string.Join(", ", apiResult.ExcessivePermissions.Order().Select(p => $"`{p}`")) : "none", Environment.NewLine)
+                    .AppendLine()
+                    .AppendLine("#### Requests")
+                    .AppendLine()
+                    .AppendJoin(Environment.NewLine, apiResult.Requests.Select(r => $"- {r}")).AppendLine()
+                    .AppendLine();
+            }
+        }
+        else
+        {
+            sb.AppendLine("No APIs found.")
+                .AppendLine();
+        }
+
+        sb.AppendLine("## ⚠️ Unmatched requests")
+            .AppendLine();
+
+        if (apiCenterMinimalPermissionsReport.UnmatchedRequests.Any())
+        {
+            sb.AppendLine("The following requests were not matched to any API in API Center:")
+                .AppendLine()
+                .AppendJoin(Environment.NewLine, apiCenterMinimalPermissionsReport.UnmatchedRequests
+                    .Select(r => $"- {r}").Order()).AppendLine()
+                .AppendLine();
+        }
+        else
+        {
+            sb.AppendLine("No unmatched requests found.")
+                .AppendLine();
+        }
+
+        sb.AppendLine("## 🛑 Errors")
+            .AppendLine();
+
+        if (apiCenterMinimalPermissionsReport.Errors.Any())
+        {
+            sb.AppendLine("The following errors occurred while determining minimal permissions:")
+                .AppendLine()
+                .AppendJoin(Environment.NewLine, apiCenterMinimalPermissionsReport.Errors
+                    .OrderBy(o => o.Request)
+                    .Select(e => $"- `{e.Request}`: {e.Error}")).AppendLine()
+                .AppendLine();
+        }
+        else
+        {
+            sb.AppendLine("No errors occurred.");
+        }
 
         return sb.ToString();
     }
@@ -369,7 +456,7 @@ public class MarkdownReporter : BaseReporter
         }
 
         sb.AppendLine();
-        
+
         return sb.ToString();
     }
 
