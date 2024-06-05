@@ -165,7 +165,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
                 continue;
             }
 
-            var operation = pathItem.Operations.FirstOrDefault(x =>
+            var operation = pathItem.Value.Value.Operations.FirstOrDefault(x =>
                 x.Key.ToString().Equals(method, StringComparison.OrdinalIgnoreCase)).Value;
             if (operation is null)
             {
