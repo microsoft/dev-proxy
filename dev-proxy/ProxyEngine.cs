@@ -506,7 +506,8 @@ public class ProxyEngine
 
     async Task OnRequest(object sender, SessionEventArgs e)
     {
-        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
+        if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host) &&
+            IsIncludedByHeaders(e.HttpClient.Request.Headers))
         {
             _pluginData.Add(e.GetHashCode(), []);
             var responseState = new ResponseState();
@@ -553,6 +554,43 @@ public class ProxyEngine
 
     private bool IsProxiedHost(string hostName) => _hostsToWatch.Any(h => h.Url.IsMatch(hostName));
 
+    private bool IsIncludedByHeaders(HeaderCollection requestHeaders)
+    {
+        if (_config.FilterByHeaders is null)
+        {
+            return true;
+        }
+
+        foreach (var header in _config.FilterByHeaders)
+        {
+            _logger.LogDebug("Checking header {header} with value {value}...",
+                header.Name,
+                string.IsNullOrEmpty(header.Value) ? "(any)" : header.Value
+            );
+
+            if (requestHeaders.HeaderExists(header.Name))
+            {
+                if (string.IsNullOrEmpty(header.Value))
+                {
+                    _logger.LogDebug("Request has header {header}", header.Name);
+                    return true;
+                }
+
+                if (requestHeaders.GetHeaders(header.Name)!.Any(h => h.Value.Contains(header.Value)))
+                {
+                    _logger.LogDebug("Request header {header} contains value {value}", header.Name, header.Value);
+                    return true;
+                }
+            }
+            else
+            {
+                _logger.LogDebug("Request doesn't have header {header}", header.Name);
+            }
+        }
+
+        _logger.LogDebug("Request doesn't match any header filter. Ignoring");
+        return false;
+    }
 
     // Modify response
     async Task OnBeforeResponse(object sender, SessionEventArgs e)
