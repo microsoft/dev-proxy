@@ -4,7 +4,6 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.LanguageModel;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;

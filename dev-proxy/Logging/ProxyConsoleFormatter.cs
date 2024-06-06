@@ -123,14 +123,17 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         var (bgColor, fgColor) = GetLogLevelColor(logLevel);
 
         textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-        textWriter.Write($"{labelSpacing}{_boxSpacing}{(logLevel == LogLevel.Debug ? $"[{DateTime.Now}] " : "")}");
+        textWriter.Write($"{labelSpacing}{_boxSpacing}{(logLevel == LogLevel.Debug ? $"[{DateTime.Now:T}] " : "")}");
 
         if (_options.IncludeScopes && scopeProvider is not null)
         {
             scopeProvider.ForEachScope((scope, state) =>
             {
-                state.Write(scope);
-                state.Write(": ");
+                if (scope is string scopeString)
+                {
+                    textWriter.Write(scopeString);
+                    textWriter.Write(": ");
+                }
             }, textWriter);
         }
 

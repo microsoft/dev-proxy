@@ -3,7 +3,6 @@
 
 using Microsoft.DevProxy;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.LanguageModel;
 using Microsoft.DevProxy.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -32,7 +31,7 @@ ILogger BuildLogger()
 
 var logger = BuildLogger();
 
-var lmClient = new LanguageModelClient(ProxyCommandHandler.Configuration.LanguageModel, logger);
+var lmClient = new OllamaLanguageModelClient(ProxyCommandHandler.Configuration.LanguageModel, logger);
 IProxyContext context = new ProxyContext(ProxyCommandHandler.Configuration, ProxyEngine.Certificate, lmClient);
 ProxyHost proxyHost = new();
 
