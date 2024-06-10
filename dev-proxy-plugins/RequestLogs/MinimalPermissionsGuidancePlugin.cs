@@ -296,6 +296,18 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
                 permissionsInfo.MinimalPermissions = minimalPermissions;
                 permissionsInfo.ExcessPermissions = excessPermissions;
+
+                Logger.LogInformation("Minimal permissions: {minimalPermissions}", string.Join(", ", minimalPermissions));
+                Logger.LogInformation("Permissions on the token: {tokenPermissions}", string.Join(", ", permissionsFromAccessToken));
+
+                if (excessPermissions.Any())
+                {
+                    Logger.LogWarning("The following permissions are unnecessary: {permissions}", string.Join(", ", excessPermissions));
+                }
+                else
+                {
+                    Logger.LogInformation("The token has the minimal permissions required.");
+                }
             }
             if (errors.Any())
             {
