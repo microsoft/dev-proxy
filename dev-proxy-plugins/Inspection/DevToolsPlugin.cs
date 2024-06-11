@@ -81,32 +81,26 @@ public class DevToolsPlugin : BaseProxyPlugin
             PreferredBrowser.Chrome => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Google\Chrome\Application\chrome.exe")
                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
                 : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "/usr/bin/google-chrome"
-                : throw new NotSupportedException("Unsupported operating system."),
+                : string.Empty,
             PreferredBrowser.EdgeDev => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge Dev\Application\msedge.exe")
                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Dev"
                 : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "/usr/bin/microsoft-edge-dev"
-                : throw new NotSupportedException("Unsupported operating system."),
-            _ => throw new NotSupportedException($"{configuration.PreferredBrowser} is an unsupported browser. Please change your PreferredBrowser setting for {Name}.")
+                : string.Empty,
+             _ => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe")
+                : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
+                : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "/usr/bin/microsoft-edge"
+                : string.Empty,
         };
     }
 
     private void InitInspector()
     {
-        string processName = string.Empty;
-
-        try
-        {
-            processName = GetChromiumProcessName(_configuration);
-        }
-        catch (NotSupportedException ex)
-        {
-            Logger.LogError(ex, "Error starting {name}. Error finding the browser.", Name);
-        }
+        string processName = GetChromiumProcessName(_configuration);
 
         // check if the browser is installed
         if (!File.Exists(processName))
         {
-            Logger.LogError("Error starting {name}. Browser executable not found at {processName}", Name, processName);
+            Logger.LogError("Error starting {name}. Browser {browser} executable not found at {processName}. Try changing PreferredBrowser or provide PreferredBrowserPath", Name, _configuration.PreferredBrowser, processName);
             return;
         }
 
