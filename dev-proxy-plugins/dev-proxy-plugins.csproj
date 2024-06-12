@@ -13,7 +13,7 @@
     <NoWarn>CS1998</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.11.3">
+    <PackageReference Include="Azure.Identity" Version="1.11.4">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>

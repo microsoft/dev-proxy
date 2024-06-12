@@ -23,6 +23,14 @@ public enum PreferredBrowser
 public class DevToolsPluginConfiguration
 {
     public PreferredBrowser PreferredBrowser { get; set; } = PreferredBrowser.Edge;
+
+    /// <summary>
+    /// Path to the browser executable. If not set, the plugin will try to find
+    /// the browser executable based on the PreferredBrowser.
+    /// </summary>
+    /// <remarks>Use this value when you install the browser in a non-standard
+    /// path.</remarks>
+    public string PreferredBrowserPath { get; set; } = string.Empty;
 }
 
 public class DevToolsPlugin : BaseProxyPlugin
@@ -52,47 +60,110 @@ public class DevToolsPlugin : BaseProxyPlugin
 
     private static int GetFreePort()
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return port;
     }
 
-    private string GetChromiumProcessName(DevToolsPluginConfiguration configuration)
+    private string GetBrowserPath(DevToolsPluginConfiguration configuration)
     {
-        return configuration.PreferredBrowser switch
+        if (!string.IsNullOrEmpty(configuration.PreferredBrowserPath))
         {
-            PreferredBrowser.Chrome => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Google\Chrome\Application\chrome.exe")
-                : "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            PreferredBrowser.EdgeDev => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge Dev\Application\msedge.exe")
-                : "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Dev",
-            _ => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe")
-                : "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
-        };
+            Logger.LogInformation("{preferredBrowserPath} was set to {path}. Ignoring {preferredBrowser} setting.", nameof(configuration.PreferredBrowserPath), configuration.PreferredBrowserPath, nameof(configuration.PreferredBrowser));
+            return configuration.PreferredBrowserPath;
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return configuration.PreferredBrowser switch
+            {
+                PreferredBrowser.Chrome => Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+                PreferredBrowser.Edge => Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+                PreferredBrowser.EdgeDev => Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge Dev\Application\msedge.exe"),
+                _ => throw new NotSupportedException($"{configuration.PreferredBrowser} is an unsupported browser. Please change your PreferredBrowser setting for {Name}.")
+            };
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return configuration.PreferredBrowser switch
+            {
+                PreferredBrowser.Chrome => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                PreferredBrowser.Edge => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                PreferredBrowser.EdgeDev => "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Dev",
+                _ => throw new NotSupportedException($"{configuration.PreferredBrowser} is an unsupported browser. Please change your PreferredBrowser setting for {Name}.")
+            };
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return configuration.PreferredBrowser switch
+            {
+                PreferredBrowser.Chrome => "/opt/google/chrome/chrome",
+                PreferredBrowser.Edge => "/opt/microsoft/msedge-dev/msedge",
+                PreferredBrowser.EdgeDev => "/opt/microsoft/msedge-dev/msedge",
+                _ => throw new NotSupportedException($"{configuration.PreferredBrowser} is an unsupported browser. Please change your PreferredBrowser setting for {Name}.")
+            };
+        }
+        else
+        {
+            throw new NotSupportedException("Unsupported operating system.");
+        }
+    }
+
+    private Process[] GetBrowserProcesses(string browserPath)
+    {
+        return Process.GetProcesses().Where(p =>
+            p.MainModule is not null && p.MainModule.FileName == browserPath
+        ).ToArray();
     }
 
     private void InitInspector()
     {
+        var browserPath = string.Empty;
+
+        try
+        {
+            browserPath = GetBrowserPath(_configuration);
+        }
+        catch (NotSupportedException ex)
+        {
+            Logger.LogError(ex, "Error starting {plugin}. Error finding the browser.", Name);
+            return;
+        }
+
+        // check if the browser is installed
+        if (!File.Exists(browserPath))
+        {
+            Logger.LogError("Error starting {plugin}. Browser executable not found at {browserPath}", Name, browserPath);
+            return;
+        }
+
+        // find if the process is already running
+        var processes = GetBrowserProcesses(browserPath);
+
+        if (processes.Any())
+        {
+            var ids = string.Join(", ", processes.Select(p => p.Id.ToString()));
+            Logger.LogError("Found existing browser process {processName} with IDs {processIds}. Could not start {plugin}. Please close existing browser processes and restart Dev Proxy", browserPath, ids, Name);
+            return;
+        }
+
         var port = GetFreePort();
         webSocket = new WebSocketServer(port, Logger);
         webSocket.MessageReceived += SocketMessageReceived;
         webSocket.Start();
 
-        var processName = GetChromiumProcessName(_configuration);
         var inspectionUrl = $"http://localhost:9222/devtools/inspector.html?ws=localhost:{port}";
         var args = $"{inspectionUrl} --remote-debugging-port=9222 --profile-directory=devproxy";
 
-        Logger.LogInformation("DevTools available at {inspectionUrl}", inspectionUrl);
+        Logger.LogInformation("{name} available at {inspectionUrl}", Name, inspectionUrl);
 
         var process = new Process
         {
             StartInfo = new()
             {
-                FileName = processName,
+                FileName = browserPath,
                 Arguments = args,
                 // suppress default output
                 RedirectStandardError = true,
