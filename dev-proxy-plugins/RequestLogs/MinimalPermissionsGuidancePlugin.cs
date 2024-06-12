@@ -275,7 +275,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
         try
         {
-            var url = $"https://graphexplorerapi-staging.azurewebsites.net/permissions?scopeType={GetScopeTypeString(scopeType)}";
+            var url = $"https://graphexplorerapi.azurewebsites.net/permissions?scopeType={GetScopeTypeString(scopeType)}";
             using var client = new HttpClient();
             var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
             Logger.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
