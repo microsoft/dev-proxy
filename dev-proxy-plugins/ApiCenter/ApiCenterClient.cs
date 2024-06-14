@@ -82,7 +82,9 @@ internal class ApiCenterClient
 
         _authenticationHandler = new AuthenticationDelegatingHandler(_credential, _scopes)
         {
-            InnerHandler = new HttpClientHandler()
+            InnerHandler = new TracingDelegatingHandler(logger) {
+                InnerHandler = new HttpClientHandler()
+            }
         };
         _httpClient = new HttpClient(_authenticationHandler);
 
@@ -232,6 +234,6 @@ internal class ApiCenterClient
     internal async Task<ApiSpecExportResult?> PostExportSpecification(string definitionId)
     {
         var definitionRes = await _httpClient.PostAsync($"https://management.azure.com{definitionId}/exportSpecification?api-version=2024-03-01", null);
-        return await definitionRes.Content.ReadFromJsonAsync<ApiSpecExportResult>();
+        return await definitionRes.Content.ReadFromJsonAsync<ApiSpecExportResult>(ProxyUtils.JsonSerializerOptions);
     }
 }

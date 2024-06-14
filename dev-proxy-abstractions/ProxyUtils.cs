@@ -39,6 +39,12 @@ public static class ProxyUtils
 
     public static readonly string ReportsKey = "Reports";
 
+    static ProxyUtils()
+    {
+        // convert enum values to camelCase
+        jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    }
+
     public static bool IsGraphRequest(Request request) => IsGraphUrl(request.RequestUri);
 
     public static bool IsGraphUrl(Uri uri) =>

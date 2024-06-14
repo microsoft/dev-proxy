@@ -404,7 +404,7 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
             if (IsParametrizable(segment))
             {
                 var parameterName = $"{previousSegment}-id";
-                segments[i] = "{" + parameterName + "}/";
+                segments[i] = $"{{{parameterName}}}{(requestUri.Segments[i].EndsWith('/') ? "/" : "")}";
 
                 pathItem.Parameters.Add(new OpenApiParameter
                 {

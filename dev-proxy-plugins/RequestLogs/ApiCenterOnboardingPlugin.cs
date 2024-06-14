@@ -384,7 +384,16 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
         }
         else
         {
-            Logger.LogError("Failed to import API definition for {apiDefinition}. Status: {status}, reason: {reason}", apiDefinitionId, res.StatusCode, res.ReasonPhrase);
+            var resContent = res.ReasonPhrase;
+            try
+            {
+                resContent = await res.Content.ReadAsStringAsync();
+            }
+            catch
+            {
+            }
+            
+            Logger.LogError("Failed to import API definition for {apiDefinition}. Status: {status}, reason: {reason}", apiDefinitionId, res.StatusCode, resContent);
         }
     }
 }

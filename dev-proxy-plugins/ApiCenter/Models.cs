@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
@@ -25,9 +24,7 @@ internal class ApiProperties
     public ApiContact[] Contacts { get; set; } = [];
     public dynamic CustomProperties { get; set; } = new object();
     public string? Description { get; set; }
-    [JsonConverter(typeof(JsonStringEnumConverter))]
     public ApiKind? Kind { get; set; }
-    [JsonConverter(typeof(JsonStringEnumConverter))]
     public ApiLifecycleStage? LifecycleStage { get; set; }
     public string? Title { get; set; }
     public string? Summary { get; set; }
@@ -79,7 +76,6 @@ internal class ApiDefinitionPropertiesSpecification
 
 internal class ApiSpecImport
 {
-    [JsonConverter(typeof(JsonStringEnumConverter))]
     public ApiSpecImportResultFormat Format { get; set; }
     public ApiSpecImportRequestSpecification? Specification { get; set; }
     public string? Value { get; set; }
@@ -93,7 +89,6 @@ internal class ApiSpecImportRequestSpecification
 
 internal class ApiSpecExportResult
 {
-    [JsonConverter(typeof(JsonStringEnumConverter))]
     public ApiSpecExportResultFormat? Format { get; set; }
     public string? Value { get; set; }
 }
@@ -108,7 +103,6 @@ internal class ApiVersion
 
 internal class ApiVersionProperties
 {
-    [JsonConverter(typeof(JsonStringEnumConverter))]
     public ApiLifecycleStage LifecycleStage { get; set; }
     public string? Title { get; set; }
 }
