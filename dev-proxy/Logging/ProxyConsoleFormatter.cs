@@ -129,9 +129,19 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         {
             scopeProvider.ForEachScope((scope, state) =>
             {
+                if (scope is null)
+                {
+                    return;
+                }
+
                 if (scope is string scopeString)
                 {
                     textWriter.Write(scopeString);
+                    textWriter.Write(": ");
+                }
+                else if (scope.GetType().Name == "FormattedLogValues")
+                {
+                    textWriter.Write(scope.ToString());
                     textWriter.Write(": ");
                 }
             }, textWriter);

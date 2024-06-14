@@ -41,7 +41,7 @@ public class PlainTextReporter : BaseReporter
 
         if (_transformers.TryGetValue(reportType, out var transform))
         {
-            Logger.LogDebug("Transforming {reportType} using {transform}...", reportType.Name, transform.Method);
+            Logger.LogDebug("Transforming {reportType} using {transform}...", reportType.Name, transform.Method.Name);
 
             return transform(report.Value);
         }
