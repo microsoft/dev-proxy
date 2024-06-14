@@ -232,7 +232,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
     async Task CreateApisInApiCenter(IEnumerable<IGrouping<string, (string method, string url)>> apisPerHost, Dictionary<string, string> generatedOpenApiSpecs)
     {
-        Logger.LogInformation("{newLine}Creating new API entries in API Center...", Environment.NewLine);
+        Logger.LogInformation("Creating new API entries in API Center...");
 
         foreach (var apiPerHost in apisPerHost)
         {
