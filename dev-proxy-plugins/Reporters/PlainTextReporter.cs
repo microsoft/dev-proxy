@@ -213,6 +213,7 @@ public class PlainTextReporter : BaseReporter
 
             sb.AppendJoin(Environment.NewLine, group.Select(a => $"  {a.Method} {a.Url}"));
             sb.AppendLine();
+            sb.AppendLine();
         }
 
         return sb.ToString();
@@ -307,7 +308,7 @@ public class PlainTextReporter : BaseReporter
 
         if (apiCenterOnboardingReport.NewApis.Any())
         {
-            var apisPerSchemeAndHost = apiCenterOnboardingReport.NewApis.GroupBy(x =>
+            var apisPerAuthority = apiCenterOnboardingReport.NewApis.GroupBy(x =>
             {
                 var u = new Uri(x.Url);
                 return u.GetLeftPart(UriPartial.Authority);
@@ -316,10 +317,11 @@ public class PlainTextReporter : BaseReporter
             sb.AppendLine("New APIs that aren't registered in Azure API Center:");
             sb.AppendLine();
 
-            foreach (var apiPerHost in apisPerSchemeAndHost)
+            foreach (var apiPerAuthority in apisPerAuthority)
             {
-                sb.AppendLine($"{apiPerHost.Key}:");
-                sb.AppendJoin(Environment.NewLine, apiPerHost.Select(a => $"  {a.Method} {a.Url}"));
+                sb.AppendLine($"{apiPerAuthority.Key}:");
+                sb.AppendJoin(Environment.NewLine, apiPerAuthority.Select(a => $"  {a.Method} {a.Url}"));
+                sb.AppendLine();
             }
 
             sb.AppendLine();
@@ -327,9 +329,22 @@ public class PlainTextReporter : BaseReporter
 
         if (apiCenterOnboardingReport.ExistingApis.Any())
         {
+            var apisPerAuthority = apiCenterOnboardingReport.ExistingApis.GroupBy(x =>
+            {
+                var methodAndUrl = x.MethodAndUrl.Split(' ');
+                var u = new Uri(methodAndUrl[1]);
+                return u.GetLeftPart(UriPartial.Authority);
+            });
+
             sb.AppendLine("APIs that are already registered in Azure API Center:");
             sb.AppendLine();
-            sb.AppendJoin(Environment.NewLine, apiCenterOnboardingReport.ExistingApis.Select(a => a.MethodAndUrl));
+
+            foreach (var apiPerAuthority in apisPerAuthority)
+            {
+                sb.AppendLine($"{apiPerAuthority.Key}:");
+                sb.AppendJoin(Environment.NewLine, apiPerAuthority.Select(a => $"  {a.MethodAndUrl}"));
+                sb.AppendLine();
+            }
         }
 
         return sb.ToString();
