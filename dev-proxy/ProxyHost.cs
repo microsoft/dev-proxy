@@ -225,10 +225,17 @@ internal class ProxyHost
         _rateOption.ArgumentHelpName = "failure rate";
         _rateOption.AddValidator((input) =>
         {
-            int? value = input.GetValueForOption(_rateOption);
-            if (value.HasValue && (value < 0 || value > 100))
+            try
             {
-                input.ErrorMessage = $"{value} is not a valid failure rate. Specify a number between 0 and 100";
+                int? value = input.GetValueForOption(_rateOption);
+                if (value.HasValue && (value < 0 || value > 100))
+                {
+                    input.ErrorMessage = $"{value} is not a valid failure rate. Specify a number between 0 and 100";
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                input.ErrorMessage = ex.Message;
             }
         });
 
@@ -236,16 +243,34 @@ internal class ProxyHost
 
         _asSystemProxyOption = new Option<bool?>(AsSystemProxyOptionName, "Set Dev Proxy as the system proxy");
         _asSystemProxyOption.SetDefaultValue(true);
+        _asSystemProxyOption.AddValidator(input =>
+        {
+            try
+            {
+                _ = input.GetValueForOption(_asSystemProxyOption);
+            }
+            catch (InvalidOperationException ex)
+            {
+                input.ErrorMessage = ex.Message;
+            }
+        });
 
         _installCertOption = new Option<bool?>(InstallCertOptionName, "Install self-signed certificate");
         _installCertOption.SetDefaultValue(true);
-        _installCertOption.AddValidator((input) =>
+        _installCertOption.AddValidator(input =>
         {
-            var asSystemProxy = input.GetValueForOption(_asSystemProxyOption) ?? true;
-            var installCert = input.GetValueForOption(_installCertOption) ?? true;
-            if (asSystemProxy && !installCert)
+            try
             {
-                input.ErrorMessage = $"Requires option '--{_asSystemProxyOption.Name}' to be 'false'";
+                var asSystemProxy = input.GetValueForOption(_asSystemProxyOption) ?? true;
+                var installCert = input.GetValueForOption(_installCertOption) ?? true;
+                if (asSystemProxy && !installCert)
+                {
+                    input.ErrorMessage = $"Requires option '--{_asSystemProxyOption.Name}' to be 'false'";
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                input.ErrorMessage = ex.Message;
             }
         });
 
