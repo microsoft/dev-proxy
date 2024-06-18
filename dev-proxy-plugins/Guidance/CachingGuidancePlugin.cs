@@ -35,7 +35,7 @@ public class CachingGuidancePlugin : BaseProxyPlugin
     {
         if (UrlsToWatch is null ||
           !e.HasRequestUrlMatch(UrlsToWatch) ||
-          e.Session.HttpClient.Request.Method.ToUpper() == "OPTIONS")
+          String.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
         {
             return Task.CompletedTask;
         }

@@ -38,7 +38,8 @@ public class OpenAIMockResponsePlugin : BaseProxyPlugin
         using var scope = Logger.BeginScope(Name);
 
         var request = e.Session.HttpClient.Request;
-        if (!request.Method.Equals("POST", StringComparison.OrdinalIgnoreCase) ||
+        if (request.Method is null ||
+            !request.Method.Equals("POST", StringComparison.OrdinalIgnoreCase) ||
             !request.HasBody)
         {
             return;

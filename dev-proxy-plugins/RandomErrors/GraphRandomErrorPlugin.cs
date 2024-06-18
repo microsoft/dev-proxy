@@ -97,7 +97,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
     private void FailResponse(ProxyRequestArgs e)
     {
         // pick a random error response for the current request method
-        var methodStatusCodes = _methodStatusCode[e.Session.HttpClient.Request.Method];
+        var methodStatusCodes = _methodStatusCode[e.Session.HttpClient.Request.Method ?? "GET"];
         var errorStatus = methodStatusCodes[_random.Next(0, methodStatusCodes.Length)];
         UpdateProxyResponse(e, errorStatus);
     }

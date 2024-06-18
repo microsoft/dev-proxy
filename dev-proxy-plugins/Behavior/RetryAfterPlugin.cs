@@ -32,7 +32,7 @@ public class RetryAfterPlugin : BaseProxyPlugin
     {
         if (e.ResponseState.HasBeenSet ||
             UrlsToWatch is null ||
-            e.Session.HttpClient.Request.Method.ToUpper() == "OPTIONS" ||
+            String.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) ||
             !e.ShouldExecute(UrlsToWatch))
         {
             return Task.CompletedTask;

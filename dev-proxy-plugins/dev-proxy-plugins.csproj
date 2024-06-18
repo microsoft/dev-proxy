@@ -45,7 +45,7 @@
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Titanium.Web.Proxy" Version="3.2.0">
+    <PackageReference Include="Unobtanium.Web.Proxy" Version="0.1.5">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>

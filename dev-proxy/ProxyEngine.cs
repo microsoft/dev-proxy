@@ -56,7 +56,7 @@ public class ProxyEngine
         // we need to change this to a value lower than 397
         // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
         _proxyServer.CertificateManager.CertificateValidDays = 365;
-        _proxyServer.CertificateManager.CreateRootCertificate();
+        _ = _proxyServer.CertificateManager.LoadOrCreateRootCertificateAsync().Result;
     }
 
     public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
@@ -116,15 +116,17 @@ public class ProxyEngine
         _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
         if (_config.InstallCert)
         {
-            _proxyServer.CertificateManager.EnsureRootCertificate();
+            await _proxyServer.CertificateManager.EnsureRootCertificateAsync();
         }
         else
         {
-            _explicitEndPoint.GenericCertificate = _proxyServer.CertificateManager.LoadRootCertificate();
+            _explicitEndPoint.GenericCertificate = await _proxyServer
+                .CertificateManager
+                .LoadRootCertificateAsync(cancellationToken ?? CancellationToken.None);
         }
 
         _proxyServer.AddEndPoint(_explicitEndPoint);
-        _proxyServer.Start();
+        await _proxyServer.StartAsync();
 
         // run first-run setup on macOS
         FirstRunSetup();
@@ -436,7 +438,7 @@ public class ProxyEngine
         var psi = new ProcessStartInfo
         {
             FileName = "lsof",
-            Arguments = $"-i :{e.ClientRemoteEndPoint.Port}",
+            Arguments = $"-i :{e.ClientRemoteEndPoint?.Port}",
             UseShellExecute = false,
             RedirectStandardOutput = true,
             CreateNoWindow = true
@@ -450,7 +452,7 @@ public class ProxyEngine
         proc.WaitForExit();
 
         var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-        var matchingLine = lines.FirstOrDefault(l => l.Contains($"{e.ClientRemoteEndPoint.Port}->"));
+        var matchingLine = lines.FirstOrDefault(l => l.Contains($"{e.ClientRemoteEndPoint?.Port}->"));
         if (matchingLine is null)
         {
             return -1;
@@ -530,7 +532,7 @@ public class ProxyEngine
                 await e.GetRequestBodyAsString();
             }
 
-            using var scope = _logger.BeginScope(e.HttpClient.Request.Method, e.HttpClient.Request.Url, e.GetHashCode());
+            using var scope = _logger.BeginScope(e.HttpClient.Request.Method ?? "", e.HttpClient.Request.Url, e.GetHashCode());
 
             e.UserData = e.HttpClient.Request;
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
@@ -608,7 +610,7 @@ public class ProxyEngine
                 return;
             }
 
-            using var scope = _logger.BeginScope(e.HttpClient.Request.Method, e.HttpClient.Request.Url, e.GetHashCode());
+            using var scope = _logger.BeginScope(e.HttpClient.Request.Method ?? "", e.HttpClient.Request.Url, e.GetHashCode());
 
             // necessary to make the response body available to plugins
             e.HttpClient.Response.KeepBody = true;
@@ -641,7 +643,7 @@ public class ProxyEngine
             // of mocked requests available to plugins
             e.HttpClient.Response.KeepBody = true;
 
-            using var scope = _logger.BeginScope(e.HttpClient.Request.Method, e.HttpClient.Request.Url, e.GetHashCode());
+            using var scope = _logger.BeginScope(e.HttpClient.Request.Method ?? "", e.HttpClient.Request.Url, e.GetHashCode());
 
             var message = $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}";
             _logger.LogRequest([message], MessageType.InterceptedResponse, new LoggingContext(e));

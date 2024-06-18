@@ -124,7 +124,7 @@ public class MockResponsePlugin : BaseProxyPlugin
                     Request = new()
                     {
                         Url = request.Url,
-                        Method = request.Method
+                        Method = request.Method ?? ""
                     },
                     Response = new()
                     {

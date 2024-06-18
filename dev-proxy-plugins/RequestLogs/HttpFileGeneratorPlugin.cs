@@ -147,7 +147,7 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
             }
 
             if (!_configuration.IncludeOptionsRequests &&
-                request.Context.Session.HttpClient.Request.Method.ToUpperInvariant() == "OPTIONS")
+                String.Equals(request.Context.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
             {
                 Logger.LogDebug("Skipping OPTIONS request {url}...", request.Context.Session.HttpClient.Request.RequestUri);
                 continue;
