@@ -13,7 +13,7 @@
     <NoWarn>CS1998</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.11.4">
+    <PackageReference Include="Azure.Identity" Version="1.12.0">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
@@ -25,11 +25,11 @@
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="7.6.0">
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="7.6.1">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.OpenApi" Version="1.6.14">
+    <PackageReference Include="Microsoft.OpenApi" Version="1.6.15">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
@@ -41,7 +41,7 @@
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.6.0">
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.6.1">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
