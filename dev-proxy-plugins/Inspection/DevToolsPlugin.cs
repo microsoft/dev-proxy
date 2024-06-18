@@ -100,7 +100,7 @@ public class DevToolsPlugin : BaseProxyPlugin
             return configuration.PreferredBrowser switch
             {
                 PreferredBrowser.Chrome => "/opt/google/chrome/chrome",
-                PreferredBrowser.Edge => "/opt/microsoft/msedge-dev/msedge",
+                PreferredBrowser.Edge => "/opt/microsoft/msedge/msedge",
                 PreferredBrowser.EdgeDev => "/opt/microsoft/msedge-dev/msedge",
                 _ => throw new NotSupportedException($"{configuration.PreferredBrowser} is an unsupported browser. Please change your PreferredBrowser setting for {Name}.")
             };
