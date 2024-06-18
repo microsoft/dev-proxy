@@ -55,7 +55,7 @@ public abstract class BaseReporter : BaseProxyPlugin
                 fileName = $"{report.Key}_{Name}_{DateTime.Now:yyyyMMddHHmmss}{FileExtension}";
             }
 
-            Logger.LogDebug("Writing report {reportKey} to {fileName}...", report.Key, fileName);
+            Logger.LogInformation("Writing report {reportKey} to {fileName}...", report.Key, fileName);
             File.WriteAllText(fileName, reportContents);
         }
 
