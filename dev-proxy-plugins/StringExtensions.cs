@@ -9,4 +9,14 @@ internal static class StringExtensions
     {
         return input.Length <= maxLength ? input : input[..maxLength];
     }
+
+    internal static string ToPascalCase(this string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
+
+        return char.ToUpper(input[0]) + input[1..];
+    }
 }

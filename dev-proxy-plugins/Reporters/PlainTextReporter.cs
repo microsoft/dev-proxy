@@ -21,6 +21,7 @@ public class PlainTextReporter : BaseReporter
         { typeof(ApiCenterProductionVersionPluginReport), TransformApiCenterProductionVersionReport },
         { typeof(ExecutionSummaryPluginReportByUrl), TransformExecutionSummaryByUrl },
         { typeof(ExecutionSummaryPluginReportByMessageType), TransformExecutionSummaryByMessageType },
+        { typeof(HttpFileGeneratorPluginReport), TransformHttpFileGeneratorReport },
         { typeof(MinimalPermissionsGuidancePluginReport), TransformMinimalPermissionsGuidanceReport },
         { typeof(MinimalPermissionsPluginReport), TransformMinimalPermissionsReport },
         { typeof(OpenApiSpecGeneratorPluginReport), TransformOpenApiSpecGeneratorReport }
@@ -50,6 +51,19 @@ public class PlainTextReporter : BaseReporter
             Logger.LogDebug("No transformer found for {reportType}", reportType.Name);
             return null;
         }
+    }
+
+    private static string? TransformHttpFileGeneratorReport(object report)
+    {
+        var httpFileGeneratorReport = (HttpFileGeneratorPluginReport)report;
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine("Generated HTTP files:");
+        sb.AppendLine();
+        sb.AppendJoin(Environment.NewLine, httpFileGeneratorReport);
+
+        return sb.ToString();
     }
 
     private static string? TransformOpenApiSpecGeneratorReport(object report)

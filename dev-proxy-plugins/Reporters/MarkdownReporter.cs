@@ -21,6 +21,7 @@ public class MarkdownReporter : BaseReporter
         { typeof(ApiCenterProductionVersionPluginReport), TransformApiCenterProductionVersionReport },
         { typeof(ExecutionSummaryPluginReportByUrl), TransformExecutionSummaryByUrl },
         { typeof(ExecutionSummaryPluginReportByMessageType), TransformExecutionSummaryByMessageType },
+        { typeof(HttpFileGeneratorPlugin), TransformHttpFileGeneratorReport },
         { typeof(MinimalPermissionsGuidancePluginReport), TransformMinimalPermissionsGuidanceReport },
         { typeof(MinimalPermissionsPluginReport), TransformMinimalPermissionsReport },
         { typeof(OpenApiSpecGeneratorPluginReport), TransformOpenApiSpecGeneratorReport }
@@ -471,6 +472,21 @@ public class MarkdownReporter : BaseReporter
         sb.AppendLine("Server URL|File name");
         sb.AppendLine("---|---------");
         sb.AppendJoin(Environment.NewLine, openApiSpecGeneratorReport.Select(r => $"{r.ServerUrl}|{r.FileName}"));
+        sb.AppendLine();
+        sb.AppendLine();
+
+        return sb.ToString();
+    }
+
+    private static string? TransformHttpFileGeneratorReport(object report)
+    {
+        var httpFileGeneratorReport = (HttpFileGeneratorPluginReport)report;
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine("# Generated HTTP files");
+        sb.AppendLine();
+        sb.AppendJoin(Environment.NewLine, $"- {httpFileGeneratorReport}");
         sb.AppendLine();
         sb.AppendLine();
 
