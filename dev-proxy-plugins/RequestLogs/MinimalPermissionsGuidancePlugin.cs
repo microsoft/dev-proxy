@@ -252,16 +252,6 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
         }
     }
 
-    private string GetScopeTypeString(PermissionsType scopeType)
-    {
-        return scopeType switch
-        {
-            PermissionsType.Application => "Application",
-            PermissionsType.Delegated => "DelegatedWork",
-            _ => throw new InvalidOperationException($"Unknown scope type: {scopeType}")
-        };
-    }
-
     private async Task EvaluateMinimalScopes(IEnumerable<(string method, string url)> endpoints, string[] permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
     {
         var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
@@ -275,7 +265,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
         try
         {
-            var url = $"https://graphexplorerapi.azurewebsites.net/permissions?scopeType={GetScopeTypeString(scopeType)}";
+            var url = $"https://graphexplorerapi.azurewebsites.net/permissions?scopeType={GraphUtils.GetScopeTypeString(scopeType)}";
             using var client = new HttpClient();
             var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
             Logger.LogDebug(string.Format("Calling {0} with payload{1}{2}", url, Environment.NewLine, stringPayload));
@@ -288,6 +278,12 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
             var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
             var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
+
+            if (scopeType == PermissionsType.Delegated)
+            {
+                minimalPermissions = await GraphUtils.UpdateUserScopes(minimalPermissions, endpoints, scopeType, Logger);
+            }
+
             if (minimalPermissions.Any())
             {
                 var excessPermissions = permissionsFromAccessToken
