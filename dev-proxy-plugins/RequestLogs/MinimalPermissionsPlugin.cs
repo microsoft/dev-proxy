@@ -136,23 +136,13 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
         return requests.ToArray();
     }
 
-    private string GetScopeTypeString()
-    {
-        return _configuration.Type switch
-        {
-            PermissionsType.Application => "Application",
-            PermissionsType.Delegated => "DelegatedWork",
-            _ => throw new InvalidOperationException($"Unknown scope type: {_configuration.Type}")
-        };
-    }
-
     private async Task<MinimalPermissionsPluginReport?> DetermineMinimalScopes(IEnumerable<(string method, string url)> endpoints)
     {
         var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
 
         try
         {
-            var url = $"https://graphexplorerapi.azurewebsites.net/permissions?scopeType={GetScopeTypeString()}";
+            var url = $"https://graphexplorerapi.azurewebsites.net/permissions?scopeType={GraphUtils.GetScopeTypeString(_configuration.Type)}";
             using var client = new HttpClient();
             var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
             Logger.LogDebug("Calling {url} with payload\r\n{stringPayload}", url, stringPayload);
@@ -165,6 +155,11 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
             var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
             var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
             var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
+
+            if (_configuration.Type == PermissionsType.Delegated)
+            {
+                minimalScopes = await GraphUtils.UpdateUserScopes(minimalScopes, endpoints, _configuration.Type, Logger);
+            }
 
             if (minimalScopes.Any())
             {

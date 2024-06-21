@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Net.Http.Json;
+using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
+using Microsoft.Extensions.Logging;
 using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.DevProxy.Plugins;
@@ -26,5 +29,64 @@ public class GraphUtils
         // TODO: handle 'me' which is a proxy to other resources
 
         return workload;
+    }
+
+    internal static string GetScopeTypeString(PermissionsType type)
+    {
+        return type switch
+        {
+            PermissionsType.Application => "Application",
+            PermissionsType.Delegated => "DelegatedWork",
+            _ => throw new InvalidOperationException($"Unknown scope type: {type}")
+        };
+    }
+
+    internal static async Task<string[]> UpdateUserScopes(string[] minimalScopes, IEnumerable<(string method, string url)> endpoints, PermissionsType permissionsType, ILogger logger)
+    {
+        var userEndpoints = endpoints.Where(e => e.url.Contains("/users/{", StringComparison.OrdinalIgnoreCase));
+        if (!userEndpoints.Any())
+        {
+            return minimalScopes;
+        }
+
+        var newMinimalScopes = new HashSet<string>(minimalScopes);
+
+        var url = $"https://graphexplorerapi.azurewebsites.net/permissions?scopeType={GetScopeTypeString(permissionsType)}";
+        using var httpClient = new HttpClient();
+        var urls = userEndpoints.Select(e => {
+            logger.LogDebug("Getting permissions for {method} {url}", e.method, e.url);
+            return $"{url}&requesturl={e.url}&method={e.method}";
+        });
+        var tasks = urls.Select(u => {
+            logger.LogTrace("Calling {url}...", u);
+            return httpClient.GetFromJsonAsync<PermissionInfo[]>(u);
+        });
+        await Task.WhenAll(tasks);
+
+        foreach (var task in tasks)
+        {
+            var response = await task;
+            if (response is null)
+            {
+                continue;
+            }
+
+            // there's only one scope so it must be minimal already
+            if (response.Length < 2)
+            {
+                continue;
+            }
+
+            if (newMinimalScopes.Contains(response[0].Value))
+            {
+                logger.LogDebug("Replacing scope {old} with {new}", response[0].Value, response[1].Value);
+                newMinimalScopes.Remove(response[0].Value);
+                newMinimalScopes.Add(response[1].Value);
+            }
+        }
+
+        logger.LogDebug("Updated minimal scopes. Original: {original}, New: {new}", string.Join(", ", minimalScopes), string.Join(", ", newMinimalScopes));
+
+        return newMinimalScopes.ToArray();
     }
 }
