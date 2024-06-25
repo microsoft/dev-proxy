@@ -62,6 +62,10 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
 
             var methodAndUrlString = request.MessageLines.First();
             var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
+            if (methodAndUrl.method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
             var uri = new Uri(methodAndUrl.url);
             if (!ProxyUtils.IsGraphUrl(uri))
