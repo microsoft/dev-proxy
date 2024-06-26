@@ -71,6 +71,11 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
             var methodAndUrlString = request.MessageLines.First();
             var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
+            if (methodAndUrl.method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            
             var requestsFromBatch = Array.Empty<(string method, string url)>();
 
             var uri = new Uri(methodAndUrl.url);
