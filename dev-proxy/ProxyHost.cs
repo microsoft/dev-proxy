@@ -330,7 +330,7 @@ internal class ProxyHost
         var configCommand = new Command("config", "Open devproxyrc.json");
         configCommand.SetHandler(() =>
         {
-            var cfgPsi = new ProcessStartInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, _configFile))
+            var cfgPsi = new ProcessStartInfo(ConfigFile)
             {
                 UseShellExecute = true
             };
