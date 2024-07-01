@@ -529,10 +529,10 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
             Content = new Dictionary<string, OpenApiMediaType>
             {
                 {
-                    request.ContentType,
+                    GetMediaType(request.ContentType),
                     new OpenApiMediaType
                     {
-                        Schema = GetSchemaFromBody(request.ContentType, request.BodyString)
+                        Schema = GetSchemaFromBody(GetMediaType(request.ContentType), request.BodyString)
                     }
                 }
             }
@@ -619,9 +619,9 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         {
             Logger.LogDebug("    Response has body");
 
-            openApiResponse.Content.Add(response.ContentType, new OpenApiMediaType
+            openApiResponse.Content.Add(GetMediaType(response.ContentType), new OpenApiMediaType
             {
-                Schema = GetSchemaFromBody(response.ContentType, response.BodyString)
+                Schema = GetSchemaFromBody(GetMediaType(response.ContentType), response.BodyString)
             });
         }
         else
@@ -667,6 +667,17 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         }
 
         operation.Responses.Add(responseCode, openApiResponse);
+    }
+
+    private string GetMediaType(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType))
+        {
+            return contentType ?? "";
+        }
+
+        var mediaType = contentType.Split(';').First().Trim();
+        return mediaType;
     }
 
     private OpenApiSchema? GetSchemaFromBody(string? contentType, string body)
