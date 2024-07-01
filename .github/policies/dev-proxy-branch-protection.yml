@@ -20,7 +20,7 @@ configuration:
     # Specifies whether new commits pushed to the matching branches dismiss pull request review approvals. boolean
     dismissStaleReviews: true
     # Specifies whether admins can overwrite branch protection. boolean
-    isAdminEnforced: true
+    isAdminEnforced: false
     # Indicates whether "Require a pull request before merging" is enabled. boolean
     requiresPullRequestBeforeMerging: true
     # Specifies the number of pull request reviews before merging. int (0-6). Should be null/empty if PRs are not required
