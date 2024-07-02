@@ -37,6 +37,10 @@
     "Missing arg": {
       "commandName": "Project",
       "commandLineArgs": "--port 8080 --summary-file-path report.md"
+    },
+    "Config": {
+      "commandName": "Project",
+      "commandLineArgs": "config"
     }
   }
 }

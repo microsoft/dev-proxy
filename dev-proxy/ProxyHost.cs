@@ -4,6 +4,7 @@
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Net;
 
 namespace Microsoft.DevProxy;
@@ -324,6 +325,17 @@ internal class ProxyHost
         presetCommand.Add(presetGetCommand);
 
         command.Add(presetCommand);
+
+        var configCommand = new Command("config", "Open devproxyrc.json");
+        configCommand.SetHandler(() =>
+        {
+            var cfgPsi = new ProcessStartInfo(ConfigFile)
+            {
+                UseShellExecute = true
+            };
+            Process.Start(cfgPsi);
+        });
+        command.Add(configCommand);
 
         var outdatedCommand = new Command("outdated", "Check for new version");
         var outdatedShortOption = new Option<bool>("--short", "Return version only");
