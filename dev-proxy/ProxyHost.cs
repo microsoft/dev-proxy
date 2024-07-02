@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 
 namespace Microsoft.DevProxy;
 
