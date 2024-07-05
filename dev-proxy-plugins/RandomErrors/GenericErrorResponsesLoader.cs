@@ -26,7 +26,7 @@ internal class GenericErrorResponsesLoader : IDisposable
         if (!File.Exists(_errorsFile))
         {
             _logger.LogWarning("File {configurationFile} not found in the current directory. No error responses will be loaded", _configuration.ErrorsFile);
-            _configuration.Responses = Array.Empty<GenericErrorResponse>();
+            _configuration.Errors = Array.Empty<GenericErrorResponse>();
             return;
         }
 
@@ -36,10 +36,10 @@ internal class GenericErrorResponsesLoader : IDisposable
             using var reader = new StreamReader(stream);
             var responsesString = reader.ReadToEnd();
             var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
-            IEnumerable<GenericErrorResponse>? configResponses = responsesConfig?.Responses;
+            IEnumerable<GenericErrorResponse>? configResponses = responsesConfig?.Errors;
             if (configResponses is not null)
             {
-                _configuration.Responses = configResponses;
+                _configuration.Errors = configResponses;
                 _logger.LogInformation("{configResponseCount} error responses loaded from {errorFile}", configResponses.Count(), _configuration.ErrorsFile);
             }
         }
