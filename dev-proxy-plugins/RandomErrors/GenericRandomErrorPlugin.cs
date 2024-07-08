@@ -175,6 +175,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
         {
             session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
         }
+        e.ResponseState.HasBeenSet = true;
         Logger.LogRequest([$"{error.StatusCode} {statusCode.ToString()}"], MessageType.Chaos, new LoggingContext(e.Session));
     }
 
@@ -201,7 +202,6 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
 
     private Task OnRequest(object? sender, ProxyRequestArgs e)
     {
-        var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet
             && UrlsToWatch is not null
             && e.ShouldExecute(UrlsToWatch))
@@ -213,7 +213,6 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
                 return Task.CompletedTask;
             }
             FailResponse(e);
-            state.HasBeenSet = true;
         }
 
         return Task.CompletedTask;
