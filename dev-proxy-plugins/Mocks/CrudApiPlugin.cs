@@ -511,7 +511,7 @@ public class CrudApiPlugin : BaseProxyPlugin
                 {
                     continue;
                 }
-                parameters.Add(groupName, match.Groups[groupName].Value);
+                parameters.Add(groupName, Uri.UnescapeDataString(match.Groups[groupName].Value));
             }
             return true;
         });
