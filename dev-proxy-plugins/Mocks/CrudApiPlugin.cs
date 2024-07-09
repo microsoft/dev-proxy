@@ -483,7 +483,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         var action = _configuration.Actions.FirstOrDefault(action =>
         {
             if (action.Method != request.Method) return false;
-            var absoluteActionUrl = (_configuration.BaseUrl.TrimEnd('/') + "/" + action.Url.TrimStart('/')).TrimEnd('/');
+            var absoluteActionUrl = (_configuration.BaseUrl + action.Url).Replace("//", "/", 8);
 
             if (absoluteActionUrl == request.Url)
             {
