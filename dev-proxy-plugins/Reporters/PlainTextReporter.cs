@@ -437,6 +437,14 @@ public class PlainTextReporter : BaseReporter
             transformPermissionsInfo(minimalPermissionsGuidanceReport.ApplicationPermissions, "Application");
         }
 
+        if (minimalPermissionsGuidanceReport.ExcludedPermissions is not null &&
+            minimalPermissionsGuidanceReport.ExcludedPermissions.Any())
+        {
+            sb.AppendLine("Excluded: permissions:");
+            sb.AppendLine();
+            sb.AppendLine(string.Join(", ", minimalPermissionsGuidanceReport.ExcludedPermissions));
+        }
+
         return sb.ToString();
     }
 }
