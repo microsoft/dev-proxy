@@ -15,6 +15,7 @@ public class MinimalPermissionsGuidancePluginReport
 {
     public MinimalPermissionsInfo? DelegatedPermissions { get; set; }
     public MinimalPermissionsInfo? ApplicationPermissions { get; set; }
+    public IEnumerable<string>? ExcludedPermissions { get; set; }
 }
 
 public class OperationInfo
@@ -25,15 +26,21 @@ public class OperationInfo
 
 public class MinimalPermissionsInfo
 {
-    public string[] MinimalPermissions { get; set; } = Array.Empty<string>();
-    public string[] PermissionsFromTheToken { get; set; } = Array.Empty<string>();
-    public string[] ExcessPermissions { get; set; } = Array.Empty<string>();
-    public OperationInfo[] Operations { get; set; } = Array.Empty<OperationInfo>();
+    public IEnumerable<string> MinimalPermissions { get; set; } = [];
+    public IEnumerable<string> PermissionsFromTheToken { get; set; } = [];
+    public IEnumerable<string> ExcessPermissions { get; set; } = [];
+    public OperationInfo[] Operations { get; set; } = [];
+}
+
+internal class MinimalPermissionsGuidancePluginConfiguration
+{
+    public IEnumerable<string>? PermissionsToExclude { get; set; }
 }
 
 public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 {
     public override string Name => nameof(MinimalPermissionsGuidancePlugin);
+    private MinimalPermissionsGuidancePluginConfiguration _configuration = new();
 
     public MinimalPermissionsGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
     {
@@ -42,6 +49,21 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
     public override void Register()
     {
         base.Register();
+
+        ConfigSection?.Bind(_configuration);
+        // we need to do it this way because .NET doesn't distinguish between
+        // an empty array and a null value and we want to be able to tell
+        // if the user hasn't specified a value and we should use the default
+        // set or if they have specified an empty array and we shouldn't exclude
+        // any permissions
+        if (_configuration.PermissionsToExclude is null)
+        {
+            _configuration.PermissionsToExclude = ["profile", "openid", "offline_access", "email"];
+        }
+        else {
+            // remove empty strings
+            _configuration.PermissionsToExclude = _configuration.PermissionsToExclude.Where(p => !string.IsNullOrEmpty(p));
+        }
 
         PluginEvents.AfterRecordingStop += AfterRecordingStop;
     }
@@ -58,9 +80,9 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
         var applicationEndpoints = new List<(string method, string url)>();
 
         // scope for delegated permissions
-        var scopesToEvaluate = Array.Empty<string>();
+        IEnumerable<string> scopesToEvaluate = [];
         // roles for application permissions
-        var rolesToEvaluate = Array.Empty<string>();
+        IEnumerable<string> rolesToEvaluate = [];
 
         foreach (var request in e.RequestLogs)
         {
@@ -115,8 +137,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
                 // 
                 // application permissions are always the same because they come from app reg
                 // so we can just use the first request that has them
-                if (scopesAndType.permissions.Length > 0 &&
-                  rolesToEvaluate.Length == 0)
+                if (scopesAndType.permissions.Any() && !rolesToEvaluate.Any())
                 {
                     rolesToEvaluate = scopesAndType.permissions;
 
@@ -141,16 +162,25 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             return;
         }
 
-        var report = new MinimalPermissionsGuidancePluginReport();
+        var report = new MinimalPermissionsGuidancePluginReport
+        {
+            ExcludedPermissions = _configuration.PermissionsToExclude
+        };
 
         Logger.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
+
+        if (_configuration.PermissionsToExclude is not null &&
+            _configuration.PermissionsToExclude.Any())
+        {
+            Logger.LogInformation("Excluding the following permissions: {permissions}", string.Join(", ", _configuration.PermissionsToExclude));
+        }
 
         if (delegatedEndpoints.Count > 0)
         {
             var delegatedPermissionsInfo = new MinimalPermissionsInfo();
             report.DelegatedPermissions = delegatedPermissionsInfo;
 
-            Logger.LogInformation("Evaluating delegated permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, delegatedEndpoints.Select(e => $"- {e.method} {e.url}")));
+            Logger.LogInformation("Evaluating delegated permissions for: {endpoints}", string.Join(", ", delegatedEndpoints.Select(e => $"{e.method} {e.url}")));
 
             await EvaluateMinimalScopes(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
         }
@@ -160,7 +190,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             var applicationPermissionsInfo = new MinimalPermissionsInfo();
             report.ApplicationPermissions = applicationPermissionsInfo;
 
-            Logger.LogInformation("Evaluating application permissions for:\r\n{applicationPermissions}\r\n", string.Join(Environment.NewLine, applicationEndpoints.Select(e => $"- {e.method} {e.url}")));
+            Logger.LogInformation("Evaluating application permissions for: {endpoints}", string.Join(", ", applicationEndpoints.Select(e => $"{e.method} {e.url}")));
 
             await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
         }
@@ -208,19 +238,19 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
     /// If it can't get the permissions, returns PermissionType.Application
     /// and an empty array
     /// </summary>
-    private (PermissionsType type, string[] permissions) GetPermissionsAndType(RequestLog request)
+    private (PermissionsType type, IEnumerable<string> permissions) GetPermissionsAndType(RequestLog request)
     {
         var authHeader = request.Context?.Session.HttpClient.Request.Headers.GetFirstHeader("Authorization");
         if (authHeader == null)
         {
-            return (PermissionsType.Application, Array.Empty<string>());
+            return (PermissionsType.Application, []);
         }
 
         var token = authHeader.Value.Replace("Bearer ", string.Empty);
         var tokenChunks = token.Split('.');
         if (tokenChunks.Length != 3)
         {
-            return (PermissionsType.Application, Array.Empty<string>());
+            return (PermissionsType.Application, []);
         }
 
         try
@@ -235,11 +265,10 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
                 // roles is an array so we need to handle it differently
                 var roles = jwtSecurityToken.Claims
                   .Where(c => c.Type == "roles")
-                  .Select(c => c.Value)
-                  .ToArray();
-                if (roles.Length == 0)
+                  .Select(c => c.Value);
+                if (!roles.Any())
                 {
-                    return (PermissionsType.Application, Array.Empty<string>());
+                    return (PermissionsType.Application, []);
                 }
                 else
                 {
@@ -253,11 +282,11 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
         }
         catch
         {
-            return (PermissionsType.Application, Array.Empty<string>());
+            return (PermissionsType.Application, []);
         }
     }
 
-    private async Task EvaluateMinimalScopes(IEnumerable<(string method, string url)> endpoints, string[] permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
+    private async Task EvaluateMinimalScopes(IEnumerable<(string method, string url)> endpoints, IEnumerable<string> permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
     {
         var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
 
@@ -281,8 +310,8 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             Logger.LogDebug(string.Format("Response:{0}{1}", Environment.NewLine, content));
 
             var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
-            var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
-            var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
+            var minimalPermissions = resultsAndErrors?.Results?.Select(p => p.Value) ?? [];
+            var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? [];
 
             if (scopeType == PermissionsType.Delegated)
             {
@@ -292,8 +321,8 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             if (minimalPermissions.Any())
             {
                 var excessPermissions = permissionsFromAccessToken
-                  .Where(p => !minimalPermissions.Contains(p))
-                  .ToArray();
+                    .Except(_configuration.PermissionsToExclude ?? [])
+                    .Where(p => !minimalPermissions.Contains(p));
 
                 permissionsInfo.MinimalPermissions = minimalPermissions;
                 permissionsInfo.ExcessPermissions = excessPermissions;
