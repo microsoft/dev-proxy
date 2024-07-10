@@ -13,11 +13,11 @@ namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
 public class MinimalPermissionsPluginReport
 {
-    public required RequestInfo[] Requests { get; init; }
+    public required IEnumerable<RequestInfo> Requests { get; init; }
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public required PermissionsType PermissionsType { get; init; }
-    public required string[] MinimalPermissions { get; init; }
-    public required string[] Errors { get; init; }
+    public required IEnumerable<string> MinimalPermissions { get; init; }
+    public required IEnumerable<string> Errors { get; init; }
 }
 
 internal class MinimalPermissionsPluginConfiguration
@@ -157,8 +157,8 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
             Logger.LogDebug("Response:\r\n{content}", content);
 
             var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
-            var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value).ToArray() ?? Array.Empty<string>();
-            var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? Array.Empty<string>();
+            var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value) ?? [];
+            var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? [];
 
             if (_configuration.Type == PermissionsType.Delegated)
             {

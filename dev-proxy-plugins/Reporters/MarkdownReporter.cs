@@ -423,6 +423,15 @@ public class MarkdownReporter : BaseReporter
             transformPermissionsInfo(minimalPermissionsGuidanceReport.ApplicationPermissions, "application");
         }
 
+        if (minimalPermissionsGuidanceReport.ExcludedPermissions is not null &&
+            minimalPermissionsGuidanceReport.ExcludedPermissions.Any())
+        {
+            sb.AppendLine("## Excluded permissions");
+            sb.AppendLine();
+            sb.AppendJoin(Environment.NewLine, minimalPermissionsGuidanceReport.ExcludedPermissions.Select(p => $"- {p}"));
+            sb.AppendLine();
+        }
+
         return sb.ToString();
     }
 

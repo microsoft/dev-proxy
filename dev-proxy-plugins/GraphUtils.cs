@@ -41,7 +41,7 @@ public class GraphUtils
         };
     }
 
-    internal static async Task<string[]> UpdateUserScopes(string[] minimalScopes, IEnumerable<(string method, string url)> endpoints, PermissionsType permissionsType, ILogger logger)
+    internal static async Task<IEnumerable<string>> UpdateUserScopes(IEnumerable<string> minimalScopes, IEnumerable<(string method, string url)> endpoints, PermissionsType permissionsType, ILogger logger)
     {
         var userEndpoints = endpoints.Where(e => e.url.Contains("/users/{", StringComparison.OrdinalIgnoreCase));
         if (!userEndpoints.Any())
@@ -87,6 +87,6 @@ public class GraphUtils
 
         logger.LogDebug("Updated minimal scopes. Original: {original}, New: {new}", string.Join(", ", minimalScopes), string.Join(", ", newMinimalScopes));
 
-        return newMinimalScopes.ToArray();
+        return newMinimalScopes;
     }
 }
