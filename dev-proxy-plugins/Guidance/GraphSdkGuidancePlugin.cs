@@ -30,7 +30,7 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin
         if (e.Session.HttpClient.Response.StatusCode >= 400 &&
             UrlsToWatch is not null &&
             e.HasRequestUrlMatch(UrlsToWatch) &&
-            e.Session.HttpClient.Request.Method.ToUpper() != "OPTIONS" &&
+            !String.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
             WarnNoSdk(request))
         {
             Logger.LogRequest(MessageUtils.BuildUseSdkForErrorsMessage(request), MessageType.Tip, new LoggingContext(e.Session));
