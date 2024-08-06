@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.Inspection.CDP;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel;
 
 namespace Microsoft.DevProxy.Plugins.Inspection;
 
@@ -17,7 +18,8 @@ public enum PreferredBrowser
 {
     Edge,
     Chrome,
-    EdgeDev
+    EdgeDev,
+    EdgeBeta
 }
 
 public class DevToolsPluginConfiguration
@@ -82,6 +84,7 @@ public class DevToolsPlugin : BaseProxyPlugin
                 PreferredBrowser.Chrome => Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
                 PreferredBrowser.Edge => Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
                 PreferredBrowser.EdgeDev => Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge Dev\Application\msedge.exe"),
+                PreferredBrowser.EdgeBeta => Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge Beta\Application\msedge.exe"),
                 _ => throw new NotSupportedException($"{configuration.PreferredBrowser} is an unsupported browser. Please change your PreferredBrowser setting for {Name}.")
             };
         }
@@ -92,6 +95,7 @@ public class DevToolsPlugin : BaseProxyPlugin
                 PreferredBrowser.Chrome => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                 PreferredBrowser.Edge => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
                 PreferredBrowser.EdgeDev => "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Dev",
+                PreferredBrowser.EdgeBeta => "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Beta",
                 _ => throw new NotSupportedException($"{configuration.PreferredBrowser} is an unsupported browser. Please change your PreferredBrowser setting for {Name}.")
             };
         }
@@ -102,6 +106,7 @@ public class DevToolsPlugin : BaseProxyPlugin
                 PreferredBrowser.Chrome => "/opt/google/chrome/chrome",
                 PreferredBrowser.Edge => "/opt/microsoft/msedge/msedge",
                 PreferredBrowser.EdgeDev => "/opt/microsoft/msedge-dev/msedge",
+                PreferredBrowser.EdgeBeta => "/opt/microsoft/msedge-beta/msedge",
                 _ => throw new NotSupportedException($"{configuration.PreferredBrowser} is an unsupported browser. Please change your PreferredBrowser setting for {Name}.")
             };
         }
@@ -113,9 +118,37 @@ public class DevToolsPlugin : BaseProxyPlugin
 
     private Process[] GetBrowserProcesses(string browserPath)
     {
-        return Process.GetProcesses().Where(p =>
-            p.MainModule is not null && p.MainModule.FileName == browserPath
-        ).ToArray();
+        List<Process> processes = new List<Process>();
+        List<Exception> exceptions = new List<Exception>();
+        foreach (var process in Process.GetProcesses())
+        {
+            try
+            {
+                if (process.MainModule is not null && process.MainModule.FileName == browserPath)
+                {
+                    processes.Add(process);
+                }
+            }
+            catch (Win32Exception exc)            
+            {
+                exceptions.Add(exc);
+            }
+            catch (InvalidOperationException exc)
+            {
+                exceptions.Add(exc);
+            }
+            catch (Exception exc)
+            {
+                exceptions.Add(exc);
+            }
+        }
+
+        if (exceptions.Any())
+        {
+            Logger.LogDebug("Access denied while enumerating processes");
+        }
+
+        return processes.ToArray();
     }
 
     private void InitInspector()
