@@ -118,37 +118,17 @@ public class DevToolsPlugin : BaseProxyPlugin
 
     private Process[] GetBrowserProcesses(string browserPath)
     {
-        List<Process> processes = new List<Process>();
-        List<Exception> exceptions = new List<Exception>();
-        foreach (var process in Process.GetProcesses())
-        {
+        return Process.GetProcesses().Where(p => {
             try
             {
-                if (process.MainModule is not null && process.MainModule.FileName == browserPath)
-                {
-                    processes.Add(process);
-                }
+                return p.MainModule is not null && p.MainModule.FileName == browserPath;
             }
-            catch (Win32Exception exc)            
+            catch (Exception ex)
             {
-                exceptions.Add(exc);
+                Logger.LogDebug("Error while checking process: {Ex}", ex.Message);
+                return false;
             }
-            catch (InvalidOperationException exc)
-            {
-                exceptions.Add(exc);
-            }
-            catch (Exception exc)
-            {
-                exceptions.Add(exc);
-            }
-        }
-
-        if (exceptions.Any())
-        {
-            Logger.LogDebug("Access denied while enumerating processes");
-        }
-
-        return processes.ToArray();
+        }).ToArray();
     }
 
     private void InitInspector()
