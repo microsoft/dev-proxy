@@ -10,7 +10,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Plugins.Inspection.CDP;
 using Microsoft.Extensions.Logging;
-using System.ComponentModel;
 
 namespace Microsoft.DevProxy.Plugins.Inspection;
 
