@@ -1,0 +1,27 @@
+GET http://localhost:8897/proxy
+
+###
+
+POST http://localhost:8897/proxy
+content-type: application/json
+
+{
+  "recording": true
+}
+
+###
+
+POST http://localhost:8897/proxy
+content-type: application/json
+
+{
+  "recording": false
+}
+
+###
+
+POST http://localhost:8897/proxy/raiseMockRequest
+
+###
+
+POST http://localhost:8897/proxy/stopProxy

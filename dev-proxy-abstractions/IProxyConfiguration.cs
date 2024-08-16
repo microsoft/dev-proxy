@@ -18,13 +18,18 @@ public enum LabelMode
 
 public interface IProxyConfiguration
 {
-    int Port { get; }
+    int ApiPort { get; }
+    bool AsSystemProxy { get; }
     string? IPAddress { get; }
+    string ConfigFile { get; }
+    bool InstallCert { get; }
+    MockRequestHeader[]? FilterByHeaders { get; }
     LabelMode LabelMode { get; }
-    bool Record { get; }
     LogLevel LogLevel { get; }
+    bool NoFirstRun { get; }
+    int Port { get; }
+    int Rate { get; }
+    bool Record { get; }
     IEnumerable<int> WatchPids { get; }
     IEnumerable<string> WatchProcessNames { get; }
-    int Rate { get; }
-    string ConfigFile { get; }
 }

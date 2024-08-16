@@ -218,6 +218,15 @@ public interface IPluginEvents
     /// Raised when user requested issuing mock requests.
     /// </summary>
     event AsyncEventHandler<EventArgs>? MockRequest;
+
+    void RaiseInit(InitArgs args);
+    void RaiseOptionsLoaded(OptionsLoadedArgs args);
+    Task RaiseProxyBeforeRequest(ProxyRequestArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseProxyBeforeResponse(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseProxyAfterResponse(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null);
+    void RaiseRequestLogged(RequestLogArgs args);
+    Task RaiseRecordingStopped(RecordingArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseMockRequest(EventArgs args, ExceptionHandler? exceptionFunc = null);
 }
 
 public class PluginEvents : IPluginEvents

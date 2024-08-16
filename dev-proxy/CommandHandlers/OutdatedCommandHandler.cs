@@ -1,6 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
-namespace Microsoft.DevProxy;
+using Microsoft.Extensions.Logging;
+
+namespace Microsoft.DevProxy.CommandHandlers;
 
 public static class OutdatedCommandHandler
 {

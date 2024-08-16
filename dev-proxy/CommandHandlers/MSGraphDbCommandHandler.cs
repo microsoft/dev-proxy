@@ -5,7 +5,7 @@ using System.CommandLine.Invocation;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.DevProxy;
+namespace Microsoft.DevProxy.CommandHandlers;
 
 public class MSGraphDbCommandHandler : ICommandHandler
 {

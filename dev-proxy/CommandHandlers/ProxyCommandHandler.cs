@@ -1,22 +1,22 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 
-namespace Microsoft.DevProxy;
+namespace Microsoft.DevProxy.CommandHandlers;
 
 public class ProxyCommandHandler : ICommandHandler
 {
-    private readonly PluginEvents _pluginEvents;
+    private readonly IPluginEvents _pluginEvents;
     private readonly Option[] _options;
     private readonly ISet<UrlToWatch> _urlsToWatch;
     private readonly ILogger _logger;
 
-    public ProxyCommandHandler(PluginEvents pluginEvents,
+    public static ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
+
+    public ProxyCommandHandler(IPluginEvents pluginEvents,
                                Option[] options,
                                ISet<UrlToWatch> urlsToWatch,
                                ILogger logger)
@@ -33,6 +33,73 @@ public class ProxyCommandHandler : ICommandHandler
     }
 
     public async Task<int> InvokeAsync(InvocationContext context)
+    {
+        ParseOptions(context);
+        _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context, _options));
+        await CheckForNewVersion();
+
+        try
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.Logging.AddFilter("Microsoft.Hosting.*", LogLevel.Error);
+            builder.Logging.AddFilter("Microsoft.AspNetCore.*", LogLevel.Error);
+
+            builder.Services.AddSingleton<IProxyState, ProxyState>();
+            builder.Services.AddSingleton<IProxyConfiguration, ProxyConfiguration>(sp => ConfigurationFactory.Value);
+            builder.Services.AddSingleton(_pluginEvents);
+            builder.Services.AddSingleton(_logger);
+            builder.Services.AddSingleton(_urlsToWatch);
+            builder.Services.AddHostedService<ProxyEngine>();
+
+            builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
+            builder.Services.Configure<RouteOptions>(options =>
+            {
+                options.LowercaseUrls = true;
+            });
+
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.ListenLocalhost(ConfigurationFactory.Value.ApiPort);
+                _logger.LogInformation("Dev Proxy API listening on http://localhost:{Port}...", ConfigurationFactory.Value.ApiPort);
+            });
+
+            var app = builder.Build();
+
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+
+            app.MapControllers();
+            app.Run();
+
+
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while running Dev Proxy");
+            var inner = ex.InnerException;
+
+            while (inner is not null)
+            {
+                _logger.LogError(inner, "============ Inner exception ============");
+                inner = inner.InnerException;
+            }
+#if DEBUG
+            throw; // so debug tools go straight to the source of the exception when attached
+#else
+            return 1;
+#endif
+        }
+
+    }
+
+    private void ParseOptions(InvocationContext context)
     {
         var port = context.ParseResult.GetValueForOption<int?>(ProxyHost.PortOptionName, _options);
         if (port is not null)
@@ -79,11 +146,10 @@ public class ProxyCommandHandler : ICommandHandler
         {
             Configuration.InstallCert = installCert.Value;
         }
+    }
 
-        CancellationToken? cancellationToken = (CancellationToken?)context.BindingContext.GetService(typeof(CancellationToken?));
-
-        _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context, _options));
-
+    private async Task CheckForNewVersion()
+    {
         var newReleaseInfo = await UpdateNotification.CheckForNewVersion(Configuration.NewVersionNotification);
         if (newReleaseInfo != null)
         {
@@ -93,39 +159,14 @@ public class ProxyCommandHandler : ICommandHandler
                 Environment.NewLine
             );
         }
-
-        try
-        {
-            await new ProxyEngine(Configuration, _urlsToWatch, _pluginEvents, _logger).Run(cancellationToken);
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while running Dev Proxy");
-            var inner = ex.InnerException;
-
-            while (inner is not null)
-            {
-                _logger.LogError(inner, "============ Inner exception ============");
-                inner = inner.InnerException;
-            }
-#if DEBUG
-            throw; // so debug tools go straight to the source of the exception when attached
-#else
-                return 1;
-#endif
-        }
-
     }
-
-    public static ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
 
     private static readonly Lazy<ProxyConfiguration> ConfigurationFactory = new(() =>
     {
         var builder = new ConfigurationBuilder();
         var configuration = builder
-                .AddJsonFile(ProxyHost.ConfigFile, optional: true, reloadOnChange: true)
-                .Build();
+            .AddJsonFile(ProxyHost.ConfigFile, optional: true, reloadOnChange: true)
+            .Build();
         var configObject = new ProxyConfiguration();
         configuration.Bind(configObject);
 
