@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace Microsoft.DevProxy;
+namespace Microsoft.DevProxy.CommandHandlers;
 
 class ProxyPresetInfo
 {

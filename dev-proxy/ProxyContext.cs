@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.using Microsoft.Extensions.Configuration;
+// Licensed under the MIT License.
 
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.DevProxy.Abstractions;

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -21,11 +20,11 @@ enum ToggleSystemProxyAction
     Off
 }
 
-public class ProxyEngine
+public class ProxyEngine : BackgroundService
 {
-    private readonly PluginEvents _pluginEvents;
+    private readonly IPluginEvents _pluginEvents;
     private readonly ILogger _logger;
-    private readonly ProxyConfiguration _config;
+    private readonly IProxyConfiguration _config;
     private static ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
     // lists of URLs to watch, used for intercepting requests
@@ -33,13 +32,8 @@ public class ProxyEngine
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
     private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
-    private Dictionary<string, object> _globalData = new() {
-        { ProxyUtils.ReportsKey, new Dictionary<string, object>() }
-    };
     private static readonly object consoleLock = new object();
-
-    private bool _isRecording = false;
-    private List<RequestLog> _requestLogs = new List<RequestLog>();
+    private IProxyState _proxyState;
     // Dictionary for plugins to store data between requests
     // the key is HashObject of the SessionEventArgs object
     private Dictionary<int, Dictionary<string, object>> _pluginData = new();
@@ -59,12 +53,13 @@ public class ProxyEngine
         _ = _proxyServer.CertificateManager.LoadOrCreateRootCertificateAsync().Result;
     }
 
-    public ProxyEngine(ProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, PluginEvents pluginEvents, ILogger logger)
+    public ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, IPluginEvents pluginEvents, IProxyState proxyState, ILogger logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
         _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _proxyState = proxyState ?? throw new ArgumentNullException(nameof(proxyState));
     }
 
     private void ToggleSystemProxy(ToggleSystemProxyAction toggle, string? ipAddress = null, int? port = null)
@@ -91,7 +86,7 @@ public class ProxyEngine
         process.WaitForExit();
     }
 
-    public async Task Run(CancellationToken? cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         Debug.Assert(_proxyServer is not null, "Proxy server is not initialized");
 
@@ -108,7 +103,6 @@ public class ProxyEngine
         _proxyServer.AfterResponse += OnAfterResponse;
         _proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
         _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelection;
-        cancellationToken?.Register(OnCancellation);
 
         var ipAddress = string.IsNullOrEmpty(_config.IPAddress) ? IPAddress.Any : IPAddress.Parse(_config.IPAddress);
         _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
@@ -122,7 +116,7 @@ public class ProxyEngine
         {
             _explicitEndPoint.GenericCertificate = await _proxyServer
                 .CertificateManager
-                .LoadRootCertificateAsync(cancellationToken ?? CancellationToken.None);
+                .LoadRootCertificateAsync(stoppingToken);
         }
 
         _proxyServer.AddEndPoint(_explicitEndPoint);
@@ -133,7 +127,7 @@ public class ProxyEngine
 
         foreach (var endPoint in _proxyServer.ProxyEndPoints)
         {
-            _logger.LogInformation("Listening on {ipAddress}:{port}...", endPoint.IpAddress, endPoint.Port);
+            _logger.LogInformation("Dev Proxy listening on {ipAddress}:{port}...", endPoint.IpAddress, endPoint.Port);
         }
 
         if (_config.AsSystemProxy)
@@ -166,21 +160,25 @@ public class ProxyEngine
             PrintHotkeys();
         }
 
-        Console.CancelKeyPress += Console_CancelKeyPress;
-
         if (_config.Record)
         {
             StartRecording();
         }
         _pluginEvents.AfterRequestLog += AfterRequestLog;
 
-        // we need this check or proxy will fail with an exception
-        // when run for example in VSCode's integrated terminal
-        if (isInteractive)
+        while (!stoppingToken.IsCancellationRequested && _proxyServer.ProxyRunning)
         {
-            ReadKeys();
+            while (!Console.KeyAvailable)
+            {
+                await Task.Delay(10, stoppingToken);
+            }
+            // we need this check or proxy will fail with an exception
+            // when run for example in VSCode's integrated terminal
+            if (isInteractive)
+            {
+                ReadKeys();
+            }
         }
-        while (_proxyServer.ProxyRunning) { await Task.Delay(10); }
     }
 
     private void FirstRunSetup()
@@ -226,79 +224,62 @@ public class ProxyEngine
 
     private void AfterRequestLog(object? sender, RequestLogArgs e)
     {
-        if (!_isRecording)
+        if (!_proxyState.IsRecording)
         {
             return;
         }
 
-        _requestLogs.Add(e.RequestLog);
+        _proxyState.RequestLogs.Add(e.RequestLog);
     }
 
     private void ReadKeys()
     {
-        ConsoleKey key;
-        do
+        var key = Console.ReadKey(true).Key;
+        switch (key)
         {
-            key = Console.ReadKey(true).Key;
-            if (key == ConsoleKey.R)
-            {
+            case ConsoleKey.R:
                 StartRecording();
-            }
-            if (key == ConsoleKey.S)
-            {
-                // we need to use GetAwaiter().GetResult() because we're in a sync method
+                break;
+            case ConsoleKey.S:
                 StopRecording().GetAwaiter().GetResult();
-            }
-            if (key == ConsoleKey.C)
-            {
+                break;
+            case ConsoleKey.C:
                 Console.Clear();
                 PrintHotkeys();
-            }
-            if (key == ConsoleKey.W)
-            {
-                _pluginEvents.RaiseMockRequest(new EventArgs(), _exceptionHandler).GetAwaiter().GetResult();
-            }
-        } while (key != ConsoleKey.Escape);
+                break;
+            case ConsoleKey.W:
+                _proxyState.RaiseMockRequest();
+                break;
+        }
     }
 
     private void StartRecording()
     {
-        if (_isRecording)
+        if (_proxyState.IsRecording)
         {
             return;
         }
 
-        _isRecording = true;
-        PrintRecordingIndicator();
+        _proxyState.StartRecording();
+        PrintRecordingIndicator(_proxyState.IsRecording);
     }
 
     private async Task StopRecording()
     {
-        if (!_isRecording)
+        if (!_proxyState.IsRecording)
         {
             return;
         }
 
-        _isRecording = false;
-        PrintRecordingIndicator();
-        // clone the list so that we can clear the original
-        // list in case a new recording is started, and
-        // we let plugins handle previously recorded requests
-        var clonedLogs = _requestLogs.ToArray();
-        _requestLogs.Clear();
-        await _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs)
-        {
-            GlobalData = _globalData
-        }, _exceptionHandler);
-        
-        _logger.LogInformation("DONE");
+        PrintRecordingIndicator(false);
+        await _proxyState.StopRecording();
     }
 
-    private void PrintRecordingIndicator()
+    private void PrintRecordingIndicator(bool isRecording)
     {
         lock (consoleLock)
         {
-            if (_isRecording)
+            if (isRecording)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.Write("◉");
@@ -354,18 +335,6 @@ public class ProxyEngine
         }
     }
 
-    private async void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
-    {
-        // Prevent the process from terminating immediately
-        e.Cancel = true;
-
-        await StopRecording();
-        StopProxy();
-
-        // Close the process
-        Environment.Exit(0);
-    }
-
     private void StopProxy()
     {
         // Unsubscribe & Quit
@@ -398,23 +367,12 @@ public class ProxyEngine
         }
     }
 
-    private void OnCancellation()
+    public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        if (_explicitEndPoint is not null)
-        {
-            _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
-        }
+        await StopRecording();
+        StopProxy();
 
-        if (_proxyServer is not null)
-        {
-            _proxyServer.BeforeRequest -= OnRequest;
-            _proxyServer.BeforeResponse -= OnBeforeResponse;
-            _proxyServer.AfterResponse -= OnAfterResponse;
-            _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
-            _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
-
-            _proxyServer.Stop();
-        }
+        await base.StopAsync(cancellationToken);
     }
 
     async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e)
@@ -516,7 +474,7 @@ public class ProxyEngine
             var proxyRequestArgs = new ProxyRequestArgs(e, responseState)
             {
                 SessionData = _pluginData[e.GetHashCode()],
-                GlobalData = _globalData
+                GlobalData = _proxyState.GlobalData
             };
             if (!proxyRequestArgs.HasRequestUrlMatch(_urlsToWatch))
             {
@@ -603,7 +561,7 @@ public class ProxyEngine
             var proxyResponseArgs = new ProxyResponseArgs(e, new ResponseState())
             {
                 SessionData = _pluginData[e.GetHashCode()],
-                GlobalData = _globalData
+                GlobalData = _proxyState.GlobalData
             };
             if (!proxyResponseArgs.HasRequestUrlMatch(_urlsToWatch))
             {
@@ -630,7 +588,7 @@ public class ProxyEngine
             var proxyResponseArgs = new ProxyResponseArgs(e, new ResponseState())
             {
                 SessionData = _pluginData[e.GetHashCode()],
-                GlobalData = _globalData
+                GlobalData = _proxyState.GlobalData
             };
             if (!proxyResponseArgs.HasRequestUrlMatch(_urlsToWatch))
             {

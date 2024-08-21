@@ -3,8 +3,8 @@
 
 using Microsoft.DevProxy;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.DevProxy.CommandHandlers;
 using Microsoft.DevProxy.Logging;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using System.CommandLine;
 

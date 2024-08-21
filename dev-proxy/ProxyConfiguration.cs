@@ -4,7 +4,6 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy;
 
@@ -38,4 +37,5 @@ public class ProxyConfiguration : IProxyConfiguration
     public ReleaseType NewVersionNotification { get; set; } = ReleaseType.Stable;
     public LanguageModelConfiguration? LanguageModel { get; set; }
     public MockRequestHeader[]? FilterByHeaders { get; set; }
+    public int ApiPort { get; set; } = 8897;
 }
