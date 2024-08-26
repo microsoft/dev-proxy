@@ -40,35 +40,38 @@
               "url"
             ]
           },
-          "response": {
-            "type": "object",
-            "properties": {
-              "body": {
-                "type": [
-                  "object",
-                  "array",
-                  "string"
-                ]
-              },
-              "statusCode": {
-                "type": "integer"
-              },
-              "headers": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string"
-                    },
-                    "value": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "name",
-                    "value"
+          "responses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "body": {
+                  "type": [
+                    "object",
+                    "array",
+                    "string"
                   ]
+                },
+                "statusCode": {
+                  "type": "integer"
+                },
+                "headers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ]
+                  }
                 }
               }
             }
@@ -76,7 +79,7 @@
         },
         "required": [
           "request",
-          "response"
+          "responses"
         ]
       }
     }
