@@ -244,7 +244,6 @@ internal class ProxyHost
         _noFirstRunOption = new Option<bool?>(NoFirstRunOptionName, "Skip the first run experience");
 
         _asSystemProxyOption = new Option<bool?>(AsSystemProxyOptionName, "Set Dev Proxy as the system proxy");
-        _asSystemProxyOption.SetDefaultValue(true);
         _asSystemProxyOption.AddValidator(input =>
         {
             try
@@ -258,7 +257,6 @@ internal class ProxyHost
         });
 
         _installCertOption = new Option<bool?>(InstallCertOptionName, "Install self-signed certificate");
-        _installCertOption.SetDefaultValue(true);
         _installCertOption.AddValidator(input =>
         {
             try
