@@ -29,7 +29,14 @@ public class ProxyController : ControllerBase
 
         if (proxyInfo.Recording.HasValue)
         {
-            _proxyState.IsRecording = proxyInfo.Recording.Value;
+            if (proxyInfo.Recording.Value)
+            {
+                _proxyState.StartRecording();
+            }
+            else
+            {
+                _proxyState.StopRecording();
+            }
         }
 
         return Ok(ProxyInfo.From(_proxyState));

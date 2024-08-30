@@ -8,7 +8,7 @@ namespace Microsoft.DevProxy;
 public interface IProxyState
 {
     Dictionary<string, object> GlobalData { get; }
-    bool IsRecording { get; set; }
+    bool IsRecording { get; }
     IProxyConfiguration ProxyConfiguration { get; }
     List<RequestLog> RequestLogs { get; }
     void RaiseMockRequest();
