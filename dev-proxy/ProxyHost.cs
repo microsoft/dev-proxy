@@ -92,9 +92,16 @@ internal class ProxyHost
             {
                 // if there's no config file in the current working folder
                 // fall back to the default config file in the app folder
-                if (!File.Exists(_configFile) && !File.Exists("devproxyrc.jsonc"))
+                if (!File.Exists(_configFile))
                 {
-                    _configFile = "~appFolder/devproxyrc.json";
+                    if (File.Exists("devproxyrc.jsonc"))
+                    {
+                        _configFile = "devproxyrc.jsonc";
+                    }
+                    else
+                    {
+                        _configFile = "~appFolder/devproxyrc.json";
+                    }
                 }
             }
 
@@ -348,7 +355,7 @@ internal class ProxyHost
         return command;
     }
 
-    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, Option[] optionsFromPlugins, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new (
+    public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, Option[] optionsFromPlugins, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new(
         pluginEvents,
         new Option[] {
             _portOption,
