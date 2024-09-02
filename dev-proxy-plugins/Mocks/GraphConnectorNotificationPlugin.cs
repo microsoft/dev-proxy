@@ -141,14 +141,16 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
         {
             Claims = new Dictionary<string, object>
             {
-                { "scp", "user_impersonation" },
-                { "sub", "l3_roISQU222bULS9yi2k0XpqpOiMz5H3ZACo1GeXA" },
-                { "ver", "1.0" },
-                // Graph Connector Service
-                { "appid", "56c1da01-2129-48f7-9355-af6d59d42766" }
+                // Microsoft Graph Change Tracking
+                { "azp", "0bf30f3b-4a52-48df-9a82-234910c4a086" },
+                // client cert auth
+                { "azpacr", "2" },
+                { "tid", _graphConnectorConfiguration.Tenant ?? "" },
+                { "ver", "2.0" }
+                
             },
             Expires = DateTime.UtcNow.AddMinutes(60),
-            Issuer = $"https://sts.windows.net/{_graphConnectorConfiguration.Tenant}/",
+            Issuer = $"https://login.microsoftonline.com/{_graphConnectorConfiguration.Tenant}/v2.0",
             Audience = _graphConnectorConfiguration.Audience,
             SigningCredentials = signingCredentials
         };
