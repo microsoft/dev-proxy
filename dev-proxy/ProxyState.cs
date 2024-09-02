@@ -8,7 +8,7 @@ namespace Microsoft.DevProxy;
 
 public class ProxyState : IProxyState
 {
-    public bool IsRecording { get; set; } = false;
+    public bool IsRecording { get; private set; } = false;
     public List<RequestLog> RequestLogs { get; } = [];
     public Dictionary<string, object> GlobalData { get; } = new() {
         { ProxyUtils.ReportsKey, new Dictionary<string, object>() }
