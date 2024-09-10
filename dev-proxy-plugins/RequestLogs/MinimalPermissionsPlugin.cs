@@ -34,16 +34,16 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
     {
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         if (!e.RequestLogs.Any())
         {
@@ -99,7 +99,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
 
         Logger.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
 
-        var report = await DetermineMinimalScopes(endpoints);
+        var report = await DetermineMinimalScopesAsync(endpoints);
         if (report is not null)
         {
             StoreReport(report, e);
@@ -140,7 +140,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
         return requests.ToArray();
     }
 
-    private async Task<MinimalPermissionsPluginReport?> DetermineMinimalScopes(IEnumerable<(string method, string url)> endpoints)
+    private async Task<MinimalPermissionsPluginReport?> DetermineMinimalScopesAsync(IEnumerable<(string method, string url)> endpoints)
     {
         var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
 
@@ -162,7 +162,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
 
             if (_configuration.Type == PermissionsType.Delegated)
             {
-                minimalScopes = await GraphUtils.UpdateUserScopes(minimalScopes, endpoints, _configuration.Type, Logger);
+                minimalScopes = await GraphUtils.UpdateUserScopesAsync(minimalScopes, endpoints, _configuration.Type, Logger);
             }
 
             if (minimalScopes.Any())

@@ -47,16 +47,16 @@ public class DevToolsPlugin : BaseProxyPlugin
     {
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
         ConfigSection?.Bind(_configuration);
 
         InitInspector();
 
-        PluginEvents.BeforeRequest += BeforeRequest;
-        PluginEvents.AfterResponse += AfterResponse;
-        PluginEvents.AfterRequestLog += AfterRequestLog;
+        PluginEvents.BeforeRequest += BeforeRequestAsync;
+        PluginEvents.AfterResponse += AfterResponseAsync;
+        PluginEvents.AfterRequestLog += AfterRequestLogAsync;
     }
 
     private static int GetFreePort()
@@ -164,7 +164,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         var port = GetFreePort();
         webSocket = new WebSocketServer(port, Logger);
         webSocket.MessageReceived += SocketMessageReceived;
-        webSocket.Start();
+        _ = webSocket.StartAsync();
 
         var inspectionUrl = $"http://localhost:9222/devtools/inspector.html?ws=localhost:{port}";
         var args = $"{inspectionUrl} --remote-debugging-port=9222 --profile-directory=devproxy";
@@ -234,7 +234,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         return request.GetHashCode().ToString();
     }
 
-    private async Task BeforeRequest(object sender, ProxyRequestArgs e)
+    private async Task BeforeRequestAsync(object sender, ProxyRequestArgs e)
     {
         if (webSocket?.IsConnected != true)
         {
@@ -283,7 +283,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         await webSocket.SendAsync(requestWillBeSentExtraInfoMessage);
     }
 
-    private async Task AfterResponse(object sender, ProxyResponseArgs e)
+    private async Task AfterResponseAsync(object sender, ProxyResponseArgs e)
     {
         if (webSocket?.IsConnected != true)
         {
@@ -357,7 +357,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         return isTextResponse;
     }
 
-    private async void AfterRequestLog(object? sender, RequestLogArgs e)
+    private async Task AfterRequestLogAsync(object? sender, RequestLogArgs e)
     {
         if (webSocket?.IsConnected != true ||
             e.RequestLog.MessageType == MessageType.InterceptedRequest ||

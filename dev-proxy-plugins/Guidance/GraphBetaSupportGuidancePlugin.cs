@@ -16,14 +16,14 @@ public class GraphBetaSupportGuidancePlugin : BaseProxyPlugin
 
     public override string Name => nameof(GraphBetaSupportGuidancePlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.AfterResponse += AfterResponse;
+        PluginEvents.AfterResponse += AfterResponseAsync;
     }
 
-    private Task AfterResponse(object? sender, ProxyResponseArgs e)
+    private Task AfterResponseAsync(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         if (UrlsToWatch is not null &&

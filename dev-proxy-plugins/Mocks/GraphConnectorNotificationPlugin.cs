@@ -30,17 +30,17 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
 
     public override string Name => nameof(GraphConnectorNotificationPlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
         ConfigSection?.Bind(_graphConnectorConfiguration);
         _graphConnectorConfiguration.MockFile = _configuration.MockFile;
         _graphConnectorConfiguration.Request = _configuration.Request;
         
-        PluginEvents.BeforeRequest += OnBeforeRequest;
+        PluginEvents.BeforeRequest += OnBeforeRequestAsync;
     }
 
-    private Task OnBeforeRequest(object sender, ProxyRequestArgs e)
+    private Task OnBeforeRequestAsync(object sender, ProxyRequestArgs e)
     {
         if (!ProxyUtils.IsGraphRequest(e.Session.HttpClient.Request))
         {
@@ -86,7 +86,7 @@ public class GraphConnectorNotificationPlugin : MockRequestPlugin
         }
     }
 
-    protected override async Task OnMockRequest(object sender, EventArgs e)
+    protected override async Task OnMockRequestAsync(object sender, EventArgs e)
     {
         if (_configuration.Request is null)
         {

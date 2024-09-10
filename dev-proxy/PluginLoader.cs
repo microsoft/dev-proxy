@@ -30,7 +30,7 @@ internal class PluginLoader
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public PluginLoaderResult LoadPlugins(IPluginEvents pluginEvents, IProxyContext proxyContext)
+    public async Task<PluginLoaderResult> LoadPluginsAsync(IPluginEvents pluginEvents, IProxyContext proxyContext)
     {
         List<IProxyPlugin> plugins = new();
         var config = PluginConfig;
@@ -74,7 +74,7 @@ internal class PluginLoader
                     h.ConfigSection is null ? null : Configuration.GetSection(h.ConfigSection)
                 );
                 _logger?.LogDebug("Registering plugin {pluginName}...", plugin.Name);
-                plugin.Register();
+                await plugin.RegisterAsync();
                 _logger?.LogDebug("Plugin {pluginName} registered.", plugin.Name);
                 plugins.Add(plugin);
             }

@@ -182,9 +182,9 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
     // throttle requests per host
     private string BuildThrottleKey(Request r) => r.RequestUri.Host;
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
         _configuration.ErrorsFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.ErrorsFile ?? string.Empty), Path.GetDirectoryName(Context.Configuration.ConfigFile ?? string.Empty) ?? string.Empty);
@@ -192,7 +192,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
         _loader = new GenericErrorResponsesLoader(Logger, _configuration);
 
         PluginEvents.Init += OnInit;
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
     }
 
     private void OnInit(object? sender, InitArgs e)
@@ -200,7 +200,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
         _loader?.InitResponsesWatcher();
     }
 
-    private Task OnRequest(object? sender, ProxyRequestArgs e)
+    private Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (!e.ResponseState.HasBeenSet
             && UrlsToWatch is not null

@@ -32,7 +32,7 @@ public static class MSGraphDbUtils
         }
     }
 
-    public static async Task<int> GenerateMSGraphDb(ILogger logger, bool skipIfUpdatedToday = false)
+    public static async Task<int> GenerateMSGraphDbAsync(ILogger logger, bool skipIfUpdatedToday = false)
     {
         var appFolder = ProxyUtils.AppFolder;
         if (string.IsNullOrEmpty(appFolder))
@@ -51,8 +51,8 @@ public static class MSGraphDbUtils
                 return 1;
             }
 
-            await UpdateOpenAPIGraphFilesIfNecessary(appFolder, logger);
-            await LoadOpenAPIFiles(appFolder, logger);
+            await UpdateOpenAPIGraphFilesIfNecessaryAsync(appFolder, logger);
+            await LoadOpenAPIFilesAsync(appFolder, logger);
             if (_openApiDocuments.Count < 1)
             {
                 logger.LogDebug("No OpenAPI files found or couldn't load them");
@@ -143,7 +143,7 @@ public static class MSGraphDbUtils
         logger.LogInformation("Inserted {endpointCount} endpoints in the database", i);
     }
 
-    private static async Task UpdateOpenAPIGraphFilesIfNecessary(string folder, ILogger logger)
+    private static async Task UpdateOpenAPIGraphFilesIfNecessaryAsync(string folder, ILogger logger)
     {
         logger.LogInformation("Checking for updated OpenAPI files...");
 
@@ -176,7 +176,7 @@ public static class MSGraphDbUtils
         }
     }
 
-    private static async Task LoadOpenAPIFiles(string folder, ILogger logger)
+    private static async Task LoadOpenAPIFilesAsync(string folder, ILogger logger)
     {
         logger.LogInformation("Loading OpenAPI files...");
 

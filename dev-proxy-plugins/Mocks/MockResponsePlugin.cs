@@ -63,15 +63,15 @@ public class MockResponsePlugin : BaseProxyPlugin
         return [_noMocks, _mocksFile];
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
         _loader = new MockResponsesLoader(Logger, _configuration);
 
         PluginEvents.OptionsLoaded += OnOptionsLoaded;
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
 
         _proxyConfiguration = Context.Configuration;
     }
@@ -105,7 +105,7 @@ public class MockResponsePlugin : BaseProxyPlugin
         _loader?.InitResponsesWatcher();
     }
 
-    protected virtual Task OnRequest(object? sender, ProxyRequestArgs e)
+    protected virtual Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;

@@ -84,13 +84,13 @@ public class CrudApiPlugin : BaseProxyPlugin
     {
     }
 
-    public override async void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
 
         _proxyConfiguration = Context.Configuration;
 
@@ -107,10 +107,10 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
 
         LoadData();
-        await SetupOpenIdConnectConfiguration();
+        await SetupOpenIdConnectConfigurationAsync();
     }
 
-    private async Task SetupOpenIdConnectConfiguration()
+    private async Task SetupOpenIdConnectConfigurationAsync()
     {
         try
         {
@@ -145,7 +145,7 @@ public class CrudApiPlugin : BaseProxyPlugin
         }
     }
 
-    protected virtual Task OnRequest(object? sender, ProxyRequestArgs e)
+    protected virtual Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;

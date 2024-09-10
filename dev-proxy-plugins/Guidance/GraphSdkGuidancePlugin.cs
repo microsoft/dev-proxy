@@ -16,14 +16,14 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin
 
     public override string Name => nameof(GraphSdkGuidancePlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.AfterResponse += OnAfterResponse;
+        PluginEvents.AfterResponse += OnAfterResponseAsync;
     }
 
-    private Task OnAfterResponse(object? sender, ProxyResponseArgs e)
+    private Task OnAfterResponseAsync(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         // only show the message if there is an error.

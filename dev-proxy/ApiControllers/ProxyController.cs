@@ -20,7 +20,7 @@ public class ProxyController : ControllerBase
     public ProxyInfo Get() => ProxyInfo.From(_proxyState);
 
     [HttpPost]
-    public IActionResult Set([FromBody] ProxyInfo proxyInfo)
+    public async Task<IActionResult> SetAsync([FromBody] ProxyInfo proxyInfo)
     {
         if (proxyInfo.ConfigFile != null)
         {
@@ -35,7 +35,7 @@ public class ProxyController : ControllerBase
             }
             else
             {
-                _proxyState.StopRecording();
+                await _proxyState.StopRecordingAsync();
             }
         }
 
@@ -43,9 +43,9 @@ public class ProxyController : ControllerBase
     }
 
     [HttpPost("raiseMockRequest")]
-    public void RaiseMockRequest()
+    public async Task RaiseMockRequestAsync()
     {
-        _proxyState.RaiseMockRequest();
+        await _proxyState.RaiseMockRequestAsync();
         Response.StatusCode = 202;
     }
 

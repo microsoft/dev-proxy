@@ -29,7 +29,7 @@ public class WebSocketServer
         _logger = logger;
     }
 
-    private async Task HandleMessages(WebSocket ws)
+    private async Task HandleMessagesAsync(WebSocket ws)
     {
         try
         {
@@ -56,7 +56,7 @@ public class WebSocketServer
         }
     }
 
-    public async void Start()
+    public async Task StartAsync()
     {
         listener = new HttpListener();
         listener.Prefixes.Add($"http://localhost:{_port}/");
@@ -70,7 +70,7 @@ public class WebSocketServer
             {
                 var webSocketContext = await context.AcceptWebSocketAsync(null);
                 webSocket = webSocketContext.WebSocket;
-                _ = HandleMessages(webSocket);
+                _ = HandleMessagesAsync(webSocket);
             }
             else
             {

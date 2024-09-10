@@ -209,7 +209,7 @@ public interface IPluginEvents
     /// <summary>
     /// Raised after request message has been logged.
     /// </summary>
-    event EventHandler<RequestLogArgs>? AfterRequestLog;
+    event AsyncEventHandler<RequestLogArgs>? AfterRequestLog;
     /// <summary>
     /// Raised after recording request logs has stopped.
     /// </summary>
@@ -221,12 +221,12 @@ public interface IPluginEvents
 
     void RaiseInit(InitArgs args);
     void RaiseOptionsLoaded(OptionsLoadedArgs args);
-    Task RaiseProxyBeforeRequest(ProxyRequestArgs args, ExceptionHandler? exceptionFunc = null);
-    Task RaiseProxyBeforeResponse(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null);
-    Task RaiseProxyAfterResponse(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null);
-    void RaiseRequestLogged(RequestLogArgs args);
-    Task RaiseRecordingStopped(RecordingArgs args, ExceptionHandler? exceptionFunc = null);
-    Task RaiseMockRequest(EventArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseProxyBeforeRequestAsync(ProxyRequestArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseProxyBeforeResponseAsync(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseProxyAfterResponseAsync(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseRequestLoggedAsync(RequestLogArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseRecordingStoppedAsync(RecordingArgs args, ExceptionHandler? exceptionFunc = null);
+    Task RaiseMockRequestAsync(EventArgs args, ExceptionHandler? exceptionFunc = null);
 }
 
 public class PluginEvents : IPluginEvents
@@ -242,7 +242,7 @@ public class PluginEvents : IPluginEvents
     /// <inheritdoc />
     public event AsyncEventHandler<ProxyResponseArgs>? AfterResponse;
     /// <inheritdoc />
-    public event EventHandler<RequestLogArgs>? AfterRequestLog;
+    public event AsyncEventHandler<RequestLogArgs>? AfterRequestLog;
     /// <inheritdoc />
     public event AsyncEventHandler<RecordingArgs>? AfterRecordingStop;
     public event AsyncEventHandler<EventArgs>? MockRequest;
@@ -257,7 +257,7 @@ public class PluginEvents : IPluginEvents
         OptionsLoaded?.Invoke(this, args);
     }
 
-    public async Task RaiseProxyBeforeRequest(ProxyRequestArgs args, ExceptionHandler? exceptionFunc = null)
+    public async Task RaiseProxyBeforeRequestAsync(ProxyRequestArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (BeforeRequest is not null)
         {
@@ -265,7 +265,7 @@ public class PluginEvents : IPluginEvents
         }
     }
 
-    public async Task RaiseProxyBeforeResponse(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null)
+    public async Task RaiseProxyBeforeResponseAsync(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (BeforeResponse is not null)
         {
@@ -273,7 +273,7 @@ public class PluginEvents : IPluginEvents
         }
     }
 
-    public async Task RaiseProxyAfterResponse(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null)
+    public async Task RaiseProxyAfterResponseAsync(ProxyResponseArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (AfterResponse is not null)
         {
@@ -281,12 +281,15 @@ public class PluginEvents : IPluginEvents
         }
     }
 
-    public void RaiseRequestLogged(RequestLogArgs args)
+    public async Task RaiseRequestLoggedAsync(RequestLogArgs args, ExceptionHandler? exceptionFunc = null)
     {
-        AfterRequestLog?.Invoke(this, args);
+        if (AfterRequestLog is not null)
+        {
+            await AfterRequestLog.InvokeAsync(this, args, exceptionFunc);
+        }
     }
 
-    public async Task RaiseRecordingStopped(RecordingArgs args, ExceptionHandler? exceptionFunc = null)
+    public async Task RaiseRecordingStoppedAsync(RecordingArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (AfterRecordingStop is not null)
         {
@@ -294,7 +297,7 @@ public class PluginEvents : IPluginEvents
         }
     }
 
-    public async Task RaiseMockRequest(EventArgs args, ExceptionHandler? exceptionFunc = null)
+    public async Task RaiseMockRequestAsync(EventArgs args, ExceptionHandler? exceptionFunc = null)
     {
         if (MockRequest is not null)
         {

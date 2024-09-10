@@ -5,7 +5,7 @@ namespace Microsoft.DevProxy.Abstractions;
 
 public interface ILanguageModelClient
 {
-    Task<ILanguageModelCompletionResponse?> GenerateChatCompletion(ILanguageModelChatCompletionMessage[] messages);
-    Task<ILanguageModelCompletionResponse?> GenerateCompletion(string prompt);
-    Task<bool> IsEnabled();
+    Task<ILanguageModelCompletionResponse?> GenerateChatCompletionAsync(ILanguageModelChatCompletionMessage[] messages);
+    Task<ILanguageModelCompletionResponse?> GenerateCompletionAsync(string prompt);
+    Task<bool> IsEnabledAsync();
 }

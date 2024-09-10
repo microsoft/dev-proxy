@@ -58,7 +58,8 @@ if (hasGlobalOption || hasSubCommand)
     return;
 }
 
-PluginLoaderResult loaderResults = new PluginLoader(logger).LoadPlugins(pluginEvents, context);
+var pluginLoader = new PluginLoader(logger);
+PluginLoaderResult loaderResults = await pluginLoader.LoadPluginsAsync(pluginEvents, context);
 // have all the plugins init
 pluginEvents.RaiseInit(new InitArgs());
 

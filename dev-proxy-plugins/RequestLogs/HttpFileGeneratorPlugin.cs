@@ -97,16 +97,16 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
     {
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         Logger.LogInformation("Creating HTTP file from recorded requests...");
 
@@ -116,7 +116,7 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
             return;
         }
 
-        var httpFile = await GetHttpRequests(e.RequestLogs);
+        var httpFile = await GetHttpRequestsAsync(e.RequestLogs);
         DeduplicateRequests(httpFile);
         ExtractVariables(httpFile);
 
@@ -133,7 +133,7 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
         e.GlobalData[GeneratedHttpFilesKey] = generatedHttpFiles;
     }
 
-    private async Task<HttpFile> GetHttpRequests(IEnumerable<RequestLog> requestLogs)
+    private async Task<HttpFile> GetHttpRequestsAsync(IEnumerable<RequestLog> requestLogs)
     {
         var httpFile = new HttpFile();
 

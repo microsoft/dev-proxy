@@ -21,14 +21,14 @@ public class RetryAfterPlugin : BaseProxyPlugin
     {
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
     }
 
-    private Task OnRequest(object? sender, ProxyRequestArgs e)
+    private Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (e.ResponseState.HasBeenSet ||
             UrlsToWatch is null ||

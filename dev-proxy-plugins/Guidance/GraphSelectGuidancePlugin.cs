@@ -16,17 +16,17 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
 
     public override string Name => nameof(GraphSelectGuidancePlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.AfterResponse += AfterResponse;
+        PluginEvents.AfterResponse += AfterResponseAsync;
 
         // let's not await so that it doesn't block the proxy startup
-        _ = MSGraphDbUtils.GenerateMSGraphDb(Logger, true);
+        _ = MSGraphDbUtils.GenerateMSGraphDbAsync(Logger, true);
     }
 
-    private Task AfterResponse(object? sender, ProxyResponseArgs e)
+    private Task AfterResponseAsync(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         if (UrlsToWatch is not null &&

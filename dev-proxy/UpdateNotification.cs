@@ -28,11 +28,11 @@ internal static class UpdateNotification
     /// Checks if a new version of the proxy is available.
     /// </summary>
     /// <returns>Instance of ReleaseInfo if a new version is available and null if the current version is the latest</returns>
-    public static async Task<ReleaseInfo?> CheckForNewVersion(ReleaseType releaseType)
+    public static async Task<ReleaseInfo?> CheckForNewVersionAsync(ReleaseType releaseType)
     {
         try
         {
-            var latestRelease = await GetLatestRelease(releaseType);
+            var latestRelease = await GetLatestReleaseAsync(releaseType);
             if (latestRelease == null || latestRelease.Version == null)
             {
                 return null;
@@ -129,7 +129,7 @@ internal static class UpdateNotification
         }
     }
 
-    private static async Task<ReleaseInfo?> GetLatestRelease(ReleaseType releaseType)
+    private static async Task<ReleaseInfo?> GetLatestReleaseAsync(ReleaseType releaseType)
     {
         var http = new HttpClient();
         // GitHub API requires user agent to be set

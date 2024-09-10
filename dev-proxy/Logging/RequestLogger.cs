@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Threading;
 
 namespace Microsoft.DevProxy.Logging;
 
@@ -23,7 +23,10 @@ public class RequestLogger : ILogger
     {
         if (state is RequestLog requestLog)
         {
-            _pluginEvents.RaiseRequestLogged(new RequestLogArgs(requestLog));
+            var joinableTaskContext = new JoinableTaskContext();
+            var joinableTaskFactory = new JoinableTaskFactory(joinableTaskContext);
+            
+            joinableTaskFactory.Run(async () => await _pluginEvents.RaiseRequestLoggedAsync(new RequestLogArgs(requestLog)));
         }
     }
 }

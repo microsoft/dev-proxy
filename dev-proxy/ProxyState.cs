@@ -38,7 +38,7 @@ public class ProxyState : IProxyState
         IsRecording = true;
     }
 
-    public async Task StopRecording()
+    public async Task StopRecordingAsync()
     {
         if (!IsRecording)
         {
@@ -52,19 +52,16 @@ public class ProxyState : IProxyState
         // we let plugins handle previously recorded requests
         var clonedLogs = RequestLogs.ToArray();
         RequestLogs.Clear();
-        await _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs)
+        await _pluginEvents.RaiseRecordingStoppedAsync(new RecordingArgs(clonedLogs)
         {
             GlobalData = GlobalData
         }, _exceptionHandler);
         _logger.LogInformation("DONE");
     }
 
-    public void RaiseMockRequest()
+    public async Task RaiseMockRequestAsync()
     {
-        _pluginEvents
-            .RaiseMockRequest(new EventArgs(), _exceptionHandler)
-            .GetAwaiter()
-            .GetResult();
+        await _pluginEvents.RaiseMockRequestAsync(new EventArgs(), _exceptionHandler);
     }
 
     public void StopProxy()

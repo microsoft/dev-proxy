@@ -24,15 +24,15 @@ public class LatencyPlugin : BaseProxyPlugin
     {
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
     }
 
-    private async Task OnRequest(object? sender, ProxyRequestArgs e)
+    private async Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (UrlsToWatch is not null
             && e.ShouldExecute(UrlsToWatch))

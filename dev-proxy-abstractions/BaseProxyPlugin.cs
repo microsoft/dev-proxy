@@ -26,20 +26,9 @@ public abstract class BaseProxyPlugin : IProxyPlugin
                          ISet<UrlToWatch> urlsToWatch,
                          IConfigurationSection? configSection = null)
     {
-        if (pluginEvents is null)
-        {
-            throw new ArgumentNullException(nameof(pluginEvents));
-        }
-
-        if (context is null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
-
-        if (logger is null)
-        {
-            throw new ArgumentNullException(nameof(logger));
-        }
+        ArgumentNullException.ThrowIfNull(pluginEvents);
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(logger);
 
         if (urlsToWatch is null || !urlsToWatch.Any())
         {
@@ -53,7 +42,8 @@ public abstract class BaseProxyPlugin : IProxyPlugin
         PluginEvents = pluginEvents;
     }
 
-    public virtual void Register()
+    public virtual Task RegisterAsync()
     {
+        return Task.CompletedTask;
     }
 }

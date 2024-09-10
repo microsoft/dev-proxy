@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.VisualStudio.Threading;
 using System.Diagnostics;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -50,7 +51,10 @@ public class ProxyEngine : BackgroundService
         // we need to change this to a value lower than 397
         // to avoid the ERR_CERT_VALIDITY_TOO_LONG error in Edge
         _proxyServer.CertificateManager.CertificateValidDays = 365;
-        _ = _proxyServer.CertificateManager.LoadOrCreateRootCertificateAsync().Result;
+
+        var joinableTaskContext = new JoinableTaskContext();
+        var joinableTaskFactory = new JoinableTaskFactory(joinableTaskContext);
+        joinableTaskFactory.Run(async () => await _proxyServer.CertificateManager.LoadOrCreateRootCertificateAsync());
     }
 
     public ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, IPluginEvents pluginEvents, IProxyState proxyState, ILogger logger)
@@ -98,16 +102,16 @@ public class ProxyEngine : BackgroundService
 
         LoadHostNamesFromUrls();
 
-        _proxyServer.BeforeRequest += OnRequest;
-        _proxyServer.BeforeResponse += OnBeforeResponse;
-        _proxyServer.AfterResponse += OnAfterResponse;
-        _proxyServer.ServerCertificateValidationCallback += OnCertificateValidation;
-        _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelection;
+        _proxyServer.BeforeRequest += OnRequestAsync;
+        _proxyServer.BeforeResponse += OnBeforeResponseAsync;
+        _proxyServer.AfterResponse += OnAfterResponseAsync;
+        _proxyServer.ServerCertificateValidationCallback += OnCertificateValidationAsync;
+        _proxyServer.ClientCertificateSelectionCallback += OnCertificateSelectionAsync;
 
         var ipAddress = string.IsNullOrEmpty(_config.IPAddress) ? IPAddress.Any : IPAddress.Parse(_config.IPAddress);
         _explicitEndPoint = new ExplicitProxyEndPoint(ipAddress, _config.Port, true);
         // Fired when a CONNECT request is received
-        _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
+        _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequestAsync;
         if (_config.InstallCert)
         {
             await _proxyServer.CertificateManager.EnsureRootCertificateAsync();
@@ -164,7 +168,7 @@ public class ProxyEngine : BackgroundService
         {
             StartRecording();
         }
-        _pluginEvents.AfterRequestLog += AfterRequestLog;
+        _pluginEvents.AfterRequestLog += AfterRequestLogAsync;
 
         while (!stoppingToken.IsCancellationRequested && _proxyServer.ProxyRunning)
         {
@@ -176,7 +180,7 @@ public class ProxyEngine : BackgroundService
             // when run for example in VSCode's integrated terminal
             if (isInteractive)
             {
-                ReadKeys();
+                await ReadKeysAsync();
             }
         }
     }
@@ -222,17 +226,18 @@ public class ProxyEngine : BackgroundService
         return true;
     }
 
-    private void AfterRequestLog(object? sender, RequestLogArgs e)
+    private Task AfterRequestLogAsync(object? sender, RequestLogArgs e)
     {
         if (!_proxyState.IsRecording)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _proxyState.RequestLogs.Add(e.RequestLog);
+        return Task.CompletedTask;
     }
 
-    private void ReadKeys()
+    private async Task ReadKeysAsync()
     {
         var key = Console.ReadKey(true).Key;
         switch (key)
@@ -241,14 +246,14 @@ public class ProxyEngine : BackgroundService
                 StartRecording();
                 break;
             case ConsoleKey.S:
-                StopRecording().GetAwaiter().GetResult();
+                await StopRecordingAsync();
                 break;
             case ConsoleKey.C:
                 Console.Clear();
                 PrintHotkeys();
                 break;
             case ConsoleKey.W:
-                _proxyState.RaiseMockRequest();
+                await _proxyState.RaiseMockRequestAsync();
                 break;
         }
     }
@@ -264,7 +269,7 @@ public class ProxyEngine : BackgroundService
         PrintRecordingIndicator(_proxyState.IsRecording);
     }
 
-    private async Task StopRecording()
+    private async Task StopRecordingAsync()
     {
         if (!_proxyState.IsRecording)
         {
@@ -272,7 +277,7 @@ public class ProxyEngine : BackgroundService
         }
 
         PrintRecordingIndicator(false);
-        await _proxyState.StopRecording();
+        await _proxyState.StopRecordingAsync();
     }
 
     private void PrintRecordingIndicator(bool isRecording)
@@ -342,16 +347,16 @@ public class ProxyEngine : BackgroundService
         {
             if (_explicitEndPoint != null)
             {
-                _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
+                _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequestAsync;
             }
 
             if (_proxyServer is not null)
             {
-                _proxyServer.BeforeRequest -= OnRequest;
-                _proxyServer.BeforeResponse -= OnBeforeResponse;
-                _proxyServer.AfterResponse -= OnAfterResponse;
-                _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidation;
-                _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelection;
+                _proxyServer.BeforeRequest -= OnRequestAsync;
+                _proxyServer.BeforeResponse -= OnBeforeResponseAsync;
+                _proxyServer.AfterResponse -= OnAfterResponseAsync;
+                _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidationAsync;
+                _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelectionAsync;
 
                 _proxyServer.Stop();
             }
@@ -369,13 +374,13 @@ public class ProxyEngine : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        await StopRecording();
+        await StopRecordingAsync();
         StopProxy();
 
         await base.StopAsync(cancellationToken);
     }
 
-    async Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e)
+    async Task OnBeforeTunnelConnectRequestAsync(object sender, TunnelConnectSessionEventArgs e)
     {
         // Ensures that only the targeted Https domains are proxyied
         if (!IsProxiedHost(e.HttpClient.Request.RequestUri.Host) ||
@@ -464,7 +469,7 @@ public class ProxyEngine : BackgroundService
         return false;
     }
 
-    async Task OnRequest(object sender, SessionEventArgs e)
+    async Task OnRequestAsync(object sender, SessionEventArgs e)
     {
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host) &&
             IsIncludedByHeaders(e.HttpClient.Request.Headers))
@@ -494,13 +499,13 @@ public class ProxyEngine : BackgroundService
 
             e.UserData = e.HttpClient.Request;
             _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
-            await HandleRequest(e, proxyRequestArgs);
+            await HandleRequestAsync(e, proxyRequestArgs);
         }
     }
 
-    private async Task HandleRequest(SessionEventArgs e, ProxyRequestArgs proxyRequestArgs)
+    private async Task HandleRequestAsync(SessionEventArgs e, ProxyRequestArgs proxyRequestArgs)
     {
-        await _pluginEvents.RaiseProxyBeforeRequest(proxyRequestArgs, _exceptionHandler);
+        await _pluginEvents.RaiseProxyBeforeRequestAsync(proxyRequestArgs, _exceptionHandler);
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!proxyRequestArgs.ResponseState.HasBeenSet)
@@ -553,7 +558,7 @@ public class ProxyEngine : BackgroundService
     }
 
     // Modify response
-    async Task OnBeforeResponse(object sender, SessionEventArgs e)
+    async Task OnBeforeResponseAsync(object sender, SessionEventArgs e)
     {
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
@@ -577,10 +582,10 @@ public class ProxyEngine : BackgroundService
                 await e.GetResponseBody();
             }
 
-            await _pluginEvents.RaiseProxyBeforeResponse(proxyResponseArgs, _exceptionHandler);
+            await _pluginEvents.RaiseProxyBeforeResponseAsync(proxyResponseArgs, _exceptionHandler);
         }
     }
-    async Task OnAfterResponse(object sender, SessionEventArgs e)
+    async Task OnAfterResponseAsync(object sender, SessionEventArgs e)
     {
         // read response headers
         if (IsProxiedHost(e.HttpClient.Request.RequestUri.Host))
@@ -605,7 +610,7 @@ public class ProxyEngine : BackgroundService
 
             var message = $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}";
             _logger.LogRequest([message], MessageType.InterceptedResponse, new LoggingContext(e));
-            await _pluginEvents.RaiseProxyAfterResponse(proxyResponseArgs, _exceptionHandler);
+            await _pluginEvents.RaiseProxyAfterResponseAsync(proxyResponseArgs, _exceptionHandler);
             _logger.LogRequest([message], MessageType.FinishedProcessingRequest, new LoggingContext(e));
 
             // clean up
@@ -614,7 +619,7 @@ public class ProxyEngine : BackgroundService
     }
 
     // Allows overriding default certificate validation logic
-    Task OnCertificateValidation(object sender, CertificateValidationEventArgs e)
+    Task OnCertificateValidationAsync(object sender, CertificateValidationEventArgs e)
     {
         // set IsValid to true/false based on Certificate Errors
         if (e.SslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
@@ -626,7 +631,7 @@ public class ProxyEngine : BackgroundService
     }
 
     // Allows overriding default client certificate selection logic during mutual authentication
-    Task OnCertificateSelection(object sender, CertificateSelectionEventArgs e)
+    Task OnCertificateSelectionAsync(object sender, CertificateSelectionEventArgs e)
     {
         // set e.clientCertificate to override
         return Task.CompletedTask;

@@ -29,14 +29,14 @@ public class MockRequestPlugin : BaseProxyPlugin
 
     public override string Name => nameof(MockRequestPlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
         _loader = new MockRequestLoader(Logger, _configuration);
 
-        PluginEvents.MockRequest += OnMockRequest;
+        PluginEvents.MockRequest += OnMockRequestAsync;
 
         // make the mock file path relative to the configuration file
         _configuration.MockFile = Path.GetFullPath(ProxyUtils.ReplacePathTokens(_configuration.MockFile), Path.GetDirectoryName(Context.Configuration.ConfigFile ?? string.Empty) ?? string.Empty);
@@ -90,7 +90,7 @@ public class MockRequestPlugin : BaseProxyPlugin
         return requestMessage;
     }
 
-    protected virtual async Task OnMockRequest(object sender, EventArgs e)
+    protected virtual async Task OnMockRequestAsync(object sender, EventArgs e)
     {
         if (_configuration.Request is null)
         {

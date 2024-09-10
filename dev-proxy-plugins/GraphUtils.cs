@@ -41,7 +41,7 @@ public class GraphUtils
         };
     }
 
-    internal static async Task<IEnumerable<string>> UpdateUserScopes(IEnumerable<string> minimalScopes, IEnumerable<(string method, string url)> endpoints, PermissionsType permissionsType, ILogger logger)
+    internal static async Task<IEnumerable<string>> UpdateUserScopesAsync(IEnumerable<string> minimalScopes, IEnumerable<(string method, string url)> endpoints, PermissionsType permissionsType, ILogger logger)
     {
         var userEndpoints = endpoints.Where(e => e.url.Contains("/users/{", StringComparison.OrdinalIgnoreCase));
         if (!userEndpoints.Any())

@@ -94,12 +94,12 @@ internal class ApiCenterClient
         }
     }
 
-    internal Task<string?> GetAccessToken(CancellationToken cancellationToken)
+    internal Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken)
     {
-        return _authenticationHandler.GetAccessToken(cancellationToken);
+        return _authenticationHandler.GetAccessTokenAsync(cancellationToken);
     }
 
-    internal async Task<Api[]?> GetApis()
+    internal async Task<Api[]?> GetApisAsync()
     {
         _logger.LogInformation("Loading APIs from API Center...");
 
@@ -115,7 +115,7 @@ internal class ApiCenterClient
         }
     }
 
-    internal async Task<Api?> PutApi(Api api, string apiName)
+    internal async Task<Api?> PutApiAsync(Api api, string apiName)
     {
         var content = new StringContent(JsonSerializer.Serialize(api, ProxyUtils.JsonSerializerOptions), Encoding.UTF8, "application/json");
         var res = await _httpClient.PutAsync($"https://management.azure.com/subscriptions/{_configuration.SubscriptionId}/resourceGroups/{_configuration.ResourceGroupName}/providers/Microsoft.ApiCenter/services/{_configuration.ServiceName}/workspaces/{_configuration.WorkspaceName}/apis/{apiName}?api-version=2024-03-01", content);
@@ -133,7 +133,7 @@ internal class ApiCenterClient
         }
     }
 
-    internal async Task<ApiDeployment[]?> GetDeployments(string apiId)
+    internal async Task<ApiDeployment[]?> GetDeploymentsAsync(string apiId)
     {
         _logger.LogDebug("Loading API deployments for {apiName}...", apiId);
 
@@ -149,7 +149,7 @@ internal class ApiCenterClient
         }
     }
 
-    internal async Task<ApiVersion[]?> GetVersions(string apiId)
+    internal async Task<ApiVersion[]?> GetVersionsAsync(string apiId)
     {
         _logger.LogDebug("Loading API versions for {apiName}...", apiId);
 
@@ -165,7 +165,7 @@ internal class ApiCenterClient
         }
     }
 
-    internal async Task<ApiVersion?> PutVersion(ApiVersion apiVersion, string apiId, string apiName)
+    internal async Task<ApiVersion?> PutVersionAsync(ApiVersion apiVersion, string apiId, string apiName)
     {
         var content = new StringContent(JsonSerializer.Serialize(apiVersion, ProxyUtils.JsonSerializerOptions), Encoding.UTF8, "application/json");
         var res = await _httpClient.PutAsync($"https://management.azure.com{apiId}/versions/{apiName}?api-version=2024-03-01", content);
@@ -183,7 +183,7 @@ internal class ApiCenterClient
         }
     }
 
-    internal async Task<ApiDefinition[]?> GetDefinitions(string versionId)
+    internal async Task<ApiDefinition[]?> GetDefinitionsAsync(string versionId)
     {
         _logger.LogDebug("Loading API definitions for version {id}...", versionId);
 
@@ -199,7 +199,7 @@ internal class ApiCenterClient
         }
     }
 
-    internal async Task<ApiDefinition?> GetDefinition(string definitionId)
+    internal async Task<ApiDefinition?> GetDefinitionAsync(string definitionId)
     {
         _logger.LogDebug("Loading API definition {id}...", definitionId);
 
@@ -207,7 +207,7 @@ internal class ApiCenterClient
         return JsonSerializer.Deserialize<ApiDefinition>(res, ProxyUtils.JsonSerializerOptions);
     }
 
-    internal async Task<ApiDefinition?> PutDefinition(ApiDefinition apiDefinition, string apiVersionId, string definitionName)
+    internal async Task<ApiDefinition?> PutDefinitionAsync(ApiDefinition apiDefinition, string apiVersionId, string definitionName)
     {
         var content = new StringContent(JsonSerializer.Serialize(apiDefinition, ProxyUtils.JsonSerializerOptions), Encoding.UTF8, "application/json");
         var res = await _httpClient.PutAsync($"https://management.azure.com{apiVersionId}/definitions/{definitionName}?api-version=2024-03-01", content);
@@ -225,13 +225,13 @@ internal class ApiCenterClient
         }
     }
 
-    internal async Task<HttpResponseMessage> PostImportSpecification(ApiSpecImport apiSpecImport, string definitionId)
+    internal async Task<HttpResponseMessage> PostImportSpecificationAsync(ApiSpecImport apiSpecImport, string definitionId)
     {
         var content = new StringContent(JsonSerializer.Serialize(apiSpecImport, ProxyUtils.JsonSerializerOptions), Encoding.UTF8, "application/json");
         return await _httpClient.PostAsync($"https://management.azure.com{definitionId}/importSpecification?api-version=2024-03-01", content);
     }
 
-    internal async Task<ApiSpecExportResult?> PostExportSpecification(string definitionId)
+    internal async Task<ApiSpecExportResult?> PostExportSpecificationAsync(string definitionId)
     {
         var definitionRes = await _httpClient.PostAsync($"https://management.azure.com{definitionId}/exportSpecification?api-version=2024-03-01", null);
         return await definitionRes.Content.ReadFromJsonAsync<ApiSpecExportResult>(ProxyUtils.JsonSerializerOptions);

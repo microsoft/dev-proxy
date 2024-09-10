@@ -46,9 +46,9 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
     {
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
         // we need to do it this way because .NET doesn't distinguish between
@@ -65,10 +65,10 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             _configuration.PermissionsToExclude = _configuration.PermissionsToExclude.Where(p => !string.IsNullOrEmpty(p));
         }
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         if (!e.RequestLogs.Any())
         {
@@ -182,7 +182,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
             Logger.LogInformation("Evaluating delegated permissions for: {endpoints}", string.Join(", ", delegatedEndpoints.Select(e => $"{e.method} {e.url}")));
 
-            await EvaluateMinimalScopes(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
+            await EvaluateMinimalScopesAsync(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
         }
 
         if (applicationEndpoints.Count > 0)
@@ -192,7 +192,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
             Logger.LogInformation("Evaluating application permissions for: {endpoints}", string.Join(", ", applicationEndpoints.Select(e => $"{e.method} {e.url}")));
 
-            await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
+            await EvaluateMinimalScopesAsync(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
         }
 
         StoreReport(report, e);
@@ -286,7 +286,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
         }
     }
 
-    private async Task EvaluateMinimalScopes(IEnumerable<(string method, string url)> endpoints, IEnumerable<string> permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
+    private async Task EvaluateMinimalScopesAsync(IEnumerable<(string method, string url)> endpoints, IEnumerable<string> permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
     {
         var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
 
@@ -315,7 +315,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
             if (scopeType == PermissionsType.Delegated)
             {
-                minimalPermissions = await GraphUtils.UpdateUserScopes(minimalPermissions, endpoints, scopeType, Logger);
+                minimalPermissions = await GraphUtils.UpdateUserScopesAsync(minimalPermissions, endpoints, scopeType, Logger);
             }
 
             if (minimalPermissions.Any())

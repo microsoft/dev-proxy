@@ -58,14 +58,14 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
         return [groupBy];
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
         PluginEvents.OptionsLoaded += OnOptionsLoaded;
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
@@ -79,7 +79,7 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
         }
     }
 
-    private Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         if (!e.RequestLogs.Any())
         {

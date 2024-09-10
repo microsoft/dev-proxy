@@ -18,15 +18,15 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
     {
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.BeforeRequest += OnBeforeRequest;
-        PluginEvents.BeforeResponse += OnBeforeResponse;
+        PluginEvents.BeforeRequest += OnBeforeRequestAsync;
+        PluginEvents.BeforeResponse += OnBeforeResponseAsync;
     }
 
-    private Task OnBeforeRequest(object? sender, ProxyRequestArgs e)
+    private Task OnBeforeRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (UrlsToWatch is null ||
             e.Session.HttpClient.Request.Method != "GET" ||
@@ -44,7 +44,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
         return Task.CompletedTask;
     }
 
-    private async Task OnBeforeResponse(object? sender, ProxyResponseArgs e)
+    private async Task OnBeforeResponseAsync(object? sender, ProxyResponseArgs e)
     {
         if (UrlsToWatch is null ||
             !e.HasRequestUrlMatch(UrlsToWatch) ||

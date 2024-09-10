@@ -48,9 +48,9 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
     public override string Name => nameof(ApiCenterProductionVersionPlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
@@ -76,7 +76,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
         Logger.LogInformation("Plugin {plugin} connecting to Azure...", Name);
         try
         {
-            _ = _apiCenterClient.GetAccessToken(CancellationToken.None).Result;
+            _ = await _apiCenterClient.GetAccessTokenAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -85,10 +85,10 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
         }
         Logger.LogDebug("Plugin {plugin} auth confirmed...", Name);
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object sender, RecordingArgs e)
     {
         var interceptedRequests = e.RequestLogs
             .Where(
@@ -107,7 +107,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
         if (_apis is null)
         {
-            _apis = await _apiCenterClient.GetApis();
+            _apis = await _apiCenterClient.GetApisAsync();
         }
 
         if (_apis == null || !_apis.Any())
@@ -120,7 +120,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
         {
             Debug.Assert(api.Id is not null);
 
-            await api.LoadVersions(_apiCenterClient);
+            await api.LoadVersionsAsync(_apiCenterClient);
             if (api.Versions?.Any() != true)
             {
                 Logger.LogInformation("No versions found for {api}", api.Properties?.Title);
@@ -131,7 +131,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             {
                 Debug.Assert(versionFromApiCenter.Id is not null);
 
-                await versionFromApiCenter.LoadDefinitions(_apiCenterClient);
+                await versionFromApiCenter.LoadDefinitionsAsync(_apiCenterClient);
                 if (versionFromApiCenter.Definitions?.Any() != true)
                 {
                     Logger.LogDebug("No definitions found for version {versionId}", versionFromApiCenter.Id);
@@ -143,7 +143,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
                 {
                     Debug.Assert(definitionFromApiCenter.Id is not null);
 
-                    await definitionFromApiCenter.LoadOpenApiDefinition(_apiCenterClient, Logger);
+                    await definitionFromApiCenter.LoadOpenApiDefinitionAsync(_apiCenterClient, Logger);
 
                     if (definitionFromApiCenter.Definition is null)
                     {

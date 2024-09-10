@@ -51,9 +51,9 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
     public override string Name => nameof(ApiCenterOnboardingPlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
@@ -79,7 +79,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
         Logger.LogInformation("Plugin {plugin} connecting to Azure...", Name);
         try
         {
-            _ = _apiCenterClient.GetAccessToken(CancellationToken.None).Result;
+            _ = await _apiCenterClient.GetAccessTokenAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -88,10 +88,10 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
         }
         Logger.LogDebug("Plugin {plugin} auth confirmed...", Name);
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object sender, RecordingArgs e)
     {
         if (!e.RequestLogs.Any())
         {
@@ -105,7 +105,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
         if (_apis is null)
         {
-            _apis = await _apiCenterClient.GetApis();
+            _apis = await _apiCenterClient.GetApisAsync();
         }
 
         if (_apis == null || !_apis.Any())
@@ -116,7 +116,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
         if (_apiDefinitionsByUrl is null)
         {
-            _apiDefinitionsByUrl = await _apis.GetApiDefinitionsByUrl(_apiCenterClient, Logger);
+            _apiDefinitionsByUrl = await _apis.GetApiDefinitionsByUrlAsync(_apiCenterClient, Logger);
         }
 
         var newApis = new List<(string method, string url)>();
@@ -148,7 +148,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
                 continue;
             }
 
-            await apiDefinition.LoadOpenApiDefinition(_apiCenterClient, Logger);
+            await apiDefinition.LoadOpenApiDefinitionAsync(_apiCenterClient, Logger);
 
             if (apiDefinition.Definition is null)
             {
@@ -227,10 +227,10 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
         }
 
         var generatedOpenApiSpecs = e.GlobalData.TryGetValue(OpenApiSpecGeneratorPlugin.GeneratedOpenApiSpecsKey, out var specs) ? specs as Dictionary<string, string> : new();
-        await CreateApisInApiCenter(apisPerSchemeAndHost, generatedOpenApiSpecs!);
+        await CreateApisInApiCenterAsync(apisPerSchemeAndHost, generatedOpenApiSpecs!);
     }
 
-    async Task CreateApisInApiCenter(IEnumerable<IGrouping<string, (string method, string url)>> apisPerHost, Dictionary<string, string> generatedOpenApiSpecs)
+    async Task CreateApisInApiCenterAsync(IEnumerable<IGrouping<string, (string method, string url)>> apisPerHost, Dictionary<string, string> generatedOpenApiSpecs)
     {
         Logger.LogInformation("Creating new API entries in API Center...");
 
@@ -238,7 +238,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
         {
             var schemeAndHost = apiPerHost.Key;
 
-            var api = await CreateApi(schemeAndHost, apiPerHost);
+            var api = await CreateApiAsync(schemeAndHost, apiPerHost);
             if (api is null)
             {
                 continue;
@@ -252,7 +252,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
                 continue;
             }
 
-            var apiVersion = await CreateApiVersion(api.Id);
+            var apiVersion = await CreateApiVersionAsync(api.Id);
             if (apiVersion is null)
             {
                 continue;
@@ -260,7 +260,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
             Debug.Assert(apiVersion.Id is not null);
 
-            var apiDefinition = await CreateApiDefinition(apiVersion.Id);
+            var apiDefinition = await CreateApiDefinitionAsync(apiVersion.Id);
             if (apiDefinition is null)
             {
                 continue;
@@ -268,11 +268,11 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
             Debug.Assert(apiDefinition.Id is not null);
 
-            await ImportApiDefinition(apiDefinition.Id, openApiSpecFilePath);
+            await ImportApiDefinitionAsync(apiDefinition.Id, openApiSpecFilePath);
         }
     }
 
-    async Task<Api?> CreateApi(string schemeAndHost, IEnumerable<(string method, string url)> apiRequests)
+    async Task<Api?> CreateApiAsync(string schemeAndHost, IEnumerable<(string method, string url)> apiRequests)
     {
         Debug.Assert(_apiCenterClient is not null);
 
@@ -293,7 +293,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
             }
         };
 
-        var newApi = await _apiCenterClient.PutApi(api, apiName);
+        var newApi = await _apiCenterClient.PutApiAsync(api, apiName);
         if (newApi is not null)
         {
             Logger.LogDebug("API created successfully");
@@ -306,7 +306,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
         return newApi;
     }
 
-    async Task<ApiVersion?> CreateApiVersion(string apiId)
+    async Task<ApiVersion?> CreateApiVersionAsync(string apiId)
     {
         Debug.Assert(_apiCenterClient is not null);
 
@@ -321,7 +321,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
             }
         };
 
-        var newApiVersion = await _apiCenterClient.PutVersion(apiVersion, apiId, "v1-0");
+        var newApiVersion = await _apiCenterClient.PutVersionAsync(apiVersion, apiId, "v1-0");
         if (newApiVersion is not null)
         {
             Logger.LogDebug("API version created successfully");
@@ -334,7 +334,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
         return newApiVersion;
     }
 
-    async Task<ApiDefinition?> CreateApiDefinition(string apiVersionId)
+    async Task<ApiDefinition?> CreateApiDefinitionAsync(string apiVersionId)
     {
         Debug.Assert(_apiCenterClient is not null);
 
@@ -347,7 +347,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
                 Title = "OpenAPI"
             }
         };
-        var newApiDefinition = await _apiCenterClient.PutDefinition(apiDefinition, apiVersionId, "openapi");
+        var newApiDefinition = await _apiCenterClient.PutDefinitionAsync(apiDefinition, apiVersionId, "openapi");
         if (newApiDefinition is not null)
         {
             Logger.LogDebug("API definition created successfully");
@@ -360,7 +360,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
         return newApiDefinition;
     }
 
-    async Task ImportApiDefinition(string apiDefinitionId, string openApiSpecFilePath)
+    async Task ImportApiDefinitionAsync(string apiDefinitionId, string openApiSpecFilePath)
     {
         Debug.Assert(_apiCenterClient is not null);
 
@@ -377,7 +377,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
                 Version = "3.0.1"
             }
         };
-        var res = await _apiCenterClient.PostImportSpecification(apiSpecImport, apiDefinitionId);
+        var res = await _apiCenterClient.PostImportSpecificationAsync(apiSpecImport, apiDefinitionId);
         if (res.IsSuccessStatusCode)
         {
             Logger.LogDebug("API definition imported successfully");

@@ -34,14 +34,14 @@ public class GraphConnectorGuidancePlugin : BaseProxyPlugin
 
     public override string Name => nameof(GraphConnectorGuidancePlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.BeforeRequest += BeforeRequest;
+        PluginEvents.BeforeRequest += BeforeRequestAsync;
     }
 
-    private Task BeforeRequest(object sender, ProxyRequestArgs e)
+    private Task BeforeRequestAsync(object sender, ProxyRequestArgs e)
     {
         if (UrlsToWatch is null ||
           !e.HasRequestUrlMatch(UrlsToWatch) ||

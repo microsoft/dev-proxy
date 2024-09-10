@@ -21,14 +21,14 @@ internal class AuthenticationDelegatingHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var accessToken = await GetAccessToken(cancellationToken);
+        var accessToken = await GetAccessTokenAsync(cancellationToken);
         
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
         return await base.SendAsync(request, cancellationToken);
     }
 
-    public async Task<string?> GetAccessToken(CancellationToken cancellationToken)
+    public async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken)
     {
         if (_expiresOn is null || _expiresOn < DateTimeOffset.UtcNow)
         {

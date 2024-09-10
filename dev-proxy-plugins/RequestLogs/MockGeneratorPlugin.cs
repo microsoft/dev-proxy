@@ -18,21 +18,21 @@ public class MockGeneratorPlugin : BaseReportingPlugin
 
     public override string Name => nameof(MockGeneratorPlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         Logger.LogInformation("Creating mocks from recorded requests...");
 
         if (!e.RequestLogs.Any())
         {
             Logger.LogDebug("No requests to process");
-            return Task.CompletedTask;
+            return;
         }
 
         var methodAndUrlComparer = new MethodAndUrlComparer();
@@ -66,7 +66,7 @@ public class MockGeneratorPlugin : BaseReportingPlugin
                 {
                     StatusCode = response.StatusCode,
                     Headers = newHeaders,
-                    Body = GetResponseBody(request.Context.Session).Result
+                    Body = await GetResponseBodyAsync(request.Context.Session)
                 }
             };
             // skip mock if it's 200 but has no body
@@ -96,8 +96,6 @@ public class MockGeneratorPlugin : BaseReportingPlugin
         Logger.LogInformation("Created mock file {fileName} with {mocksCount} mocks", fileName, mocks.Count);
 
         StoreReport(fileName, e);
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -106,7 +104,7 @@ public class MockGeneratorPlugin : BaseReportingPlugin
     /// </summary>
     /// <param name="session">Request session</param>
     /// <returns>Response body or @filename for binary responses</returns>
-    private async Task<dynamic?> GetResponseBody(SessionEventArgs session)
+    private async Task<dynamic?> GetResponseBodyAsync(SessionEventArgs session)
     {
         Logger.LogDebug("Getting response body...");
 

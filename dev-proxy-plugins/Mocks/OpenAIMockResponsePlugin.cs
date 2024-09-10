@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Threading;
 using Titanium.Web.Proxy.Models;
 
 public class OpenAIMockResponsePlugin : BaseProxyPlugin
@@ -17,23 +18,23 @@ public class OpenAIMockResponsePlugin : BaseProxyPlugin
 
     public override string Name => nameof(OpenAIMockResponsePlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         using var scope = Logger.BeginScope(Name);
 
         Logger.LogInformation("Checking language model availability...");
-        if (!Context.LanguageModelClient.IsEnabled().Result)
+        if (!await Context.LanguageModelClient.IsEnabledAsync())
         {
             Logger.LogError("Local language model is not enabled. The {plugin} will not be used.", Name);
             return;
         }
 
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
     }
 
-    private async Task OnRequest(object sender, ProxyRequestArgs e)
+    private async Task OnRequestAsync(object sender, ProxyRequestArgs e)
     {
         using var scope = Logger.BeginScope(Name);
 
@@ -52,7 +53,7 @@ public class OpenAIMockResponsePlugin : BaseProxyPlugin
 
         if (openAiRequest is OpenAICompletionRequest completionRequest)
         {
-            var ollamaResponse = (await Context.LanguageModelClient.GenerateCompletion(completionRequest.Prompt))
+            var ollamaResponse = (await Context.LanguageModelClient.GenerateCompletionAsync(completionRequest.Prompt))
                 as OllamaLanguageModelCompletionResponse;
             if (ollamaResponse is null)
             {
@@ -70,7 +71,7 @@ public class OpenAIMockResponsePlugin : BaseProxyPlugin
         else if (openAiRequest is OpenAIChatCompletionRequest chatRequest)
         {
             var ollamaResponse = (await Context.LanguageModelClient
-                .GenerateChatCompletion(chatRequest.Messages.ConvertToLanguageModelChatCompletionMessage()))
+                .GenerateChatCompletionAsync(chatRequest.Messages.ConvertToLanguageModelChatCompletionMessage()))
                 as OllamaLanguageModelChatCompletionResponse;
             if (ollamaResponse is null)
             {

@@ -327,7 +327,7 @@ internal class ProxyHost
         var presetGetCommand = new Command("get", "Download the specified preset from the Sample Solution Gallery");
         var presetIdArgument = new Argument<string>("preset-id", "The ID of the preset to download");
         presetGetCommand.AddArgument(presetIdArgument);
-        presetGetCommand.SetHandler(async presetId => await PresetGetCommandHandler.DownloadPreset(presetId, logger), presetIdArgument);
+        presetGetCommand.SetHandler(async presetId => await PresetGetCommandHandler.DownloadPresetAsync(presetId, logger), presetIdArgument);
         presetCommand.Add(presetGetCommand);
 
         command.Add(presetCommand);
@@ -346,7 +346,7 @@ internal class ProxyHost
         var outdatedCommand = new Command("outdated", "Check for new version");
         var outdatedShortOption = new Option<bool>("--short", "Return version only");
         outdatedCommand.AddOption(outdatedShortOption);
-        outdatedCommand.SetHandler(async versionOnly => await OutdatedCommandHandler.CheckVersion(versionOnly, logger), outdatedShortOption);
+        outdatedCommand.SetHandler(async versionOnly => await OutdatedCommandHandler.CheckVersionAsync(versionOnly, logger), outdatedShortOption);
 
         command.Add(outdatedCommand);
 

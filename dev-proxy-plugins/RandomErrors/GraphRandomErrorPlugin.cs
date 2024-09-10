@@ -227,13 +227,13 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         return [_allowedErrors];
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
         PluginEvents.OptionsLoaded += OnOptionsLoaded;
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
@@ -254,7 +254,7 @@ public class GraphRandomErrorPlugin : BaseProxyPlugin
         }
     }
 
-    private Task OnRequest(object? sender, ProxyRequestArgs e)
+    private Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         var state = e.ResponseState;
         if (!e.ResponseState.HasBeenSet

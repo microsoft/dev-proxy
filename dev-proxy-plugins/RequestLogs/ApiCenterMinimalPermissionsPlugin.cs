@@ -57,9 +57,9 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
 
     public override string Name => nameof(ApiCenterMinimalPermissionsPlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
@@ -85,7 +85,7 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
         Logger.LogInformation("Plugin {plugin} connecting to Azure...", Name);
         try
         {
-            _ = _apiCenterClient.GetAccessToken(CancellationToken.None).Result;
+            _ = await _apiCenterClient.GetAccessTokenAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -94,10 +94,10 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
         }
         Logger.LogDebug("Plugin {plugin} auth confirmed...", Name);
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object sender, RecordingArgs e)
     {
         var interceptedRequests = e.RequestLogs
             .Where(l =>
@@ -118,7 +118,7 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
 
         if (_apis is null)
         {
-            _apis = await _apiCenterClient.GetApis();
+            _apis = await _apiCenterClient.GetApisAsync();
         }
 
         if (_apis is null || !_apis.Any())
@@ -131,7 +131,7 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
         // API requests to API definitions, for permissions lookup
         if (_apiDefinitionsByUrl is null)
         {
-            _apiDefinitionsByUrl = await _apis.GetApiDefinitionsByUrl(_apiCenterClient, Logger);
+            _apiDefinitionsByUrl = await _apis.GetApiDefinitionsByUrlAsync(_apiCenterClient, Logger);
         }
 
         var (requestsByApiDefinition, unmatchedApicRequests) = GetRequestsByApiDefinition(interceptedRequests, _apiDefinitionsByUrl);

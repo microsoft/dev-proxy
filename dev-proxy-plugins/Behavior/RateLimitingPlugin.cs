@@ -128,9 +128,9 @@ public class RateLimitingPlugin : BaseProxyPlugin
         }
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
         if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Custom)
@@ -141,12 +141,12 @@ public class RateLimitingPlugin : BaseProxyPlugin
             _loader.InitResponsesWatcher();
         }
 
-        PluginEvents.BeforeRequest += OnRequest;
-        PluginEvents.BeforeResponse += OnResponse;
+        PluginEvents.BeforeRequest += OnRequestAsync;
+        PluginEvents.BeforeResponse += OnResponseAsync;
     }
 
     // add rate limiting headers to the response from the API
-    private Task OnResponse(object? sender, ProxyResponseArgs e)
+    private Task OnResponseAsync(object? sender, ProxyResponseArgs e)
     {
         if (UrlsToWatch is null ||
             !e.HasRequestUrlMatch(UrlsToWatch))
@@ -158,7 +158,7 @@ public class RateLimitingPlugin : BaseProxyPlugin
         return Task.CompletedTask;
     }
 
-    private Task OnRequest(object? sender, ProxyRequestArgs e)
+    private Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         var session = e.Session;
         var state = e.ResponseState;

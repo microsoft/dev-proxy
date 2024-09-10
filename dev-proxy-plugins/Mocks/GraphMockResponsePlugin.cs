@@ -20,7 +20,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
 
     public override string Name => nameof(GraphMockResponsePlugin);
 
-    protected override async Task OnRequest(object? sender, ProxyRequestArgs e)
+    protected override async Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (_configuration.NoMocks)
         {
@@ -31,14 +31,14 @@ public class GraphMockResponsePlugin : MockResponsePlugin
         if (!ProxyUtils.IsGraphBatchUrl(e.Session.HttpClient.Request.RequestUri))
         {
             // not a batch request, use the basic mock functionality
-            await base.OnRequest(sender, e);
+            await base.OnRequestAsync(sender, e);
             return;
         }
 
         var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(e.Session.HttpClient.Request.BodyString, ProxyUtils.JsonSerializerOptions);
         if (batch == null)
         {
-            await base.OnRequest(sender, e);
+            await base.OnRequestAsync(sender, e);
             return;
         }
 

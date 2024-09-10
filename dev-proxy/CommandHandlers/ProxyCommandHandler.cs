@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.VisualStudio.Threading;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 
@@ -29,14 +30,17 @@ public class ProxyCommandHandler : ICommandHandler
 
     public int Invoke(InvocationContext context)
     {
-        return InvokeAsync(context).GetAwaiter().GetResult();
+        var joinableTaskContext = new JoinableTaskContext();
+        var joinableTaskFactory = new JoinableTaskFactory(joinableTaskContext);
+        
+        return joinableTaskFactory.Run(async () => await InvokeAsync(context));
     }
 
     public async Task<int> InvokeAsync(InvocationContext context)
     {
         ParseOptions(context);
         _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context, _options));
-        await CheckForNewVersion();
+        await CheckForNewVersionAsync();
 
         try
         {
@@ -70,7 +74,7 @@ public class ProxyCommandHandler : ICommandHandler
             app.UseSwagger();
             app.UseSwaggerUI();
             app.MapControllers();
-            app.Run();
+            await app.RunAsync();
 
             return 0;
         }
@@ -142,9 +146,9 @@ public class ProxyCommandHandler : ICommandHandler
         }
     }
 
-    private async Task CheckForNewVersion()
+    private async Task CheckForNewVersionAsync()
     {
-        var newReleaseInfo = await UpdateNotification.CheckForNewVersion(Configuration.NewVersionNotification);
+        var newReleaseInfo = await UpdateNotification.CheckForNewVersionAsync(Configuration.NewVersionNotification);
         if (newReleaseInfo != null)
         {
             _logger.LogError(

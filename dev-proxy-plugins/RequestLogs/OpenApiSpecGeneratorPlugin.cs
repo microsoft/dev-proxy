@@ -289,16 +289,16 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
     private OpenApiSpecGeneratorPluginConfiguration _configuration = new();
     public static readonly string GeneratedOpenApiSpecsKey = "GeneratedOpenApiSpecs";
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         Logger.LogInformation("Creating OpenAPI spec from recorded requests...");
 
@@ -334,12 +334,12 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
                 var pathItem = GetOpenApiPathItem(request.Context.Session);
                 var parametrizedPath = ParametrizePath(pathItem, request.Context.Session.HttpClient.Request.RequestUri);
                 var operationInfo = pathItem.Operations.First();
-                operationInfo.Value.OperationId = await GetOperationId(
+                operationInfo.Value.OperationId = await GetOperationIdAsync(
                     operationInfo.Key.ToString(),
                     request.Context.Session.HttpClient.Request.RequestUri.GetLeftPart(UriPartial.Authority),
                     parametrizedPath
                 );
-                operationInfo.Value.Description = await GetOperationDescription(
+                operationInfo.Value.Description = await GetOperationDescriptionAsync(
                     operationInfo.Key.ToString(),
                     request.Context.Session.HttpClient.Request.RequestUri.GetLeftPart(UriPartial.Authority),
                     parametrizedPath
@@ -448,22 +448,22 @@ public class OpenApiSpecGeneratorPlugin : BaseReportingPlugin
         return "item";
     }
 
-    private async Task<string> GetOperationId(string method, string serverUrl, string parametrizedPath)
+    private async Task<string> GetOperationIdAsync(string method, string serverUrl, string parametrizedPath)
     {
         var prompt = $"For the specified request, generate an operation ID, compatible with an OpenAPI spec. Respond with just the ID in plain-text format. For example, for request such as `GET https://api.contoso.com/books/{{books-id}}` you return `getBookById`. For a request like `GET https://api.contoso.com/books/{{books-id}}/authors` you return `getAuthorsForBookById`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
         ILanguageModelCompletionResponse? id = null;
-        if (await Context.LanguageModelClient.IsEnabled()) {
-            id = await Context.LanguageModelClient.GenerateCompletion(prompt);
+        if (await Context.LanguageModelClient.IsEnabledAsync()) {
+            id = await Context.LanguageModelClient.GenerateCompletionAsync(prompt);
         }
         return id?.Response ?? $"{method}{parametrizedPath.Replace('/', '.')}";
     }
 
-    private async Task<string> GetOperationDescription(string method, string serverUrl, string parametrizedPath)
+    private async Task<string> GetOperationDescriptionAsync(string method, string serverUrl, string parametrizedPath)
     {
         var prompt = $"You're an expert in OpenAPI. You help developers build great OpenAPI specs for use with LLMs. For the specified request, generate a one-sentence description. Respond with just the description. For example, for a request such as `GET https://api.contoso.com/books/{{books-id}}` you return `Get a book by ID`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
         ILanguageModelCompletionResponse? description = null;
-        if (await Context.LanguageModelClient.IsEnabled()) {
-            description = await Context.LanguageModelClient.GenerateCompletion(prompt);
+        if (await Context.LanguageModelClient.IsEnabledAsync()) {
+            description = await Context.LanguageModelClient.GenerateCompletionAsync(prompt);
         }
         return description?.Response ?? $"{method} {parametrizedPath}";
     }
