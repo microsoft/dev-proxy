@@ -12,12 +12,8 @@ using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.DevProxy.Plugins.Mocks;
 
-public class GraphMockResponsePlugin : MockResponsePlugin
+public class GraphMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : MockResponsePlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    public GraphMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
-
     public override string Name => nameof(GraphMockResponsePlugin);
 
     protected override async Task OnRequestAsync(object? sender, ProxyRequestArgs e)
@@ -144,7 +140,7 @@ public class GraphMockResponsePlugin : MockResponsePlugin
         var batchHeaders = ProxyUtils.BuildGraphResponseHeaders(e.Session.HttpClient.Request, batchRequestId, batchRequestDate);
         var batchResponse = new GraphBatchResponsePayload
         {
-            Responses = responses.ToArray()
+            Responses = [.. responses]
         };
         var batchResponseString = JsonSerializer.Serialize(batchResponse, ProxyUtils.JsonSerializerOptions);
         ProcessMockResponse(ref batchResponseString, batchHeaders, e, null);

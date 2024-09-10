@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Net.Http.Json;
-using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
+using Microsoft.DevProxy.Plugins.MinimalPermissions;
 using Microsoft.Extensions.Logging;
 using Titanium.Web.Proxy.Http;
 

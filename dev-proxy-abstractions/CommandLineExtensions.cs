@@ -12,10 +12,8 @@ public static class CommandLineExtensions
     {
         // we need to remove the leading - because CommandLine stores the option
         // name without them
-        var option = options
-            .FirstOrDefault(o => o.Name == optionName.TrimStart('-'))
-            as Option<T>;
-        if (option is null)
+        if (options
+            .FirstOrDefault(o => o.Name == optionName.TrimStart('-')) is not Option<T> option)
         {
             throw new InvalidOperationException($"Could not find option with name {optionName} and value type {typeof(T).Name}");
         }

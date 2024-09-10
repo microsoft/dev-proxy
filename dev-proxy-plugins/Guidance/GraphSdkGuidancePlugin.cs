@@ -8,12 +8,8 @@ using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
-public class GraphSdkGuidancePlugin : BaseProxyPlugin
+public class GraphSdkGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    public GraphSdkGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
-
     public override string Name => nameof(GraphSdkGuidancePlugin);
 
     public override async Task RegisterAsync()
@@ -30,7 +26,7 @@ public class GraphSdkGuidancePlugin : BaseProxyPlugin
         if (e.Session.HttpClient.Response.StatusCode >= 400 &&
             UrlsToWatch is not null &&
             e.HasRequestUrlMatch(UrlsToWatch) &&
-            !String.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
             WarnNoSdk(request))
         {
             Logger.LogRequest(MessageUtils.BuildUseSdkForErrorsMessage(request), MessageType.Tip, new LoggingContext(e.Session));

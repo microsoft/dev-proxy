@@ -5,17 +5,15 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.DevProxy.Abstractions.LanguageModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualStudio.Threading;
 using Titanium.Web.Proxy.Models;
 
-public class OpenAIMockResponsePlugin : BaseProxyPlugin
-{
-    public OpenAIMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
+namespace Microsoft.DevProxy.Plugins.Mocks;
 
+public class OpenAIMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
+{
     public override string Name => nameof(OpenAIMockResponsePlugin);
 
     public override async Task RegisterAsync()
@@ -53,9 +51,7 @@ public class OpenAIMockResponsePlugin : BaseProxyPlugin
 
         if (openAiRequest is OpenAICompletionRequest completionRequest)
         {
-            var ollamaResponse = (await Context.LanguageModelClient.GenerateCompletionAsync(completionRequest.Prompt))
-                as OllamaLanguageModelCompletionResponse;
-            if (ollamaResponse is null)
+            if ((await Context.LanguageModelClient.GenerateCompletionAsync(completionRequest.Prompt)) is not OllamaLanguageModelCompletionResponse ollamaResponse)
             {
                 return;
             }
@@ -70,10 +66,8 @@ public class OpenAIMockResponsePlugin : BaseProxyPlugin
         }
         else if (openAiRequest is OpenAIChatCompletionRequest chatRequest)
         {
-            var ollamaResponse = (await Context.LanguageModelClient
-                .GenerateChatCompletionAsync(chatRequest.Messages.ConvertToLanguageModelChatCompletionMessage()))
-                as OllamaLanguageModelChatCompletionResponse;
-            if (ollamaResponse is null)
+            if ((await Context.LanguageModelClient
+                .GenerateChatCompletionAsync(chatRequest.Messages.ConvertToLanguageModelChatCompletionMessage())) is not OllamaLanguageModelChatCompletionResponse ollamaResponse)
             {
                 return;
             }

@@ -10,7 +10,7 @@ namespace Microsoft.DevProxy.Abstractions;
 
 public static class MSGraphDbUtils
 {
-    private static readonly Dictionary<string, OpenApiDocument> _openApiDocuments = new();
+    private static readonly Dictionary<string, OpenApiDocument> _openApiDocuments = [];
     private static readonly string[] graphVersions = ["v1.0", "beta"];
 
     private static string GetGraphOpenApiYamlFileName(string version) => $"graph-{version.Replace(".", "_")}-openapi.yaml";
@@ -171,7 +171,6 @@ public static class MSGraphDbUtils
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error updating OpenAPI files");
-                
             }
         }
     }

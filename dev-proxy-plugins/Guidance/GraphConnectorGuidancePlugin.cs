@@ -26,12 +26,8 @@ class ExternalConnectionSchemaProperty
     public string? Type { get; set; }
 }
 
-public class GraphConnectorGuidancePlugin : BaseProxyPlugin
+public class GraphConnectorGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    public GraphConnectorGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
-
     public override string Name => nameof(GraphConnectorGuidancePlugin);
 
     public override async Task RegisterAsync()
@@ -45,7 +41,7 @@ public class GraphConnectorGuidancePlugin : BaseProxyPlugin
     {
         if (UrlsToWatch is null ||
           !e.HasRequestUrlMatch(UrlsToWatch) ||
-          !String.Equals(e.Session.HttpClient.Request.Method, "PATCH", StringComparison.OrdinalIgnoreCase))
+          !string.Equals(e.Session.HttpClient.Request.Method, "PATCH", StringComparison.OrdinalIgnoreCase))
         {
             return Task.CompletedTask;
         }

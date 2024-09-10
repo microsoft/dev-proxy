@@ -19,13 +19,13 @@ class ParsedSample
 
 public static class ProxyUtils
 {
-    private static readonly Regex itemPathRegex = new Regex(@"(?:\/)[\w]+:[\w\/.]+(:(?=\/)|$)");
-    private static readonly Regex sanitizedItemPathRegex = new Regex("^[a-z]+:<value>$", RegexOptions.IgnoreCase);
-    private static readonly Regex entityNameRegex = new Regex("^((microsoft.graph(.[a-z]+)+)|[a-z]+)$", RegexOptions.IgnoreCase);
-    private static readonly Regex allAlphaRegex = new Regex("^[a-z]+$", RegexOptions.IgnoreCase);
-    private static readonly Regex deprecationRegex = new Regex("^[a-z]+_v2$", RegexOptions.IgnoreCase);
-    private static readonly Regex functionCallRegex = new Regex(@"^[a-z]+\(.*\)$", RegexOptions.IgnoreCase);
-    private static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
+    private static readonly Regex itemPathRegex = new(@"(?:\/)[\w]+:[\w\/.]+(:(?=\/)|$)");
+    private static readonly Regex sanitizedItemPathRegex = new("^[a-z]+:<value>$", RegexOptions.IgnoreCase);
+    private static readonly Regex entityNameRegex = new("^((microsoft.graph(.[a-z]+)+)|[a-z]+)$", RegexOptions.IgnoreCase);
+    private static readonly Regex allAlphaRegex = new("^[a-z]+$", RegexOptions.IgnoreCase);
+    private static readonly Regex deprecationRegex = new("^[a-z]+_v2$", RegexOptions.IgnoreCase);
+    private static readonly Regex functionCallRegex = new(@"^[a-z]+\(.*\)$", RegexOptions.IgnoreCase);
+    private static readonly JsonSerializerOptions jsonSerializerOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -82,7 +82,7 @@ public static class ProxyUtils
     {
         if (!IsGraphRequest(request))
         {
-            return new List<MockResponseHeader>();
+            return [];
         }
 
         var headers = new List<MockResponseHeader>
@@ -120,15 +120,15 @@ public static class ProxyUtils
         var uri = new Uri(absoluteUrl);
 
         var parsedSample = ParseSampleUrl(absoluteUrl);
-        var queryString = !String.IsNullOrEmpty(parsedSample.Search) ? $"?{SanitizeQueryParameters(parsedSample.Search)}" : "";
+        var queryString = !string.IsNullOrEmpty(parsedSample.Search) ? $"?{SanitizeQueryParameters(parsedSample.Search)}" : "";
 
         // Sanitize item path specified in query url
         var resourceUrl = parsedSample.RequestUrl;
-        if (!String.IsNullOrEmpty(resourceUrl))
+        if (!string.IsNullOrEmpty(resourceUrl))
         {
             resourceUrl = itemPathRegex.Replace(parsedSample.RequestUrl, match =>
             {
-                return $"{match.Value.Substring(0, match.Value.IndexOf(':'))}:<value>";
+                return $"{match.Value[..match.Value.IndexOf(':')]}:<value>";
             });
             // Split requestUrl into segments that can be sanitized individually
             var urlSegments = resourceUrl.Split('/');
@@ -165,12 +165,12 @@ public static class ProxyUtils
         // Check if segment is in this form: users('<some-id>|<UPN>') and transform to users(<value>)
         if (IsFunctionCall(segment))
         {
-            var openingBracketIndex = segment.IndexOf("(");
+            var openingBracketIndex = segment.IndexOf('(');
             var textWithinBrackets = segment.Substring(
                 openingBracketIndex + 1,
                 segment.Length - 2
             );
-            var sanitizedText = String.Join(',', textWithinBrackets
+            var sanitizedText = string.Join(',', textWithinBrackets
                 .Split(',')
                 .Select(text =>
                 {
@@ -183,7 +183,7 @@ public static class ProxyUtils
                     return "<value>";
                 }));
 
-            return $"{segment.Substring(0, openingBracketIndex)}({sanitizedText})";
+            return $"{segment[..openingBracketIndex]}({sanitizedText})";
         }
 
         if (IsPlaceHolderSegment(segment))
@@ -203,9 +203,9 @@ public static class ProxyUtils
     {
         // remove leading ? from query string and decode
         queryString = Uri.UnescapeDataString(
-            new Regex(@"\+").Replace(queryString.Substring(1), " ")
+            new Regex(@"\+").Replace(queryString[1..], " ")
         );
-        return String.Join('&', queryString.Split('&').Select(s => s));
+        return string.Join('&', queryString.Split('&').Select(s => s));
     }
 
     private static bool IsAllAlpha(string value) => allAlphaRegex.IsMatch(value);

@@ -5,7 +5,9 @@ using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
 
 // CDP = Chrome DevTools Protocol
+#pragma warning disable IDE0130
 namespace Microsoft.DevProxy.Plugins.Inspection.CDP;
+#pragma warning restore IDE0130
 
 public class RequestWillBeSentExtraInfoMessage : Message<RequestWillBeSentExtraInfoParams>
 {

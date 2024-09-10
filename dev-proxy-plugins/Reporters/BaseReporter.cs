@@ -7,12 +7,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Reporters;
 
-public abstract class BaseReporter : BaseProxyPlugin
+public abstract class BaseReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    protected BaseReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
-
     public virtual string FileExtension => throw new NotImplementedException();
 
     public override async Task RegisterAsync()
@@ -26,9 +22,9 @@ public abstract class BaseReporter : BaseProxyPlugin
 
     protected virtual Task AfterRecordingStopAsync(object sender, RecordingArgs e)
     {
-        if (!e.GlobalData.ContainsKey(ProxyUtils.ReportsKey) ||
-            e.GlobalData[ProxyUtils.ReportsKey] is not Dictionary<string, object> reports ||
-            !reports.Any())
+        if (!e.GlobalData.TryGetValue(ProxyUtils.ReportsKey, out object? value) ||
+            value is not Dictionary<string, object> reports ||
+            reports.Count == 0)
         {
             Logger.LogDebug("No reports found");
             return Task.CompletedTask;

@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
+using Microsoft.DevProxy.Plugins.ApiCenter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
@@ -44,16 +44,12 @@ internal class ApiCenterMinimalPermissionsPluginConfiguration
     public string WorkspaceName { get; set; } = "default";
 }
 
-public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
+public class ApiCenterMinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    private ApiCenterProductionVersionPluginConfiguration _configuration = new();
+    private readonly ApiCenterProductionVersionPluginConfiguration _configuration = new();
     private ApiCenterClient? _apiCenterClient;
     private Api[]? _apis;
     private Dictionary<string, ApiDefinition>? _apiDefinitionsByUrl;
-
-    public ApiCenterMinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
 
     public override string Name => nameof(ApiCenterMinimalPermissionsPlugin);
 
@@ -116,12 +112,8 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
 
         Debug.Assert(_apiCenterClient is not null);
 
-        if (_apis is null)
-        {
-            _apis = await _apiCenterClient.GetApisAsync();
-        }
-
-        if (_apis is null || !_apis.Any())
+        _apis ??= await _apiCenterClient.GetApisAsync();
+        if (_apis is null || _apis.Length == 0)
         {
             Logger.LogInformation("No APIs found in API Center");
             return;
@@ -129,10 +121,7 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
 
         // get all API definitions by URL so that we can easily match
         // API requests to API definitions, for permissions lookup
-        if (_apiDefinitionsByUrl is null)
-        {
-            _apiDefinitionsByUrl = await _apis.GetApiDefinitionsByUrlAsync(_apiCenterClient, Logger);
-        }
+        _apiDefinitionsByUrl ??= await _apis.GetApiDefinitionsByUrlAsync(_apiCenterClient, Logger);
 
         var (requestsByApiDefinition, unmatchedApicRequests) = GetRequestsByApiDefinition(interceptedRequests, _apiDefinitionsByUrl);
 
@@ -203,7 +192,7 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
                 );
             }
 
-            if (errorsForApi.Any())
+            if (errorsForApi.Count != 0)
             {
                 Logger.LogWarning(
                     "Errors for API {apiName}:{newLine}- {errors}",
@@ -216,9 +205,9 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
 
         var report = new ApiCenterMinimalPermissionsPluginReport()
         {
-            Results = results.ToArray(),
-            UnmatchedRequests = unmatchedRequests.ToArray(),
-            Errors = errors.ToArray()
+            Results = [.. results],
+            UnmatchedRequests = [.. unmatchedRequests],
+            Errors = [.. errors]
         };
 
         StoreReport(report, e);
@@ -248,7 +237,7 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
             var (method, url) = (methodAndUrlChunks[0].ToUpper(), methodAndUrlChunks[1]);
 
             var scopesFromTheToken = GetScopesFromToken(request.Context?.Session.HttpClient.Request.Headers.First(h => h.Name.Equals("authorization", StringComparison.OrdinalIgnoreCase)).Value);
-            if (scopesFromTheToken.Any())
+            if (scopesFromTheToken.Length != 0)
             {
                 tokenPermissions.AddRange(scopesFromTheToken);
             }
@@ -294,7 +283,7 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
             }
 
             var scopes = operation.GetEffectiveScopes(apiDefinition.Definition!, Logger);
-            if (scopes.Any())
+            if (scopes.Length != 0)
             {
                 operationsAndScopes[$"{method} {pathItem.Value.Key}"] = scopes;
             }
@@ -364,17 +353,19 @@ public class ApiCenterMinimalPermissionsPlugin : BaseReportingPlugin
                 continue;
             }
 
-            if (!requestsByApiDefinition.ContainsKey(apiDefinitionsByUrl[matchingKey]))
+            if (!requestsByApiDefinition.TryGetValue(apiDefinitionsByUrl[matchingKey], out List<RequestLog>? value))
             {
-                requestsByApiDefinition[apiDefinitionsByUrl[matchingKey]] = new();
+                value = [];
+                requestsByApiDefinition[apiDefinitionsByUrl[matchingKey]] = value;
             }
-            requestsByApiDefinition[apiDefinitionsByUrl[matchingKey]].Add(request);
+
+            value.Add(request);
         }
 
         return (requestsByApiDefinition, unmatchedRequests);
     }
 
-    (string[] minimalScopes, string[] unmatchedOperations) GetMinimalScopes(string[] requests, Dictionary<string, string[]> operationsAndScopes)
+    static (string[] minimalScopes, string[] unmatchedOperations) GetMinimalScopes(string[] requests, Dictionary<string, string[]> operationsAndScopes)
     {
         var unmatchedOperations = requests
             .Where(o => !operationsAndScopes.Keys.Contains(o, StringComparer.OrdinalIgnoreCase))

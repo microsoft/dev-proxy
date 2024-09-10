@@ -7,14 +7,9 @@ namespace Microsoft.DevProxy.ApiControllers;
 
 [ApiController]
 [Route("[controller]")]
-public class ProxyController : ControllerBase
+public class ProxyController(IProxyState proxyState) : ControllerBase
 {
-    private readonly IProxyState _proxyState;
-
-    public ProxyController(IProxyState proxyState)
-    {
-        _proxyState = proxyState;
-    }
+    private readonly IProxyState _proxyState = proxyState;
 
     [HttpGet]
     public ProxyInfo Get() => ProxyInfo.From(_proxyState);

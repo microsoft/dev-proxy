@@ -9,14 +9,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
-public class ODataPagingGuidancePlugin : BaseProxyPlugin
+public class ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(ODataPagingGuidancePlugin);
-    private IList<string> pagingUrls = new List<string>();
-
-    public ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
+    private readonly IList<string> pagingUrls = [];
 
     public override async Task RegisterAsync()
     {
@@ -77,7 +73,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
             nextLink = GetNextLinkFromXml(bodyString);
         }
 
-        if (!String.IsNullOrEmpty(nextLink))
+        if (!string.IsNullOrEmpty(nextLink))
         {
             pagingUrls.Add(nextLink);
         }
@@ -130,9 +126,9 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
       uri.Query.Contains("$skiptoken") ||
       uri.Query.Contains("%24skiptoken");
 
-    private static string[] BuildIncorrectPagingUrlMessage() => new[] {
-    "This paging URL seems to be created manually and is not aligned with paging information from the API.",
-    "This could lead to incorrect data in your app.",
-    "For more information about paging see https://aka.ms/devproxy/guidance/paging"
-  };
+    private static string[] BuildIncorrectPagingUrlMessage() => [
+        "This paging URL seems to be created manually and is not aligned with paging information from the API.",
+        "This could lead to incorrect data in your app.",
+        "For more information about paging see https://aka.ms/devproxy/guidance/paging"
+    ];
 }

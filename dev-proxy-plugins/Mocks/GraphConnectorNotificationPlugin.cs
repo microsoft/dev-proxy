@@ -19,14 +19,10 @@ public class GraphConnectorNotificationConfiguration : MockRequestConfiguration
     public string? Tenant { get; set; }
 }
 
-public class GraphConnectorNotificationPlugin : MockRequestPlugin
+public class GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : MockRequestPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     private string? _ticket = null;
-    private GraphConnectorNotificationConfiguration _graphConnectorConfiguration = new();
-
-    public GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
+    private readonly GraphConnectorNotificationConfiguration _graphConnectorConfiguration = new();
 
     public override string Name => nameof(GraphConnectorNotificationPlugin);
 

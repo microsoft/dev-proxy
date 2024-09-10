@@ -6,14 +6,9 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Microsoft.DevProxy.Logging;
 
-public class RequestLogger : ILogger
+public class RequestLogger(PluginEvents pluginEvents) : ILogger
 {
-    private readonly PluginEvents _pluginEvents;
-
-    public RequestLogger(PluginEvents pluginEvents)
-    {
-        _pluginEvents = pluginEvents;
-    }
+    private readonly PluginEvents _pluginEvents = pluginEvents;
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default;
 

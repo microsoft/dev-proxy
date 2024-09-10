@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
+using Microsoft.DevProxy.Plugins.ApiCenter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
@@ -38,16 +38,12 @@ internal class ApiCenterOnboardingPluginConfiguration
     public bool CreateApicEntryForNewApis { get; set; } = true;
 }
 
-public class ApiCenterOnboardingPlugin : BaseReportingPlugin
+public class ApiCenterOnboardingPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    private ApiCenterOnboardingPluginConfiguration _configuration = new();
+    private readonly ApiCenterOnboardingPluginConfiguration _configuration = new();
     private ApiCenterClient? _apiCenterClient;
     private Api[]? _apis;
     private Dictionary<string, ApiDefinition>? _apiDefinitionsByUrl;
-
-    public ApiCenterOnboardingPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
 
     public override string Name => nameof(ApiCenterOnboardingPlugin);
 
@@ -103,21 +99,15 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
         Debug.Assert(_apiCenterClient is not null);
 
-        if (_apis is null)
-        {
-            _apis = await _apiCenterClient.GetApisAsync();
-        }
+        _apis ??= await _apiCenterClient.GetApisAsync();
 
-        if (_apis == null || !_apis.Any())
+        if (_apis == null || _apis.Length == 0)
         {
             Logger.LogInformation("No APIs found in API Center");
             return;
         }
 
-        if (_apiDefinitionsByUrl is null)
-        {
-            _apiDefinitionsByUrl = await _apis.GetApiDefinitionsByUrlAsync(_apiCenterClient, Logger);
-        }
+        _apiDefinitionsByUrl ??= await _apis.GetApiDefinitionsByUrlAsync(_apiCenterClient, Logger);
 
         var newApis = new List<(string method, string url)>();
         var interceptedRequests = e.RequestLogs
@@ -182,13 +172,13 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
             });
         }
 
-        if (!newApis.Any())
+        if (newApis.Count == 0)
         {
             Logger.LogInformation("No new APIs found");
             StoreReport(new ApiCenterOnboardingPluginReport
             {
                 ExistingApis = existingApis.ToArray(),
-                NewApis = Array.Empty<ApiCenterOnboardingPluginReportNewApiInfo>()
+                NewApis = []
             }, e);
             return;
         }
@@ -198,7 +188,7 @@ public class ApiCenterOnboardingPlugin : BaseReportingPlugin
 
         StoreReport(new ApiCenterOnboardingPluginReport
         {
-            ExistingApis = existingApis.ToArray(),
+            ExistingApis = [.. existingApis],
             NewApis = newApis.Select(a => new ApiCenterOnboardingPluginReportNewApiInfo
             {
                 Method = a.method,

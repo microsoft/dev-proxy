@@ -6,7 +6,7 @@ using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Readers;
 
-namespace Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
+namespace Microsoft.DevProxy.Plugins.ApiCenter;
 
 public static class ModelExtensions
 {
@@ -52,7 +52,7 @@ public static class ModelExtensions
     internal static ApiVersion? GetVersion(this Api api, RequestLog request, string requestUrl, ILogger logger)
     {
         if (api.Versions is null ||
-            !api.Versions.Any())
+            api.Versions.Length == 0)
         {
             return null;
         }
@@ -104,7 +104,7 @@ public static class ModelExtensions
     internal static IEnumerable<string> GetUrls(this Api api)
     {
         if (api.Versions is null ||
-            !api.Versions.Any())
+            api.Versions.Length == 0)
         {
             return [];
         }
@@ -187,7 +187,7 @@ public static class ModelExtensions
                 Debug.Assert(deployment.Properties?.Server is not null);
                 Debug.Assert(deployment.Properties?.DefinitionId is not null);
 
-                if (!deployment.Properties.Server.RuntimeUri.Any())
+                if (deployment.Properties.Server.RuntimeUri.Length == 0)
                 {
                     logger.LogDebug("No runtime URIs found for deployment {deploymentName}", deployment.Name);
                     continue;

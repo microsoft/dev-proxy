@@ -11,7 +11,7 @@ using Azure.Identity;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
+namespace Microsoft.DevProxy.Plugins.ApiCenter;
 
 internal class ApiCenterClientConfiguration
 {
@@ -37,10 +37,7 @@ internal class ApiCenterClient
 
     internal ApiCenterClient(ApiCenterClientConfiguration configuration, ILogger logger)
     {
-        if (configuration is null)
-        {
-            throw new ArgumentNullException(nameof(configuration));
-        }
+        ArgumentNullException.ThrowIfNull(configuration);
 
         if (string.IsNullOrEmpty(configuration.SubscriptionId))
         {

@@ -10,13 +10,13 @@ namespace Microsoft.DevProxy.CommandHandlers;
 
 class ProxyPresetInfo
 {
-    public IList<string> ConfigFiles { get; set; } = new List<string>();
-    public IList<string> MockFiles { get; set; } = new List<string>();
+    public IList<string> ConfigFiles { get; set; } = [];
+    public IList<string> MockFiles { get; set; } = [];
 }
 
 class GitHubTreeResponse
 {
-    public GitHubTreeItem[] Tree { get; set; } = Array.Empty<GitHubTreeItem>();
+    public GitHubTreeItem[] Tree { get; set; } = [];
     public bool Truncated { get; set; }
 }
 

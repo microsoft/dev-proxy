@@ -34,18 +34,13 @@ public class DevToolsPluginConfiguration
     public string PreferredBrowserPath { get; set; } = string.Empty;
 }
 
-public class DevToolsPlugin : BaseProxyPlugin
+public class DevToolsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    private string socketUrl = string.Empty;
     private WebSocketServer? webSocket;
-    private Dictionary<string, GetResponseBodyResultParams> responseBody = new();
+    private readonly Dictionary<string, GetResponseBodyResultParams> responseBody = [];
 
     public override string Name => nameof(DevToolsPlugin);
     private readonly DevToolsPluginConfiguration _configuration = new();
-
-    public DevToolsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
 
     public override async Task RegisterAsync()
     {
@@ -200,7 +195,7 @@ public class DevToolsPlugin : BaseProxyPlugin
             {
                 var requestId = message.Params?.RequestId;
                 if (requestId is null ||
-                    !responseBody.ContainsKey(requestId) ||
+                    !responseBody.TryGetValue(requestId, out GetResponseBodyResultParams? value) ||
                     // should never happen because the message is sent from devtools
                     // and Id is required on all socket messages but theoretically
                     // it is possible
@@ -214,8 +209,8 @@ public class DevToolsPlugin : BaseProxyPlugin
                     Id = (int)message.Id,
                     Result = new()
                     {
-                        Body = responseBody[requestId].Body,
-                        Base64Encoded = responseBody[requestId].Base64Encoded
+                        Body = value.Body,
+                        Base64Encoded = value.Base64Encoded
                     }
                 };
                 _ = webSocket.SendAsync(result);
@@ -224,7 +219,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         catch { }
     }
 
-    private string GetRequestId(Titanium.Web.Proxy.Http.Request? request)
+    private static string GetRequestId(Titanium.Web.Proxy.Http.Request? request)
     {
         if (request is null)
         {
@@ -276,7 +271,7 @@ public class DevToolsPlugin : BaseProxyPlugin
             {
                 RequestId = requestId,
                 // must be included in the message or the message will be rejected
-                AssociatedCookies = new object[0],
+                AssociatedCookies = [],
                 Headers = headers
             }
         };
@@ -343,7 +338,7 @@ public class DevToolsPlugin : BaseProxyPlugin
         await webSocket.SendAsync(loadingFinishedMessage);
     }
 
-    private bool IsTextResponse(string? contentType)
+    private static bool IsTextResponse(string? contentType)
     {
         var isTextResponse = false;
 

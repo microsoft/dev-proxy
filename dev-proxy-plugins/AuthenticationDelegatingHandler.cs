@@ -6,18 +6,12 @@ using Azure.Core;
 
 namespace Microsoft.DevProxy.Plugins;
 
-internal class AuthenticationDelegatingHandler : DelegatingHandler
+internal class AuthenticationDelegatingHandler(TokenCredential credential, string[] scopes) : DelegatingHandler
 {
-    private readonly TokenCredential _credential;
-    private readonly string[] _scopes;
+    private readonly TokenCredential _credential = credential;
+    private readonly string[] _scopes = scopes;
     private DateTimeOffset? _expiresOn;
     private string? _accessToken;
-
-    public AuthenticationDelegatingHandler(TokenCredential credential, string[] scopes)
-    {
-        _credential = credential;
-        _scopes = scopes;
-    }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {

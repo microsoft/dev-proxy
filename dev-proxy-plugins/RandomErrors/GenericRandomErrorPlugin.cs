@@ -24,10 +24,10 @@ public class GenericRandomErrorConfiguration
 {
     public string? ErrorsFile { get; set; }
     public int RetryAfterInSeconds { get; set; } = 5;
-    public IEnumerable<GenericErrorResponse> Errors { get; set; } = Array.Empty<GenericErrorResponse>();
+    public IEnumerable<GenericErrorResponse> Errors { get; set; } = [];
 }
 
-public class GenericRandomErrorPlugin : BaseProxyPlugin
+public class GenericRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     private readonly GenericRandomErrorConfiguration _configuration = new();
     private GenericErrorResponsesLoader? _loader = null;
@@ -36,13 +36,8 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
 
     private readonly Random _random = new();
 
-    public GenericRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-        _random = new Random();
-    }
-
     // uses config to determine if a request should be failed
-    private GenericRandomErrorFailMode ShouldFail(ProxyRequestArgs e) => _random.Next(1, 100) <= Context.Configuration.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
+    private GenericRandomErrorFailMode ShouldFail() => _random.Next(1, 100) <= Context.Configuration.Rate ? GenericRandomErrorFailMode.Random : GenericRandomErrorFailMode.PassThru;
 
     private void FailResponse(ProxyRequestArgs e)
     {
@@ -98,7 +93,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
         return errorResponse;
     }
 
-    private bool HasMatchingBody(GenericErrorResponse errorResponse, Request request)
+    private static bool HasMatchingBody(GenericErrorResponse errorResponse, Request request)
     {
         if (request.Method == "GET")
         {
@@ -176,11 +171,11 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
         }
         e.ResponseState.HasBeenSet = true;
-        Logger.LogRequest([$"{error.StatusCode} {statusCode.ToString()}"], MessageType.Chaos, new LoggingContext(e.Session));
+        Logger.LogRequest([$"{error.StatusCode} {statusCode}"], MessageType.Chaos, new LoggingContext(e.Session));
     }
 
     // throttle requests per host
-    private string BuildThrottleKey(Request r) => r.RequestUri.Host;
+    private static string BuildThrottleKey(Request r) => r.RequestUri.Host;
 
     public override async Task RegisterAsync()
     {
@@ -206,7 +201,7 @@ public class GenericRandomErrorPlugin : BaseProxyPlugin
             && UrlsToWatch is not null
             && e.ShouldExecute(UrlsToWatch))
         {
-            var failMode = ShouldFail(e);
+            var failMode = ShouldFail();
 
             if (failMode == GenericRandomErrorFailMode.PassThru && Context.Configuration?.Rate != 100)
             {

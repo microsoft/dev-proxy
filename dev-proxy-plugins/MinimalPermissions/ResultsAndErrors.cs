@@ -1,4 +1,4 @@
-namespace Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
+namespace Microsoft.DevProxy.Plugins.MinimalPermissions;
 
 internal class ResultsAndErrors
 {

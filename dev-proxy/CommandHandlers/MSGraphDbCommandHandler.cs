@@ -7,14 +7,9 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Microsoft.DevProxy.CommandHandlers;
 
-public class MSGraphDbCommandHandler : ICommandHandler
+public class MSGraphDbCommandHandler(ILogger logger) : ICommandHandler
 {
-    private readonly ILogger _logger;
-
-    public MSGraphDbCommandHandler(ILogger logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger _logger = logger;
 
     public int Invoke(InvocationContext context)
     {

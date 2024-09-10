@@ -10,12 +10,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
-public class MockGeneratorPlugin : BaseReportingPlugin
+public class MockGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    public MockGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
-
     public override string Name => nameof(MockGeneratorPlugin);
 
     public override async Task RegisterAsync()
@@ -152,7 +148,7 @@ public class MockGeneratorPlugin : BaseReportingPlugin
         }
     }
 
-    private (string method, string url) GetMethodAndUrl(string message)
+    private static (string method, string url) GetMethodAndUrl(string message)
     {
         var info = message.Split(" ");
         if (info.Length > 2)

@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
+using Microsoft.DevProxy.Abstractions.LanguageModel;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Http;
@@ -18,14 +19,14 @@ public interface IProxyContext
     ILanguageModelClient LanguageModelClient { get; }
 }
 
-public class ThrottlerInfo
+public class ThrottlerInfo(string throttlingKey, Func<Request, string, ThrottlingInfo> shouldThrottle, DateTime resetTime)
 {
     /// <summary>
     /// Throttling key used to identify which requests should be throttled.
     /// Can be set to a hostname, full URL or a custom string value, that
     /// represents for example a portion of the API
     /// </summary>
-    public string ThrottlingKey { get; private set; }
+    public string ThrottlingKey { get; private set; } = throttlingKey ?? throw new ArgumentNullException(nameof(throttlingKey));
     /// <summary>
     /// Function responsible for matching the request to the throttling key.
     /// Takes as arguments:
@@ -34,36 +35,23 @@ public class ThrottlerInfo
     /// Returns an instance of ThrottlingInfo that contains information
     /// whether the request should be throttled or not.
     /// </summary>
-    public Func<Request, string, ThrottlingInfo> ShouldThrottle { get; private set; }
+    public Func<Request, string, ThrottlingInfo> ShouldThrottle { get; private set; } = shouldThrottle ?? throw new ArgumentNullException(nameof(shouldThrottle));
     /// <summary>
     /// Time when the throttling window will be reset
     /// </summary>
-    public DateTime ResetTime { get; set; }
-
-    public ThrottlerInfo(string throttlingKey, Func<Request, string, ThrottlingInfo> shouldThrottle, DateTime resetTime)
-    {
-        ThrottlingKey = throttlingKey ?? throw new ArgumentNullException(nameof(throttlingKey));
-        ShouldThrottle = shouldThrottle ?? throw new ArgumentNullException(nameof(shouldThrottle));
-        ResetTime = resetTime;
-    }
+    public DateTime ResetTime { get; set; } = resetTime;
 }
 
-public class ThrottlingInfo
+public class ThrottlingInfo(int throttleForSeconds, string retryAfterHeaderName)
 {
-    public int ThrottleForSeconds { get; set; }
-    public string RetryAfterHeaderName { get; set; }
-
-    public ThrottlingInfo(int throttleForSeconds, string retryAfterHeaderName)
-    {
-        ThrottleForSeconds = throttleForSeconds;
-        RetryAfterHeaderName = retryAfterHeaderName ?? throw new ArgumentNullException(nameof(retryAfterHeaderName));
-    }
+    public int ThrottleForSeconds { get; set; } = throttleForSeconds;
+    public string RetryAfterHeaderName { get; set; } = retryAfterHeaderName ?? throw new ArgumentNullException(nameof(retryAfterHeaderName));
 }
 
 public class ProxyEventArgsBase
 {
-    public Dictionary<string, object> SessionData { get; set; } = new Dictionary<string, object>();
-    public Dictionary<string, object> GlobalData { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> SessionData { get; set; } = [];
+    public Dictionary<string, object> GlobalData { get; set; } = [];
 }
 
 public class ProxyHttpEventArgsBase : ProxyEventArgsBase
@@ -82,26 +70,18 @@ public class ProxyHttpEventArgsBase : ProxyEventArgsBase
     }
 }
 
-public class ProxyRequestArgs : ProxyHttpEventArgsBase
+public class ProxyRequestArgs(SessionEventArgs session, ResponseState responseState) : ProxyHttpEventArgsBase(session)
 {
-    public ProxyRequestArgs(SessionEventArgs session, ResponseState responseState) : base(session)
-    {
-        ResponseState = responseState ?? throw new ArgumentNullException(nameof(responseState));
-    }
-    public ResponseState ResponseState { get; }
+    public ResponseState ResponseState { get; } = responseState ?? throw new ArgumentNullException(nameof(responseState));
 
     public bool ShouldExecute(ISet<UrlToWatch> watchedUrls) =>
         !ResponseState.HasBeenSet
         && HasRequestUrlMatch(watchedUrls);
 }
 
-public class ProxyResponseArgs : ProxyHttpEventArgsBase
+public class ProxyResponseArgs(SessionEventArgs session, ResponseState responseState) : ProxyHttpEventArgsBase(session)
 {
-    public ProxyResponseArgs(SessionEventArgs session, ResponseState responseState) : base(session)
-    {
-        ResponseState = responseState ?? throw new ArgumentNullException(nameof(responseState));
-    }
-    public ResponseState ResponseState { get; }
+    public ResponseState ResponseState { get; } = responseState ?? throw new ArgumentNullException(nameof(responseState));
 }
 
 public class InitArgs
@@ -111,16 +91,10 @@ public class InitArgs
     }
 }
 
-public class OptionsLoadedArgs
+public class OptionsLoadedArgs(InvocationContext context, Option[] options)
 {
-    public InvocationContext Context { get; set; }
-    public Option[] Options { get; set; }
-
-    public OptionsLoadedArgs(InvocationContext context, Option[] options)
-    {
-        Context = context ?? throw new ArgumentNullException(nameof(context));
-        Options = options ?? throw new ArgumentNullException(nameof(options));
-    }
+    public InvocationContext Context { get; set; } = context ?? throw new ArgumentNullException(nameof(context));
+    public Option[] Options { get; set; } = options ?? throw new ArgumentNullException(nameof(options));
 }
 
 public class RequestLog
@@ -161,22 +135,14 @@ public class RequestLog
     }
 }
 
-public class RecordingArgs : ProxyEventArgsBase
+public class RecordingArgs(IEnumerable<RequestLog> requestLogs) : ProxyEventArgsBase
 {
-    public RecordingArgs(IEnumerable<RequestLog> requestLogs)
-    {
-        RequestLogs = requestLogs ?? throw new ArgumentNullException(nameof(requestLogs));
-    }
-    public IEnumerable<RequestLog> RequestLogs { get; set; }
+    public IEnumerable<RequestLog> RequestLogs { get; set; } = requestLogs ?? throw new ArgumentNullException(nameof(requestLogs));
 }
 
-public class RequestLogArgs
+public class RequestLogArgs(RequestLog requestLog)
 {
-    public RequestLogArgs(RequestLog requestLog)
-    {
-        RequestLog = requestLog ?? throw new ArgumentNullException(nameof(requestLog));
-    }
-    public RequestLog RequestLog { get; set; }
+    public RequestLog RequestLog { get; set; } = requestLog ?? throw new ArgumentNullException(nameof(requestLog));
 }
 
 public interface IPluginEvents

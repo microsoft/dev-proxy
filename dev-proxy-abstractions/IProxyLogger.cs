@@ -19,14 +19,9 @@ public enum MessageType
     FinishedProcessingRequest
 }
 
-public class LoggingContext
+public class LoggingContext(SessionEventArgs session)
 {
-    public SessionEventArgs Session { get; }
-
-    public LoggingContext(SessionEventArgs session)
-    {
-        Session = session;
-    }
+    public SessionEventArgs Session { get; } = session;
 }
 
 public interface IProxyLogger : ICloneable, ILogger

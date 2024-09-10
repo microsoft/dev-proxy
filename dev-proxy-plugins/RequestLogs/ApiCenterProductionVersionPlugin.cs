@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
+using Microsoft.DevProxy.Plugins.ApiCenter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -36,15 +36,11 @@ internal class ApiCenterProductionVersionPluginConfiguration
     public string WorkspaceName { get; set; } = "default";
 }
 
-public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
+public class ApiCenterProductionVersionPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    private ApiCenterProductionVersionPluginConfiguration _configuration = new();
+    private readonly ApiCenterProductionVersionPluginConfiguration _configuration = new();
     private ApiCenterClient? _apiCenterClient;
     private Api[]? _apis;
-
-    public ApiCenterProductionVersionPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
 
     public override string Name => nameof(ApiCenterProductionVersionPlugin);
 
@@ -105,12 +101,9 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
 
         Debug.Assert(_apiCenterClient is not null);
 
-        if (_apis is null)
-        {
-            _apis = await _apiCenterClient.GetApisAsync();
-        }
+        _apis ??= await _apiCenterClient.GetApisAsync();
 
-        if (_apis == null || !_apis.Any())
+        if (_apis == null || _apis.Length == 0)
         {
             Logger.LogInformation("No APIs found in API Center");
             return;
@@ -121,7 +114,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
             Debug.Assert(api.Id is not null);
 
             await api.LoadVersionsAsync(_apiCenterClient);
-            if (api.Versions?.Any() != true)
+            if (api.Versions == null || api.Versions.Length == 0)
             {
                 Logger.LogInformation("No versions found for {api}", api.Properties?.Title);
                 continue;
@@ -132,7 +125,8 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
                 Debug.Assert(versionFromApiCenter.Id is not null);
 
                 await versionFromApiCenter.LoadDefinitionsAsync(_apiCenterClient);
-                if (versionFromApiCenter.Definitions?.Any() != true)
+                if (versionFromApiCenter.Definitions == null ||
+                    versionFromApiCenter.Definitions.Length == 0)
                 {
                     Logger.LogDebug("No definitions found for version {versionId}", versionFromApiCenter.Id);
                     continue;
@@ -160,7 +154,7 @@ public class ApiCenterProductionVersionPlugin : BaseReportingPlugin
                     definitions.Add(definitionFromApiCenter);
                 }
 
-                versionFromApiCenter.Definitions = definitions.ToArray();
+                versionFromApiCenter.Definitions = [.. definitions];
             }
         }
 

@@ -2,37 +2,25 @@
 // Licensed under the MIT License
 
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace Microsoft.DevProxy;
 
-internal class PluginLoaderResult
+internal class PluginLoaderResult(ISet<UrlToWatch> urlsToWatch, IEnumerable<IProxyPlugin> proxyPlugins)
 {
-    public ISet<UrlToWatch> UrlsToWatch { get; }
-    public IEnumerable<IProxyPlugin> ProxyPlugins { get; }
-    public PluginLoaderResult(ISet<UrlToWatch> urlsToWatch, IEnumerable<IProxyPlugin> proxyPlugins)
-    {
-        UrlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
-        ProxyPlugins = proxyPlugins ?? throw new ArgumentNullException(nameof(proxyPlugins));
-    }
+    public ISet<UrlToWatch> UrlsToWatch { get; } = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
+    public IEnumerable<IProxyPlugin> ProxyPlugins { get; } = proxyPlugins ?? throw new ArgumentNullException(nameof(proxyPlugins));
 }
 
-internal class PluginLoader
+internal class PluginLoader(ILogger logger)
 {
     private PluginConfig? _pluginConfig;
-    private ILogger _logger;
-
-    public PluginLoader(ILogger logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task<PluginLoaderResult> LoadPluginsAsync(IPluginEvents pluginEvents, IProxyContext proxyContext)
     {
-        List<IProxyPlugin> plugins = new();
+        List<IProxyPlugin> plugins = [];
         var config = PluginConfig;
         var globallyWatchedUrls = PluginConfig.UrlsToWatch.Select(ConvertToRegex).ToList();
         var defaultUrlsToWatch = globallyWatchedUrls.ToHashSet();
@@ -116,10 +104,10 @@ internal class PluginLoader
     public static UrlToWatch ConvertToRegex(string stringMatcher)
     {
         var exclude = false;
-        if (stringMatcher.StartsWith("!"))
+        if (stringMatcher.StartsWith('!'))
         {
             exclude = true;
-            stringMatcher = stringMatcher.Substring(1);
+            stringMatcher = stringMatcher[1..];
         }
 
         return new UrlToWatch(
@@ -142,7 +130,7 @@ internal class PluginLoader
                     _pluginConfig.UrlsToWatch = ProxyHost.UrlsToWatch.ToList();
                 }
             }
-            if (_pluginConfig == null || !_pluginConfig.Plugins.Any())
+            if (_pluginConfig == null || _pluginConfig.Plugins.Count == 0)
             {
                 throw new InvalidDataException("The configuration must contain at least one plugin");
             }
@@ -161,8 +149,8 @@ internal class PluginLoader
 
 internal class PluginConfig
 {
-    public List<PluginReference> Plugins { get; set; } = new();
-    public List<string> UrlsToWatch { get; set; } = new();
+    public List<PluginReference> Plugins { get; set; } = [];
+    public List<string> UrlsToWatch { get; set; } = [];
 }
 
 internal class PluginReference

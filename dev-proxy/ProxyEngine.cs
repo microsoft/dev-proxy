@@ -21,27 +21,27 @@ enum ToggleSystemProxyAction
     Off
 }
 
-public class ProxyEngine : BackgroundService
+public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, IPluginEvents pluginEvents, IProxyState proxyState, ILogger logger) : BackgroundService
 {
-    private readonly IPluginEvents _pluginEvents;
-    private readonly ILogger _logger;
-    private readonly IProxyConfiguration _config;
-    private static ProxyServer? _proxyServer;
+    private readonly IPluginEvents _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IProxyConfiguration _config = config ?? throw new ArgumentNullException(nameof(config));
+    private static readonly ProxyServer? _proxyServer;
     private ExplicitProxyEndPoint? _explicitEndPoint;
     // lists of URLs to watch, used for intercepting requests
-    private ISet<UrlToWatch> _urlsToWatch = new HashSet<UrlToWatch>();
+    private readonly ISet<UrlToWatch> _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
-    private ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
-    private static readonly object consoleLock = new object();
-    private IProxyState _proxyState;
+    private readonly ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
+    private static readonly object consoleLock = new();
+    private readonly IProxyState _proxyState = proxyState ?? throw new ArgumentNullException(nameof(proxyState));
     // Dictionary for plugins to store data between requests
     // the key is HashObject of the SessionEventArgs object
-    private Dictionary<int, Dictionary<string, object>> _pluginData = new();
+    private readonly Dictionary<int, Dictionary<string, object>> _pluginData = [];
 
     public static X509Certificate2? Certificate => _proxyServer?.CertificateManager.RootCertificate;
 
-    private ExceptionHandler _exceptionHandler => ex => _logger.LogError(ex, "An error occurred in a plugin");
+    private ExceptionHandler ExceptionHandler => ex => _logger.LogError(ex, "An error occurred in a plugin");
 
     static ProxyEngine()
     {
@@ -54,19 +54,10 @@ public class ProxyEngine : BackgroundService
 
         var joinableTaskContext = new JoinableTaskContext();
         var joinableTaskFactory = new JoinableTaskFactory(joinableTaskContext);
-        joinableTaskFactory.Run(async () => await _proxyServer.CertificateManager.LoadOrCreateRootCertificateAsync());
+        _ = joinableTaskFactory.Run(async () => await _proxyServer.CertificateManager.LoadOrCreateRootCertificateAsync());
     }
 
-    public ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatch, IPluginEvents pluginEvents, IProxyState proxyState, ILogger logger)
-    {
-        _config = config ?? throw new ArgumentNullException(nameof(config));
-        _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
-        _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _proxyState = proxyState ?? throw new ArgumentNullException(nameof(proxyState));
-    }
-
-    private void ToggleSystemProxy(ToggleSystemProxyAction toggle, string? ipAddress = null, int? port = null)
+    private static void ToggleSystemProxy(ToggleSystemProxyAction toggle, string? ipAddress = null, int? port = null)
     {
         var bashScriptPath = Path.Join(ProxyUtils.AppFolder, "toggle-proxy.sh");
         var args = toggle switch
@@ -114,7 +105,7 @@ public class ProxyEngine : BackgroundService
         _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequestAsync;
         if (_config.InstallCert)
         {
-            await _proxyServer.CertificateManager.EnsureRootCertificateAsync();
+            await _proxyServer.CertificateManager.EnsureRootCertificateAsync(stoppingToken);
         }
         else
         {
@@ -124,7 +115,7 @@ public class ProxyEngine : BackgroundService
         }
 
         _proxyServer.AddEndPoint(_explicitEndPoint);
-        await _proxyServer.StartAsync();
+        await _proxyServer.StartAsync(cancellationToken: stoppingToken);
 
         // run first-run setup on macOS
         FirstRunSetup();
@@ -196,7 +187,7 @@ public class ProxyEngine : BackgroundService
         }
 
         var bashScriptPath = Path.Join(ProxyUtils.AppFolder, "trust-cert.sh");
-        ProcessStartInfo startInfo = new ProcessStartInfo()
+        ProcessStartInfo startInfo = new()
         {
             FileName = "/bin/bash",
             Arguments = bashScriptPath,
@@ -209,7 +200,7 @@ public class ProxyEngine : BackgroundService
         process.WaitForExit();
     }
 
-    private bool IsFirstRun()
+    private static bool IsFirstRun()
     {
         var firstRunFilePath = Path.Combine(ProxyUtils.AppFolder!, ".hasrun");
         if (File.Exists(firstRunFilePath))
@@ -280,7 +271,7 @@ public class ProxyEngine : BackgroundService
         await _proxyState.StopRecordingAsync();
     }
 
-    private void PrintRecordingIndicator(bool isRecording)
+    private static void PrintRecordingIndicator(bool isRecording)
     {
         lock (consoleLock)
         {
@@ -313,8 +304,8 @@ public class ProxyEngine : BackgroundService
             {
                 // if the URL contains a protocol, extract the host from the URL
                 var urlChunks = urlToWatchPattern.Split("://");
-                var slashPos = urlChunks[1].IndexOf("/");
-                hostToWatch = slashPos < 0 ? urlChunks[1] : urlChunks[1].Substring(0, slashPos);
+                var slashPos = urlChunks[1].IndexOf('/');
+                hostToWatch = slashPos < 0 ? urlChunks[1] : urlChunks[1][..slashPos];
             }
             else
             {
@@ -324,14 +315,14 @@ public class ProxyEngine : BackgroundService
             }
 
             // remove port number if present
-            var portPos = hostToWatch.IndexOf(":");
+            var portPos = hostToWatch.IndexOf(':');
             if (portPos > 0)
             {
-                hostToWatch = hostToWatch.Substring(0, portPos);
+                hostToWatch = hostToWatch[..portPos];
             }
 
             var hostToWatchRegexString = Regex.Escape(hostToWatch).Replace("\\*", ".*");
-            Regex hostRegex = new Regex($"^{hostToWatchRegexString}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            Regex hostRegex = new($"^{hostToWatchRegexString}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             // don't add the same host twice
             if (!_hostsToWatch.Any(h => h.Url.ToString() == hostRegex.ToString()))
             {
@@ -391,7 +382,7 @@ public class ProxyEngine : BackgroundService
         await Task.CompletedTask;
     }
 
-    private int GetProcessId(TunnelConnectSessionEventArgs e)
+    private static int GetProcessId(TunnelConnectSessionEventArgs e)
     {
         if (RunTime.IsWindows)
         {
@@ -486,7 +477,6 @@ public class ProxyEngine : BackgroundService
                 return;
             }
 
-
             // we need to keep the request body for further processing
             // by plugins
             e.HttpClient.Request.KeepBody = true;
@@ -498,14 +488,14 @@ public class ProxyEngine : BackgroundService
             using var scope = _logger.BeginScope(e.HttpClient.Request.Method ?? "", e.HttpClient.Request.Url, e.GetHashCode());
 
             e.UserData = e.HttpClient.Request;
-            _logger.LogRequest(new[] { $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}" }, MessageType.InterceptedRequest, new LoggingContext(e));
+            _logger.LogRequest([$"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}"], MessageType.InterceptedRequest, new LoggingContext(e));
             await HandleRequestAsync(e, proxyRequestArgs);
         }
     }
 
     private async Task HandleRequestAsync(SessionEventArgs e, ProxyRequestArgs proxyRequestArgs)
     {
-        await _pluginEvents.RaiseProxyBeforeRequestAsync(proxyRequestArgs, _exceptionHandler);
+        await _pluginEvents.RaiseProxyBeforeRequestAsync(proxyRequestArgs, ExceptionHandler);
 
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!proxyRequestArgs.ResponseState.HasBeenSet)
@@ -582,7 +572,7 @@ public class ProxyEngine : BackgroundService
                 await e.GetResponseBody();
             }
 
-            await _pluginEvents.RaiseProxyBeforeResponseAsync(proxyResponseArgs, _exceptionHandler);
+            await _pluginEvents.RaiseProxyBeforeResponseAsync(proxyResponseArgs, ExceptionHandler);
         }
     }
     async Task OnAfterResponseAsync(object sender, SessionEventArgs e)
@@ -610,7 +600,7 @@ public class ProxyEngine : BackgroundService
 
             var message = $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}";
             _logger.LogRequest([message], MessageType.InterceptedResponse, new LoggingContext(e));
-            await _pluginEvents.RaiseProxyAfterResponseAsync(proxyResponseArgs, _exceptionHandler);
+            await _pluginEvents.RaiseProxyAfterResponseAsync(proxyResponseArgs, ExceptionHandler);
             _logger.LogRequest([message], MessageType.FinishedProcessingRequest, new LoggingContext(e));
 
             // clean up
@@ -637,7 +627,7 @@ public class ProxyEngine : BackgroundService
         return Task.CompletedTask;
     }
 
-    private void PrintHotkeys()
+    private static void PrintHotkeys()
     {
         Console.WriteLine("");
         Console.WriteLine("Hotkeys: issue (w)eb request, (r)ecord, (s)top recording, (c)lear screen");

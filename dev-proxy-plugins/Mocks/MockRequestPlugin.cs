@@ -18,14 +18,10 @@ public class MockRequestConfiguration
     public MockRequest? Request { get; set; }
 }
 
-public class MockRequestPlugin : BaseProxyPlugin
+public class MockRequestPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     protected MockRequestConfiguration _configuration = new();
     private MockRequestLoader? _loader = null;
-
-    public MockRequestPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
 
     public override string Name => nameof(MockRequestPlugin);
 
@@ -63,7 +59,7 @@ public class MockRequestPlugin : BaseProxyPlugin
 
             foreach (var header in _configuration.Request.Headers)
             {
-                if (header.Name.ToLower() == "content-type")
+                if (header.Name.Equals("content-type", StringComparison.CurrentCultureIgnoreCase))
                 {
                     contentType = header.Value;
                     continue;

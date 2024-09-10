@@ -80,13 +80,13 @@ internal static class UpdateNotification
             return 1;
         }
 
-        if (a.StartsWith("v"))
+        if (a.StartsWith('v'))
         {
-            a = a.Substring(1);
+            a = a[1..];
         }
-        if (b.StartsWith("v"))
+        if (b.StartsWith('v'))
         {
-            b = b.Substring(1);
+            b = b[1..];
         }
 
         var aParts = a.Split('-');
@@ -147,7 +147,7 @@ internal static class UpdateNotification
         {
             // skip preview releases
             if (release.Version == null ||
-                (release.Version.Contains("-") && releaseType != ReleaseType.Beta))
+                (release.Version.Contains('-') && releaseType != ReleaseType.Beta))
             {
                 continue;
             }

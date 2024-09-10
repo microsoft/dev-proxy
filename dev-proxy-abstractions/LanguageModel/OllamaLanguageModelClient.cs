@@ -5,15 +5,15 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.DevProxy.Abstractions;
+namespace Microsoft.DevProxy.Abstractions.LanguageModel;
 
 public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration, ILogger logger) : ILanguageModelClient
 {
     private readonly LanguageModelConfiguration? _configuration = configuration;
     private readonly ILogger _logger = logger;
     private bool? _lmAvailable;
-    private Dictionary<string, OllamaLanguageModelCompletionResponse> _cacheCompletion = new();
-    private Dictionary<ILanguageModelChatCompletionMessage[], OllamaLanguageModelChatCompletionResponse> _cacheChatCompletion = new();
+    private readonly Dictionary<string, OllamaLanguageModelCompletionResponse> _cacheCompletion = [];
+    private readonly Dictionary<ILanguageModelChatCompletionMessage[], OllamaLanguageModelChatCompletionResponse> _cacheChatCompletion = [];
 
     public async Task<bool> IsEnabledAsync()
     {

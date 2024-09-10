@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.DevProxy.Abstractions;
+namespace Microsoft.DevProxy.Abstractions.LanguageModel;
 
 public interface ILanguageModelChatCompletionMessage
 {
