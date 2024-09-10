@@ -8,6 +8,8 @@ namespace Microsoft.DevProxy;
 
 public class ProxyState : IProxyState
 {
+    private static readonly object consoleLock = new object();
+
     public bool IsRecording { get; private set; } = false;
     public List<RequestLog> RequestLogs { get; } = [];
     public Dictionary<string, object> GlobalData { get; } = new() {
@@ -36,6 +38,7 @@ public class ProxyState : IProxyState
         }
 
         IsRecording = true;
+        PrintRecordingIndicator(IsRecording);
     }
 
     public async Task StopRecording()
@@ -46,6 +49,7 @@ public class ProxyState : IProxyState
         }
 
         IsRecording = false;
+        PrintRecordingIndicator(IsRecording);
 
         // clone the list so that we can clear the original
         // list in case a new recording is started, and
@@ -70,5 +74,23 @@ public class ProxyState : IProxyState
     public void StopProxy()
     {
         _hostApplicationLifetime.StopApplication();
+    }
+
+    private void PrintRecordingIndicator(bool isRecording)
+    {
+        lock (consoleLock)
+        {
+            if (isRecording)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.Write("◉");
+                Console.ResetColor();
+                Console.Error.WriteLine(" Recording... ");
+            }
+            else
+            {
+                Console.Error.WriteLine("○ Stopped recording");
+            }
+        }
     }
 }
