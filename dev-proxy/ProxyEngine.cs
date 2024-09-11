@@ -33,7 +33,6 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
     // lists of hosts to watch extracted from urlsToWatch,
     // used for deciding which URLs to decrypt for further inspection
     private readonly ISet<UrlToWatch> _hostsToWatch = new HashSet<UrlToWatch>();
-    private static readonly object consoleLock = new();
     private readonly IProxyState _proxyState = proxyState ?? throw new ArgumentNullException(nameof(proxyState));
     // Dictionary for plugins to store data between requests
     // the key is HashObject of the SessionEventArgs object
@@ -257,7 +256,6 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
         }
 
         _proxyState.StartRecording();
-        PrintRecordingIndicator(_proxyState.IsRecording);
     }
 
     private async Task StopRecordingAsync()
@@ -267,26 +265,7 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
             return;
         }
 
-        PrintRecordingIndicator(false);
         await _proxyState.StopRecordingAsync();
-    }
-
-    private static void PrintRecordingIndicator(bool isRecording)
-    {
-        lock (consoleLock)
-        {
-            if (isRecording)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Error.Write("◉");
-                Console.ResetColor();
-                Console.Error.WriteLine(" Recording... ");
-            }
-            else
-            {
-                Console.Error.WriteLine("○ Stopped recording");
-            }
-        }
     }
 
     // Convert strings from config to regexes.
