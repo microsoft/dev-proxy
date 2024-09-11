@@ -9,24 +9,20 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
-public class ODataPagingGuidancePlugin : BaseProxyPlugin
+public class ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(ODataPagingGuidancePlugin);
-    private IList<string> pagingUrls = new List<string>();
+    private readonly IList<string> pagingUrls = [];
 
-    public ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    public override async Task RegisterAsync()
     {
+        await base.RegisterAsync();
+
+        PluginEvents.BeforeRequest += OnBeforeRequestAsync;
+        PluginEvents.BeforeResponse += OnBeforeResponseAsync;
     }
 
-    public override void Register()
-    {
-        base.Register();
-
-        PluginEvents.BeforeRequest += OnBeforeRequest;
-        PluginEvents.BeforeResponse += OnBeforeResponse;
-    }
-
-    private Task OnBeforeRequest(object? sender, ProxyRequestArgs e)
+    private Task OnBeforeRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (UrlsToWatch is null ||
             e.Session.HttpClient.Request.Method != "GET" ||
@@ -44,7 +40,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
         return Task.CompletedTask;
     }
 
-    private async Task OnBeforeResponse(object? sender, ProxyResponseArgs e)
+    private async Task OnBeforeResponseAsync(object? sender, ProxyResponseArgs e)
     {
         if (UrlsToWatch is null ||
             !e.HasRequestUrlMatch(UrlsToWatch) ||
@@ -77,7 +73,7 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
             nextLink = GetNextLinkFromXml(bodyString);
         }
 
-        if (!String.IsNullOrEmpty(nextLink))
+        if (!string.IsNullOrEmpty(nextLink))
         {
             pagingUrls.Add(nextLink);
         }
@@ -130,9 +126,9 @@ public class ODataPagingGuidancePlugin : BaseProxyPlugin
       uri.Query.Contains("$skiptoken") ||
       uri.Query.Contains("%24skiptoken");
 
-    private static string[] BuildIncorrectPagingUrlMessage() => new[] {
-    "This paging URL seems to be created manually and is not aligned with paging information from the API.",
-    "This could lead to incorrect data in your app.",
-    "For more information about paging see https://aka.ms/devproxy/guidance/paging"
-  };
+    private static string[] BuildIncorrectPagingUrlMessage() => [
+        "This paging URL seems to be created manually and is not aligned with paging information from the API.",
+        "This could lead to incorrect data in your app.",
+        "For more information about paging see https://aka.ms/devproxy/guidance/paging"
+    ];
 }

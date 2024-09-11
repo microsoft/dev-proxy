@@ -7,32 +7,26 @@ using System.Text.Json;
 
 namespace Microsoft.DevProxy.Plugins.RandomErrors;
 
-internal class GenericErrorResponsesLoader : IDisposable
+internal class GenericErrorResponsesLoader(ILogger logger, GenericRandomErrorConfiguration configuration) : IDisposable
 {
-    private readonly ILogger _logger;
-    private readonly GenericRandomErrorConfiguration _configuration;
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly GenericRandomErrorConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
-    public GenericErrorResponsesLoader(ILogger logger, GenericRandomErrorConfiguration configuration)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-    }
-
-    private string _errorsFile => Path.Combine(Directory.GetCurrentDirectory(), _configuration.ErrorsFile ?? "");
+    private string ErrorsFile => Path.Combine(Directory.GetCurrentDirectory(), _configuration.ErrorsFile ?? "");
     private FileSystemWatcher? _watcher;
 
     public void LoadResponses()
     {
-        if (!File.Exists(_errorsFile))
+        if (!File.Exists(ErrorsFile))
         {
             _logger.LogWarning("File {configurationFile} not found in the current directory. No error responses will be loaded", _configuration.ErrorsFile);
-            _configuration.Errors = Array.Empty<GenericErrorResponse>();
+            _configuration.Errors = [];
             return;
         }
 
         try
         {
-            using var stream = new FileStream(_errorsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var stream = new FileStream(ErrorsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new StreamReader(stream);
             var responsesString = reader.ReadToEnd();
             var responsesConfig = JsonSerializer.Deserialize<GenericRandomErrorConfiguration>(responsesString, ProxyUtils.JsonSerializerOptions);
@@ -56,13 +50,15 @@ internal class GenericErrorResponsesLoader : IDisposable
             return;
         }
 
-        string path = Path.GetDirectoryName(_errorsFile) ?? throw new InvalidOperationException($"{_errorsFile} is an invalid path");
-        _watcher = new FileSystemWatcher(path);
-        _watcher.NotifyFilter = NotifyFilters.CreationTime
+        string path = Path.GetDirectoryName(ErrorsFile) ?? throw new InvalidOperationException($"{ErrorsFile} is an invalid path");
+        _watcher = new FileSystemWatcher(path)
+        {
+            NotifyFilter = NotifyFilters.CreationTime
                              | NotifyFilters.FileName
                              | NotifyFilters.LastWrite
-                             | NotifyFilters.Size;
-        _watcher.Filter = Path.GetFileName(_errorsFile);
+                             | NotifyFilters.Size,
+            Filter = Path.GetFileName(ErrorsFile)
+        };
         _watcher.Changed += ResponsesFile_Changed;
         _watcher.Created += ResponsesFile_Changed;
         _watcher.Deleted += ResponsesFile_Changed;

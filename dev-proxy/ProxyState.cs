@@ -8,6 +8,8 @@ namespace Microsoft.DevProxy;
 
 public class ProxyState : IProxyState
 {
+    private static readonly object consoleLock = new object();
+
     public bool IsRecording { get; private set; } = false;
     public List<RequestLog> RequestLogs { get; } = [];
     public Dictionary<string, object> GlobalData { get; } = new() {
@@ -18,7 +20,7 @@ public class ProxyState : IProxyState
     private readonly ILogger _logger;
     private readonly IPluginEvents _pluginEvents;
     private readonly IHostApplicationLifetime _hostApplicationLifetime;
-    private ExceptionHandler _exceptionHandler => ex => _logger.LogError(ex, "An error occurred in a plugin");
+    private ExceptionHandler ExceptionHandler => ex => _logger.LogError(ex, "An error occurred in a plugin");
 
     public ProxyState(ILogger logger, IPluginEvents pluginEvents, IHostApplicationLifetime hostApplicationLifetime, IProxyConfiguration proxyConfiguration)
     {
@@ -36,9 +38,10 @@ public class ProxyState : IProxyState
         }
 
         IsRecording = true;
+        PrintRecordingIndicator(IsRecording);
     }
 
-    public async Task StopRecording()
+    public async Task StopRecordingAsync()
     {
         if (!IsRecording)
         {
@@ -46,29 +49,45 @@ public class ProxyState : IProxyState
         }
 
         IsRecording = false;
+        PrintRecordingIndicator(IsRecording);
 
         // clone the list so that we can clear the original
         // list in case a new recording is started, and
         // we let plugins handle previously recorded requests
         var clonedLogs = RequestLogs.ToArray();
         RequestLogs.Clear();
-        await _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs)
+        await _pluginEvents.RaiseRecordingStoppedAsync(new RecordingArgs(clonedLogs)
         {
             GlobalData = GlobalData
-        }, _exceptionHandler);
+        }, ExceptionHandler);
         _logger.LogInformation("DONE");
     }
 
-    public void RaiseMockRequest()
+    public async Task RaiseMockRequestAsync()
     {
-        _pluginEvents
-            .RaiseMockRequest(new EventArgs(), _exceptionHandler)
-            .GetAwaiter()
-            .GetResult();
+        await _pluginEvents.RaiseMockRequestAsync(new EventArgs(), ExceptionHandler);
     }
 
     public void StopProxy()
     {
         _hostApplicationLifetime.StopApplication();
+    }
+
+    private void PrintRecordingIndicator(bool isRecording)
+    {
+        lock (consoleLock)
+        {
+            if (isRecording)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.Write("◉");
+                Console.ResetColor();
+                Console.Error.WriteLine(" Recording... ");
+            }
+            else
+            {
+                Console.Error.WriteLine("○ Stopped recording");
+            }
+        }
     }
 }

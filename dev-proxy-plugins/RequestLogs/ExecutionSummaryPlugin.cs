@@ -29,17 +29,13 @@ internal class ExecutionSummaryPluginConfiguration
     public SummaryGroupBy GroupBy { get; set; } = SummaryGroupBy.Url;
 }
 
-public class ExecutionSummaryPlugin : BaseReportingPlugin
+public class ExecutionSummaryPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(ExecutionSummaryPlugin);
-    private ExecutionSummaryPluginConfiguration _configuration = new();
+    private readonly ExecutionSummaryPluginConfiguration _configuration = new();
     private static readonly string _groupByOptionName = "--summary-group-by";
     private const string _requestsInterceptedMessage = "Requests intercepted";
     private const string _requestsPassedThroughMessage = "Requests passed through";
-
-    public ExecutionSummaryPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
 
     public override Option[] GetOptions()
     {
@@ -49,23 +45,23 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
         };
         groupBy.AddValidator(input =>
         {
-            if (!Enum.TryParse<SummaryGroupBy>(input.Tokens.First().Value, true, out var groupBy))
+            if (!Enum.TryParse<SummaryGroupBy>(input.Tokens[0].Value, true, out var groupBy))
             {
-                input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid option to group by. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(SummaryGroupBy)))}";
+                input.ErrorMessage = $"{input.Tokens[0].Value} is not a valid option to group by. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(SummaryGroupBy)))}";
             }
         });
 
         return [groupBy];
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
         PluginEvents.OptionsLoaded += OnOptionsLoaded;
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
     private void OnOptionsLoaded(object? sender, OptionsLoadedArgs e)
@@ -79,7 +75,7 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
         }
     }
 
-    private Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         if (!e.RequestLogs.Any())
         {
@@ -127,18 +123,19 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
             // last line of the message is the method and URL of the request
             var methodAndUrl = GetMethodAndUrl(log);
             var readableMessageType = GetReadableMessageTypeForSummary(log.MessageType);
-            if (!data[methodAndUrl].ContainsKey(readableMessageType))
+            if (!data[methodAndUrl].TryGetValue(readableMessageType, out Dictionary<string, int>? value))
             {
-                data[methodAndUrl].Add(readableMessageType, []);
+                value = ([]);
+                data[methodAndUrl].Add(readableMessageType, value);
             }
 
-            if (data[methodAndUrl][readableMessageType].ContainsKey(message))
+            if (value.TryGetValue(message, out int val))
             {
-                data[methodAndUrl][readableMessageType][message]++;
+                value[message] = ++val;
             }
             else
             {
-                data[methodAndUrl][readableMessageType].Add(message, 1);
+                value.Add(message, 1);
             }
         }
 
@@ -160,9 +157,10 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
             }
 
             var readableMessageType = GetReadableMessageTypeForSummary(log.MessageType);
-            if (!data.ContainsKey(readableMessageType))
+            if (!data.TryGetValue(readableMessageType, out Dictionary<string, Dictionary<string, int>>? value))
             {
-                data.Add(readableMessageType, new Dictionary<string, Dictionary<string, int>>());
+                value = [];
+                data.Add(readableMessageType, value);
 
                 if (log.MessageType == MessageType.InterceptedRequest ||
                     log.MessageType == MessageType.PassedThrough)
@@ -170,7 +168,7 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
                     // intercepted and passed through requests don't have
                     // a sub-grouping so let's repeat the message type
                     // to keep the same data shape
-                    data[readableMessageType].Add(readableMessageType, new Dictionary<string, int>());
+                    data[readableMessageType].Add(readableMessageType, []);
                 }
             }
 
@@ -185,41 +183,42 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
                     message = GetMethodAndUrl(log);
                 }
 
-                if (!data[readableMessageType][readableMessageType].ContainsKey(message))
+                if (!value[readableMessageType].ContainsKey(message))
                 {
-                    data[readableMessageType][readableMessageType].Add(message, 1);
+                    value[readableMessageType].Add(message, 1);
                 }
                 else
                 {
-                    data[readableMessageType][readableMessageType][message]++;
+                    value[readableMessageType][message]++;
                 }
                 continue;
             }
 
-            if (!data[readableMessageType].ContainsKey(message))
+            if (!value.TryGetValue(message, out Dictionary<string, int>? val))
             {
-                data[readableMessageType].Add(message, new Dictionary<string, int>());
+                val = ([]);
+                value.Add(message, val);
             }
             var methodAndUrl = GetMethodAndUrl(log);
-            if (data[readableMessageType][message].ContainsKey(methodAndUrl))
+            if (value[message].ContainsKey(methodAndUrl))
             {
-                data[readableMessageType][message][methodAndUrl]++;
+                value[message][methodAndUrl]++;
             }
             else
             {
-                data[readableMessageType][message].Add(methodAndUrl, 1);
+                value[message].Add(methodAndUrl, 1);
             }
         }
 
         return data;
     }
 
-    private string GetRequestMessage(RequestLog requestLog)
+    private static string GetRequestMessage(RequestLog requestLog)
     {
         return string.Join(' ', requestLog.MessageLines);
     }
 
-    private string GetMethodAndUrl(RequestLog requestLog)
+    private static string GetMethodAndUrl(RequestLog requestLog)
     {
         if (requestLog.Context is not null)
         {
@@ -231,7 +230,7 @@ public class ExecutionSummaryPlugin : BaseReportingPlugin
         }
     }
 
-    private string GetReadableMessageTypeForSummary(MessageType messageType) => messageType switch
+    private static string GetReadableMessageTypeForSummary(MessageType messageType) => messageType switch
     {
         MessageType.Chaos => "Requests with chaos",
         MessageType.Failed => "Failures",

@@ -1,15 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Microsoft.Extensions.Logging;
-
 namespace Microsoft.DevProxy.CommandHandlers;
 
 public static class OutdatedCommandHandler
 {
-    public static async Task CheckVersion(bool versionOnly, ILogger logger)
+    public static async Task CheckVersionAsync(bool versionOnly, ILogger logger)
     {
-        var releaseInfo = await UpdateNotification.CheckForNewVersion(ProxyCommandHandler.Configuration.NewVersionNotification);
+        var releaseInfo = await UpdateNotification.CheckForNewVersionAsync(ProxyCommandHandler.Configuration.NewVersionNotification);
 
         if (releaseInfo is not null && releaseInfo.Version is not null)
         {

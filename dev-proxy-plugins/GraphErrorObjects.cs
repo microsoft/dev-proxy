@@ -5,14 +5,9 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins;
 
-public class GraphErrorResponseBody
+public class GraphErrorResponseBody(GraphErrorResponseError error)
 {
-    public GraphErrorResponseError Error { get; set; }
-
-    public GraphErrorResponseBody(GraphErrorResponseError error)
-    {
-        Error = error;
-    }
+    public GraphErrorResponseError Error { get; set; } = error;
 }
 
 public class GraphErrorResponseError

@@ -3,7 +3,9 @@
 
 using Microsoft.DevProxy.Logging;
 
+#pragma warning disable IDE0130
 namespace System.IO;
+#pragma warning restore IDE0130
 
 public static class TextWriterExtensions
 {

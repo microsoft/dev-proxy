@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Reporters;
 
-public class MarkdownReporter : BaseReporter
+public class MarkdownReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReporter(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(MarkdownReporter);
     public override string FileExtension => ".md";
@@ -29,10 +29,6 @@ public class MarkdownReporter : BaseReporter
 
     private const string _requestsInterceptedMessage = "Requests intercepted";
     private const string _requestsPassedThroughMessage = "Requests passed through";
-
-    public MarkdownReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
 
     protected override string? GetReport(KeyValuePair<string, object> report)
     {
@@ -57,8 +53,8 @@ public class MarkdownReporter : BaseReporter
     {
         var apiCenterOnboardingReport = (ApiCenterOnboardingPluginReport)report;
 
-        if (!apiCenterOnboardingReport.NewApis.Any() &&
-            !apiCenterOnboardingReport.ExistingApis.Any())
+        if (apiCenterOnboardingReport.NewApis.Length == 0 &&
+            apiCenterOnboardingReport.ExistingApis.Length == 0)
         {
             return null;
         }
@@ -68,7 +64,7 @@ public class MarkdownReporter : BaseReporter
         sb.AppendLine("# Azure API Center onboarding report");
         sb.AppendLine();
 
-        if (apiCenterOnboardingReport.NewApis.Any())
+        if (apiCenterOnboardingReport.NewApis.Length != 0)
         {
             var apisPerSchemeAndHost = apiCenterOnboardingReport.NewApis.GroupBy(x =>
             {
@@ -90,7 +86,7 @@ public class MarkdownReporter : BaseReporter
             sb.AppendLine();
         }
 
-        if (apiCenterOnboardingReport.ExistingApis.Any())
+        if (apiCenterOnboardingReport.ExistingApis.Length != 0)
         {
             sb.AppendLine("## ✅ APIs that are already registered in Azure API Center");
             sb.AppendLine();
@@ -128,7 +124,7 @@ public class MarkdownReporter : BaseReporter
         sb.AppendLine("## 🔌 APIs")
             .AppendLine();
 
-        if (apiCenterMinimalPermissionsReport.Results.Any())
+        if (apiCenterMinimalPermissionsReport.Results.Length != 0)
         {
             foreach (var apiResult in apiCenterMinimalPermissionsReport.Results)
             {
@@ -157,7 +153,7 @@ public class MarkdownReporter : BaseReporter
         sb.AppendLine("## ⚠️ Unmatched requests")
             .AppendLine();
 
-        if (apiCenterMinimalPermissionsReport.UnmatchedRequests.Any())
+        if (apiCenterMinimalPermissionsReport.UnmatchedRequests.Length != 0)
         {
             sb.AppendLine("The following requests were not matched to any API in API Center:")
                 .AppendLine()
@@ -174,7 +170,7 @@ public class MarkdownReporter : BaseReporter
         sb.AppendLine("## 🛑 Errors")
             .AppendLine();
 
-        if (apiCenterMinimalPermissionsReport.Errors.Any())
+        if (apiCenterMinimalPermissionsReport.Errors.Length != 0)
         {
             sb.AppendLine("The following errors occurred while determining minimal permissions:")
                 .AppendLine()
@@ -193,7 +189,7 @@ public class MarkdownReporter : BaseReporter
 
     private static string? TransformApiCenterProductionVersionReport(object report)
     {
-        var getReadableApiStatus = (ApiCenterProductionVersionPluginReportItemStatus status) => status switch
+        static string getReadableApiStatus(ApiCenterProductionVersionPluginReportItemStatus status) => status switch
         {
             ApiCenterProductionVersionPluginReportItemStatus.NotRegistered => "🛑 Not registered",
             ApiCenterProductionVersionPluginReportItemStatus.NonProduction => "⚠️ Non-production",
@@ -337,7 +333,7 @@ public class MarkdownReporter : BaseReporter
 
     private static void AddExecutionSummaryReportSummary(IEnumerable<RequestLog> requestLogs, StringBuilder sb)
     {
-        var getReadableMessageTypeForSummary = (MessageType messageType) => messageType switch
+        static string getReadableMessageTypeForSummary(MessageType messageType) => messageType switch
         {
             MessageType.Chaos => "Requests with chaos",
             MessageType.Failed => "Failures",
@@ -376,7 +372,7 @@ public class MarkdownReporter : BaseReporter
         sb.AppendLine("# Minimal permissions report");
         sb.AppendLine();
 
-        var transformPermissionsInfo = (Action<MinimalPermissionsInfo, string>)((permissionsInfo, type) =>
+        void transformPermissionsInfo(MinimalPermissionsInfo permissionsInfo, string type)
         {
             sb.AppendLine($"## Minimal {type} permissions");
             sb.AppendLine();
@@ -412,7 +408,7 @@ public class MarkdownReporter : BaseReporter
             }
 
             sb.AppendLine();
-        });
+        }
 
         if (minimalPermissionsGuidanceReport.DelegatedPermissions is not null)
         {

@@ -28,10 +28,10 @@ public class MockResponseConfiguration
 
     [JsonPropertyName("$schema")]
     public string Schema { get; set; } = "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.21.0/mockresponseplugin.schema.json";
-    public IEnumerable<MockResponse> Mocks { get; set; } = Array.Empty<MockResponse>();
+    public IEnumerable<MockResponse> Mocks { get; set; } = [];
 }
 
-public class MockResponsePlugin : BaseProxyPlugin
+public class MockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     protected MockResponseConfiguration _configuration = new();
     private MockResponsesLoader? _loader = null;
@@ -41,11 +41,7 @@ public class MockResponsePlugin : BaseProxyPlugin
     private IProxyConfiguration? _proxyConfiguration;
     // tracks the number of times a mock has been applied
     // used in combination with mocks that have an Nth property
-    private Dictionary<string, int> _appliedMocks = new();
-
-    public MockResponsePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
+    private readonly Dictionary<string, int> _appliedMocks = [];
 
     public override Option[] GetOptions()
     {
@@ -63,15 +59,15 @@ public class MockResponsePlugin : BaseProxyPlugin
         return [_noMocks, _mocksFile];
     }
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
         _loader = new MockResponsesLoader(Logger, _configuration);
 
         PluginEvents.OptionsLoaded += OnOptionsLoaded;
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
 
         _proxyConfiguration = Context.Configuration;
     }
@@ -105,7 +101,7 @@ public class MockResponsePlugin : BaseProxyPlugin
         _loader?.InitResponsesWatcher();
     }
 
-    protected virtual Task OnRequest(object? sender, ProxyRequestArgs e)
+    protected virtual Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
@@ -180,17 +176,18 @@ public class MockResponsePlugin : BaseProxyPlugin
 
         if (mockResponse is not null && mockResponse.Request is not null)
         {
-            if (!_appliedMocks.ContainsKey(mockResponse.Request.Url))
+            if (!_appliedMocks.TryGetValue(mockResponse.Request.Url, out int value))
             {
-                _appliedMocks.Add(mockResponse.Request.Url, 0);
+                value = 0;
+                _appliedMocks.Add(mockResponse.Request.Url, value);
             }
-            _appliedMocks[mockResponse.Request.Url]++;
+            _appliedMocks[mockResponse.Request.Url] = ++value;
         }
 
         return mockResponse;
     }
 
-    private bool HasMatchingBody(MockResponse mockResponse, Request request)
+    private static bool HasMatchingBody(MockResponse mockResponse, Request request)
     {
         if (request.Method == "GET")
         {

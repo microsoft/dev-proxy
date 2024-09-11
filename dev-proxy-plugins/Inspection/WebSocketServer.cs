@@ -12,24 +12,18 @@ using System.Threading;
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 
-public class WebSocketServer
+public class WebSocketServer(int port, ILogger logger)
 {
     private HttpListener? listener;
-    private int _port;
-    private ILogger _logger;
+    private readonly int _port = port;
+    private readonly ILogger _logger = logger;
     private WebSocket? webSocket;
-    static SemaphoreSlim webSocketSemaphore = new SemaphoreSlim(1, 1);
+    static readonly SemaphoreSlim webSocketSemaphore = new(1, 1);
 
     public bool IsConnected => webSocket is not null;
     public event Action<string>? MessageReceived;
 
-    public WebSocketServer(int port, ILogger logger)
-    {
-        _port = port;
-        _logger = logger;
-    }
-
-    private async Task HandleMessages(WebSocket ws)
+    private async Task HandleMessagesAsync(WebSocket ws)
     {
         try
         {
@@ -56,7 +50,7 @@ public class WebSocketServer
         }
     }
 
-    public async void Start()
+    public async Task StartAsync()
     {
         listener = new HttpListener();
         listener.Prefixes.Add($"http://localhost:{_port}/");
@@ -70,7 +64,7 @@ public class WebSocketServer
             {
                 var webSocketContext = await context.AcceptWebSocketAsync(null);
                 webSocket = webSocketContext.WebSocket;
-                _ = HandleMessages(webSocket);
+                _ = HandleMessagesAsync(webSocket);
             }
             else
             {

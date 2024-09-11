@@ -7,28 +7,24 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Reporters;
 
-public abstract class BaseReporter : BaseProxyPlugin
+public abstract class BaseReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    protected BaseReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
-
     public virtual string FileExtension => throw new NotImplementedException();
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
     protected abstract string? GetReport(KeyValuePair<string, object> report);
 
-    protected virtual Task AfterRecordingStop(object sender, RecordingArgs e)
+    protected virtual Task AfterRecordingStopAsync(object sender, RecordingArgs e)
     {
-        if (!e.GlobalData.ContainsKey(ProxyUtils.ReportsKey) ||
-            e.GlobalData[ProxyUtils.ReportsKey] is not Dictionary<string, object> reports ||
-            !reports.Any())
+        if (!e.GlobalData.TryGetValue(ProxyUtils.ReportsKey, out object? value) ||
+            value is not Dictionary<string, object> reports ||
+            reports.Count == 0)
         {
             Logger.LogDebug("No reports found");
             return Task.CompletedTask;

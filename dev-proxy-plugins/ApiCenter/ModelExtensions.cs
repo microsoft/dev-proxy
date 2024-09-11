@@ -6,11 +6,11 @@ using Microsoft.DevProxy.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Readers;
 
-namespace Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
+namespace Microsoft.DevProxy.Plugins.ApiCenter;
 
 public static class ModelExtensions
 {
-    internal static async Task LoadDeployments(this Api api, ApiCenterClient apiCenterClient)
+    internal static async Task LoadDeploymentsAsync(this Api api, ApiCenterClient apiCenterClient)
     {
         if (api.Deployments is not null)
         {
@@ -19,11 +19,11 @@ public static class ModelExtensions
 
         Debug.Assert(api.Id is not null);
 
-        var deployments = await apiCenterClient.GetDeployments(api.Id);
+        var deployments = await apiCenterClient.GetDeploymentsAsync(api.Id);
         api.Deployments = deployments ?? [];
     }
 
-    internal static async Task LoadVersions(this Api api, ApiCenterClient apiCenterClient)
+    internal static async Task LoadVersionsAsync(this Api api, ApiCenterClient apiCenterClient)
     {
         if (api.Versions is not null)
         {
@@ -32,11 +32,11 @@ public static class ModelExtensions
 
         Debug.Assert(api.Id is not null);
 
-        var versions = await apiCenterClient.GetVersions(api.Id);
+        var versions = await apiCenterClient.GetVersionsAsync(api.Id);
         api.Versions = versions ?? [];
     }
 
-    internal static async Task LoadDefinitions(this ApiVersion version, ApiCenterClient apiCenterClient)
+    internal static async Task LoadDefinitionsAsync(this ApiVersion version, ApiCenterClient apiCenterClient)
     {
         if (version.Definitions is not null)
         {
@@ -45,14 +45,14 @@ public static class ModelExtensions
 
         Debug.Assert(version.Id is not null);
 
-        var definitions = await apiCenterClient.GetDefinitions(version.Id);
+        var definitions = await apiCenterClient.GetDefinitionsAsync(version.Id);
         version.Definitions = definitions ?? [];
     }
 
     internal static ApiVersion? GetVersion(this Api api, RequestLog request, string requestUrl, ILogger logger)
     {
         if (api.Versions is null ||
-            !api.Versions.Any())
+            api.Versions.Length == 0)
         {
             return null;
         }
@@ -104,7 +104,7 @@ public static class ModelExtensions
     internal static IEnumerable<string> GetUrls(this Api api)
     {
         if (api.Versions is null ||
-            !api.Versions.Any())
+            api.Versions.Length == 0)
         {
             return [];
         }
@@ -118,7 +118,7 @@ public static class ModelExtensions
         return new HashSet<string>([.. urlsFromDeployments, .. urlsFromVersions]);
     }
 
-    internal static async Task LoadOpenApiDefinition(this ApiDefinition apiDefinition, ApiCenterClient apiCenterClient, ILogger logger)
+    internal static async Task LoadOpenApiDefinitionAsync(this ApiDefinition apiDefinition, ApiCenterClient apiCenterClient, ILogger logger)
     {
         if (apiDefinition.Definition is not null)
         {
@@ -129,7 +129,7 @@ public static class ModelExtensions
         Debug.Assert(apiDefinition.Id is not null);
         logger.LogDebug("Loading API definition for {apiDefinitionId}...", apiDefinition.Id);
 
-        var definition = await apiCenterClient.GetDefinition(apiDefinition.Id);
+        var definition = await apiCenterClient.GetDefinitionAsync(apiDefinition.Id);
         if (definition is null)
         {
             logger.LogError("Failed to deserialize API definition for {apiDefinitionId}", apiDefinition.Id);
@@ -143,7 +143,7 @@ public static class ModelExtensions
             return;
         }
 
-        var exportResult = await apiCenterClient.PostExportSpecification(apiDefinition.Id);
+        var exportResult = await apiCenterClient.PostExportSpecificationAsync(apiDefinition.Id);
         if (exportResult is null)
         {
             logger.LogError("Failed to deserialize exported API definition for {apiDefinitionId}", apiDefinition.Id);
@@ -166,7 +166,7 @@ public static class ModelExtensions
         }
     }
 
-    internal static async Task<Dictionary<string, ApiDefinition>> GetApiDefinitionsByUrl(this Api[] apis, ApiCenterClient apiCenterClient, ILogger logger)
+    internal static async Task<Dictionary<string, ApiDefinition>> GetApiDefinitionsByUrlAsync(this Api[] apis, ApiCenterClient apiCenterClient, ILogger logger)
     {
         logger.LogInformation("Loading API definitions from API Center...");
 
@@ -180,14 +180,14 @@ public static class ModelExtensions
             logger.LogDebug("Loading API definitions for {apiName}...", api.Id);
 
             // load definitions from deployments
-            await api.LoadDeployments(apiCenterClient);
+            await api.LoadDeploymentsAsync(apiCenterClient);
             // LoadDeployments sets api.Deployments to an empty array if no deployments are found
             foreach (var deployment in api.Deployments!)
             {
                 Debug.Assert(deployment.Properties?.Server is not null);
                 Debug.Assert(deployment.Properties?.DefinitionId is not null);
 
-                if (!deployment.Properties.Server.RuntimeUri.Any())
+                if (deployment.Properties.Server.RuntimeUri.Length == 0)
                 {
                     logger.LogDebug("No runtime URIs found for deployment {deploymentName}", deployment.Name);
                     continue;
@@ -203,19 +203,19 @@ public static class ModelExtensions
             }
 
             // load definitions from versions
-            await api.LoadVersions(apiCenterClient);
+            await api.LoadVersionsAsync(apiCenterClient);
             // LoadVersions sets api.Versions to an empty array if no versions are found
             foreach (var version in api.Versions!)
             {
                 Debug.Assert(version.Id is not null);
 
-                await version.LoadDefinitions(apiCenterClient);
+                await version.LoadDefinitionsAsync(apiCenterClient);
                 // LoadDefinitions sets version.Definitions to an empty array if no definitions are found
                 foreach (var definition in version.Definitions!)
                 {
                     Debug.Assert(definition.Id is not null);
 
-                    await definition.LoadOpenApiDefinition(apiCenterClient, logger);
+                    await definition.LoadOpenApiDefinitionAsync(apiCenterClient, logger);
 
                     if (definition.Definition is null)
                     {

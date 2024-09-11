@@ -12,27 +12,23 @@ using Titanium.Web.Proxy.Models;
 
 namespace Microsoft.DevProxy.Plugins.Behavior;
 
-public class RetryAfterPlugin : BaseProxyPlugin
+public class RetryAfterPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(RetryAfterPlugin);
     public static readonly string ThrottledRequestsKey = "ThrottledRequests";
 
-    public RetryAfterPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    public override async Task RegisterAsync()
     {
+        await base.RegisterAsync();
+
+        PluginEvents.BeforeRequest += OnRequestAsync;
     }
 
-    public override void Register()
-    {
-        base.Register();
-
-        PluginEvents.BeforeRequest += OnRequest;
-    }
-
-    private Task OnRequest(object? sender, ProxyRequestArgs e)
+    private Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (e.ResponseState.HasBeenSet ||
             UrlsToWatch is null ||
-            String.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) ||
             !e.ShouldExecute(UrlsToWatch))
         {
             return Task.CompletedTask;
@@ -45,13 +41,12 @@ public class RetryAfterPlugin : BaseProxyPlugin
     private void ThrottleIfNecessary(ProxyRequestArgs e)
     {
         var request = e.Session.HttpClient.Request;
-        if (!e.GlobalData.ContainsKey(ThrottledRequestsKey))
+        if (!e.GlobalData.TryGetValue(ThrottledRequestsKey, out object? value))
         {
             return;
         }
 
-        var throttledRequests = e.GlobalData[ThrottledRequestsKey] as List<ThrottlerInfo>;
-        if (throttledRequests is null)
+        if (value is not List<ThrottlerInfo> throttledRequests)
         {
             return;
         }
@@ -62,7 +57,7 @@ public class RetryAfterPlugin : BaseProxyPlugin
             throttledRequests.Remove(throttler);
         }
 
-        if (throttledRequests.Any() != true)
+        if (throttledRequests.Count == 0)
         {
             return;
         }
@@ -82,7 +77,7 @@ public class RetryAfterPlugin : BaseProxyPlugin
         }
     }
 
-    private void UpdateProxyResponse(ProxyRequestArgs e, ThrottlingInfo throttlingInfo, string message)
+    private static void UpdateProxyResponse(ProxyRequestArgs e, ThrottlingInfo throttlingInfo, string message)
     {
         var headers = new List<MockResponseHeader>();
         var body = string.Empty;

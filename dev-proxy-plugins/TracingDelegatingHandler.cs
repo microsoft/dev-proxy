@@ -20,7 +20,7 @@ internal class TracingDelegatingHandler(ILogger logger) : DelegatingHandler
         }
         if (request.Content is not null)
         {
-            var body = await request.Content.ReadAsStringAsync();
+            var body = await request.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogTrace("Body: {body}", body);
         }
 
@@ -33,7 +33,7 @@ internal class TracingDelegatingHandler(ILogger logger) : DelegatingHandler
         }
         if (response.Content is not null)
         {
-            var body = await response.Content.ReadAsStringAsync();
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogTrace("Body: {body}", body);
         }
 

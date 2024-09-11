@@ -10,13 +10,13 @@ namespace Microsoft.DevProxy.CommandHandlers;
 
 class ProxyPresetInfo
 {
-    public IList<string> ConfigFiles { get; set; } = new List<string>();
-    public IList<string> MockFiles { get; set; } = new List<string>();
+    public IList<string> ConfigFiles { get; set; } = [];
+    public IList<string> MockFiles { get; set; } = [];
 }
 
 class GitHubTreeResponse
 {
-    public GitHubTreeItem[] Tree { get; set; } = Array.Empty<GitHubTreeItem>();
+    public GitHubTreeItem[] Tree { get; set; } = [];
     public bool Truncated { get; set; }
 }
 
@@ -28,7 +28,7 @@ class GitHubTreeItem
 
 public static class PresetGetCommandHandler
 {
-    public static async Task DownloadPreset(string presetId, ILogger logger)
+    public static async Task DownloadPresetAsync(string presetId, ILogger logger)
     {
         try
         {
@@ -55,10 +55,10 @@ public static class PresetGetCommandHandler
 
             logger.LogInformation("Downloading preset {presetId}...", presetId);
 
-            var sampleFiles = await GetFilesToDownload(presetId, logger);
+            var sampleFiles = await GetFilesToDownloadAsync(presetId, logger);
             foreach (var sampleFile in sampleFiles)
             {
-                await DownloadFile(sampleFile, targetFolderPath, presetId, logger);
+                await DownloadFileAsync(sampleFile, targetFolderPath, presetId, logger);
             }
 
             logger.LogInformation("Preset saved in {targetFolderPath}\r\n", targetFolderPath);
@@ -162,7 +162,7 @@ public static class PresetGetCommandHandler
         return newFolder;
     }
 
-    private static async Task<string[]> GetFilesToDownload(string sampleFolderName, ILogger logger)
+    private static async Task<string[]> GetFilesToDownloadAsync(string sampleFolderName, ILogger logger)
     {
         logger.LogDebug("Getting list of files in Dev Proxy samples repo...");
         var url = $"https://api.github.com/repos/pnp/proxy-samples/git/trees/main?recursive=1";
@@ -199,7 +199,7 @@ public static class PresetGetCommandHandler
         }
     }
 
-    private static async Task DownloadFile(string filePath, string targetFolderPath, string presetId, ILogger logger)
+    private static async Task DownloadFileAsync(string filePath, string targetFolderPath, string presetId, ILogger logger)
     {
         var url = $"https://raw.githubusercontent.com/pnp/proxy-samples/main/{filePath.Replace("#", "%23")}";
         logger.LogDebug("Downloading file {filePath}...", filePath);
