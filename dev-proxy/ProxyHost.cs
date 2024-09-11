@@ -3,7 +3,6 @@
 
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.CommandHandlers;
-using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.Diagnostics;
 using System.Net;
@@ -13,27 +12,27 @@ namespace Microsoft.DevProxy;
 internal class ProxyHost
 {
     internal static readonly string PortOptionName = "--port";
-    private Option<int?> _portOption;
+    private readonly Option<int?> _portOption;
     internal static readonly string IpAddressOptionName = "--ip-address";
-    private Option<string?> _ipAddressOption;
+    private readonly Option<string?> _ipAddressOption;
     internal static readonly string LogLevelOptionName = "--log-level";
     private static Option<LogLevel?>? _logLevelOption;
     internal static readonly string RecordOptionName = "--record";
-    private Option<bool?> _recordOption;
+    private readonly Option<bool?> _recordOption;
     internal static readonly string WatchPidsOptionName = "--watch-pids";
-    private Option<IEnumerable<int>?> _watchPidsOption;
+    private readonly Option<IEnumerable<int>?> _watchPidsOption;
     internal static readonly string WatchProcessNamesOptionName = "--watch-process-names";
-    private Option<IEnumerable<string>?> _watchProcessNamesOption;
+    private readonly Option<IEnumerable<string>?> _watchProcessNamesOption;
     internal static readonly string ConfigFileOptionName = "--config-file";
     private static Option<string?>? _configFileOption;
     internal static readonly string RateOptionName = "--failure-rate";
-    private Option<int?> _rateOption;
+    private readonly Option<int?> _rateOption;
     internal static readonly string NoFirstRunOptionName = "--no-first-run";
-    private Option<bool?> _noFirstRunOption;
+    private readonly Option<bool?> _noFirstRunOption;
     internal static readonly string AsSystemProxyOptionName = "--as-system-proxy";
-    private Option<bool?> _asSystemProxyOption;
+    private readonly Option<bool?> _asSystemProxyOption;
     internal static readonly string InstallCertOptionName = "--install-cert";
-    private Option<bool?> _installCertOption;
+    private readonly Option<bool?> _installCertOption;
     internal static readonly string UrlsToWatchOptionName = "--urls-to-watch";
     private static Option<IEnumerable<string>?>? _urlsToWatchOption;
 
@@ -55,7 +54,7 @@ internal class ProxyHost
                 _configFileOption.ArgumentHelpName = "configFile";
                 _configFileOption.AddValidator(input =>
                 {
-                    var filePath = ProxyUtils.ReplacePathTokens(input.Tokens.First().Value);
+                    var filePath = ProxyUtils.ReplacePathTokens(input.Tokens[0].Value);
                     if (string.IsNullOrEmpty(filePath))
                     {
                         return;
@@ -135,9 +134,9 @@ internal class ProxyHost
                 };
                 _logLevelOption.AddValidator(input =>
                 {
-                    if (!Enum.TryParse<LogLevel>(input.Tokens.First().Value, true, out _))
+                    if (!Enum.TryParse<LogLevel>(input.Tokens[0].Value, true, out _))
                     {
-                        input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid log level. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}";
+                        input.ErrorMessage = $"{input.Tokens[0].Value} is not a valid log level. Allowed values are: {string.Join(", ", Enum.GetNames(typeof(LogLevel)))}";
                     }
                 });
             }
@@ -209,9 +208,9 @@ internal class ProxyHost
         };
         _ipAddressOption.AddValidator(input =>
         {
-            if (!IPAddress.TryParse(input.Tokens.First().Value, out _))
+            if (!IPAddress.TryParse(input.Tokens[0].Value, out _))
             {
-                input.ErrorMessage = $"{input.Tokens.First().Value} is not a valid IP address";
+                input.ErrorMessage = $"{input.Tokens[0].Value} is not a valid IP address";
             }
         });
 
@@ -327,7 +326,7 @@ internal class ProxyHost
         var presetGetCommand = new Command("get", "Download the specified preset from the Sample Solution Gallery");
         var presetIdArgument = new Argument<string>("preset-id", "The ID of the preset to download");
         presetGetCommand.AddArgument(presetIdArgument);
-        presetGetCommand.SetHandler(async presetId => await PresetGetCommandHandler.DownloadPreset(presetId, logger), presetIdArgument);
+        presetGetCommand.SetHandler(async presetId => await PresetGetCommandHandler.DownloadPresetAsync(presetId, logger), presetIdArgument);
         presetCommand.Add(presetGetCommand);
 
         command.Add(presetCommand);
@@ -346,7 +345,7 @@ internal class ProxyHost
         var outdatedCommand = new Command("outdated", "Check for new version");
         var outdatedShortOption = new Option<bool>("--short", "Return version only");
         outdatedCommand.AddOption(outdatedShortOption);
-        outdatedCommand.SetHandler(async versionOnly => await OutdatedCommandHandler.CheckVersion(versionOnly, logger), outdatedShortOption);
+        outdatedCommand.SetHandler(async versionOnly => await OutdatedCommandHandler.CheckVersionAsync(versionOnly, logger), outdatedShortOption);
 
         command.Add(outdatedCommand);
 
@@ -355,7 +354,7 @@ internal class ProxyHost
 
     public ProxyCommandHandler GetCommandHandler(PluginEvents pluginEvents, Option[] optionsFromPlugins, ISet<UrlToWatch> urlsToWatch, ILogger logger) => new(
         pluginEvents,
-        new Option[] {
+        [
             _portOption,
             _ipAddressOption,
             _logLevelOption!,
@@ -366,7 +365,8 @@ internal class ProxyHost
             _noFirstRunOption,
             _asSystemProxyOption,
             _installCertOption,
-        }.Concat(optionsFromPlugins).ToArray(),
+            .. optionsFromPlugins,
+        ],
         urlsToWatch,
         logger
     );

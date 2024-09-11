@@ -5,7 +5,7 @@ namespace Microsoft.DevProxy.Abstractions;
 
 public class GraphBatchResponsePayload
 {
-    public GraphBatchResponsePayloadResponse[] Responses { get; set; } = Array.Empty<GraphBatchResponsePayloadResponse>();
+    public GraphBatchResponsePayloadResponse[] Responses { get; set; } = [];
 }
 
 public class GraphBatchResponsePayloadResponse

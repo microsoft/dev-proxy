@@ -13,26 +13,22 @@ public class LatencyConfiguration
     public int MaxMs { get; set; } = 5000;
 }
 
-public class LatencyPlugin : BaseProxyPlugin
+public class LatencyPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     private readonly LatencyConfiguration _configuration = new();
 
     public override string Name => nameof(LatencyPlugin);
     private readonly Random _random = new();
 
-    public LatencyPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    public override async Task RegisterAsync()
     {
-    }
-
-    public override void Register()
-    {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
-        PluginEvents.BeforeRequest += OnRequest;
+        PluginEvents.BeforeRequest += OnRequestAsync;
     }
 
-    private async Task OnRequest(object? sender, ProxyRequestArgs e)
+    private async Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (UrlsToWatch is not null
             && e.ShouldExecute(UrlsToWatch))

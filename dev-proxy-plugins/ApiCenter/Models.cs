@@ -3,7 +3,7 @@
 
 using Microsoft.OpenApi.Models;
 
-namespace Microsoft.DevProxy.Plugins.RequestLogs.ApiCenter;
+namespace Microsoft.DevProxy.Plugins.ApiCenter;
 
 internal class Collection<T>()
 {

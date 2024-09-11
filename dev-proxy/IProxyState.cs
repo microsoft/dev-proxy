@@ -11,8 +11,8 @@ public interface IProxyState
     bool IsRecording { get; }
     IProxyConfiguration ProxyConfiguration { get; }
     List<RequestLog> RequestLogs { get; }
-    void RaiseMockRequest();
+    Task RaiseMockRequestAsync();
     void StartRecording();
     void StopProxy();
-    Task StopRecording();
+    Task StopRecordingAsync();
 }

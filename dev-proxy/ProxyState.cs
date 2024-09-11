@@ -20,7 +20,7 @@ public class ProxyState : IProxyState
     private readonly ILogger _logger;
     private readonly IPluginEvents _pluginEvents;
     private readonly IHostApplicationLifetime _hostApplicationLifetime;
-    private ExceptionHandler _exceptionHandler => ex => _logger.LogError(ex, "An error occurred in a plugin");
+    private ExceptionHandler ExceptionHandler => ex => _logger.LogError(ex, "An error occurred in a plugin");
 
     public ProxyState(ILogger logger, IPluginEvents pluginEvents, IHostApplicationLifetime hostApplicationLifetime, IProxyConfiguration proxyConfiguration)
     {
@@ -41,7 +41,7 @@ public class ProxyState : IProxyState
         PrintRecordingIndicator(IsRecording);
     }
 
-    public async Task StopRecording()
+    public async Task StopRecordingAsync()
     {
         if (!IsRecording)
         {
@@ -56,19 +56,16 @@ public class ProxyState : IProxyState
         // we let plugins handle previously recorded requests
         var clonedLogs = RequestLogs.ToArray();
         RequestLogs.Clear();
-        await _pluginEvents.RaiseRecordingStopped(new RecordingArgs(clonedLogs)
+        await _pluginEvents.RaiseRecordingStoppedAsync(new RecordingArgs(clonedLogs)
         {
             GlobalData = GlobalData
-        }, _exceptionHandler);
+        }, ExceptionHandler);
         _logger.LogInformation("DONE");
     }
 
-    public void RaiseMockRequest()
+    public async Task RaiseMockRequestAsync()
     {
-        _pluginEvents
-            .RaiseMockRequest(new EventArgs(), _exceptionHandler)
-            .GetAwaiter()
-            .GetResult();
+        await _pluginEvents.RaiseMockRequestAsync(new EventArgs(), ExceptionHandler);
     }
 
     public void StopProxy()

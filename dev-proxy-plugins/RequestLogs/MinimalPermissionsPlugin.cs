@@ -3,11 +3,11 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.DevProxy.Plugins.MinimalPermissions;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -25,25 +25,21 @@ internal class MinimalPermissionsPluginConfiguration
     public PermissionsType Type { get; set; } = PermissionsType.Delegated;
 }
 
-public class MinimalPermissionsPlugin : BaseReportingPlugin
+public class MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(MinimalPermissionsPlugin);
-    private MinimalPermissionsPluginConfiguration _configuration = new();
+    private readonly MinimalPermissionsPluginConfiguration _configuration = new();
 
-    public MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    public override async Task RegisterAsync()
     {
-    }
-
-    public override void Register()
-    {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         if (!e.RequestLogs.Any())
         {
@@ -89,7 +85,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
         // Remove duplicates
         endpoints = endpoints.Distinct(methodAndUrlComparer).ToList();
 
-        if (!endpoints.Any())
+        if (endpoints.Count == 0)
         {
             Logger.LogInformation("No requests to Microsoft Graph endpoints recorded. Will not retrieve minimal permissions.");
             return;
@@ -99,7 +95,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
 
         Logger.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
 
-        var report = await DetermineMinimalScopes(endpoints);
+        var report = await DetermineMinimalScopesAsync(endpoints);
         if (report is not null)
         {
             StoreReport(report, e);
@@ -112,7 +108,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
 
         if (string.IsNullOrEmpty(batchBody))
         {
-            return requests.ToArray();
+            return [.. requests];
         }
 
         try
@@ -120,7 +116,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
             var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody, ProxyUtils.JsonSerializerOptions);
             if (batch == null)
             {
-                return requests.ToArray();
+                return [.. requests];
             }
 
             foreach (var request in batch.Requests)
@@ -137,10 +133,10 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
         }
         catch { }
 
-        return requests.ToArray();
+        return [.. requests];
     }
 
-    private async Task<MinimalPermissionsPluginReport?> DetermineMinimalScopes(IEnumerable<(string method, string url)> endpoints)
+    private async Task<MinimalPermissionsPluginReport?> DetermineMinimalScopesAsync(IEnumerable<(string method, string url)> endpoints)
     {
         var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
 
@@ -162,7 +158,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
 
             if (_configuration.Type == PermissionsType.Delegated)
             {
-                minimalScopes = await GraphUtils.UpdateUserScopes(minimalScopes, endpoints, _configuration.Type, Logger);
+                minimalScopes = await GraphUtils.UpdateUserScopesAsync(minimalScopes, endpoints, _configuration.Type, Logger);
             }
 
             if (minimalScopes.Any())
@@ -189,7 +185,7 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
         }
     }
 
-    private (string method, string url) GetMethodAndUrl(string message)
+    private static (string method, string url) GetMethodAndUrl(string message)
     {
         var info = message.Split(" ");
         if (info.Length > 2)
@@ -199,9 +195,9 @@ public class MinimalPermissionsPlugin : BaseReportingPlugin
         return (info[0], info[1]);
     }
 
-    private string GetTokenizedUrl(string absoluteUrl)
+    private static string GetTokenizedUrl(string absoluteUrl)
     {
         var sanitizedUrl = ProxyUtils.SanitizeUrl(absoluteUrl);
-        return "/" + String.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(s => Uri.UnescapeDataString(s)));
+        return "/" + string.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(s => Uri.UnescapeDataString(s)));
     }
 }

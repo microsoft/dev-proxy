@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Reporters;
 
-public class JsonReporter : BaseReporter
+public class JsonReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReporter(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(JsonReporter);
     public override string FileExtension => ".json";
@@ -19,10 +19,6 @@ public class JsonReporter : BaseReporter
         { typeof(ExecutionSummaryPluginReportByUrl), TransformExecutionSummary },
         { typeof(ExecutionSummaryPluginReportByMessageType), TransformExecutionSummary },
     };
-
-    public JsonReporter(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
 
     protected override string GetReport(KeyValuePair<string, object> report)
     {

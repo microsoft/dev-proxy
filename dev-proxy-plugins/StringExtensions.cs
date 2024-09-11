@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#pragma warning disable IDE0130
 namespace System;
+#pragma warning restore IDE0130
 
 internal static class StringExtensions
 {

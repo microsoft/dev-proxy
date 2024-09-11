@@ -4,6 +4,7 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.DevProxy.Abstractions.LanguageModel;
 
 namespace Microsoft.DevProxy;
 
@@ -21,13 +22,11 @@ public class ProxyConfiguration : IProxyConfiguration
 {
     public int Port { get; set; } = 8000;
     public string? IPAddress { get; set; } = "127.0.0.1";
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    public LabelMode LabelMode { get; set; } = LabelMode.Text;
     public bool Record { get; set; } = false;
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public LogLevel LogLevel { get; set; } = LogLevel.Information;
     public IEnumerable<int> WatchPids { get; set; } = new List<int>();
-    public IEnumerable<string> WatchProcessNames { get; set; } = new List<string>();
+    public IEnumerable<string> WatchProcessNames { get; set; } = [];
     public int Rate { get; set; } = 50;
     public bool NoFirstRun { get; set; } = false;
     public bool AsSystemProxy { get; set; } = true;

@@ -3,7 +3,6 @@
 
 using System.Text;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
@@ -17,11 +16,11 @@ public class ProxyConsoleFormatter : ConsoleFormatter
     private const string _boxBottomLeft = "\u2570 ";
     // used to align single-line messages
     private const string _boxSpacing = "  ";
-    private Dictionary<int, List<RequestLog>> _requestLogs = [];
-    private ConsoleFormatterOptions _options;
+    private readonly Dictionary<int, List<RequestLog>> _requestLogs = [];
+    private readonly ConsoleFormatterOptions _options;
     const string labelSpacing = " ";
     // label length + 2
-    private readonly static string noLabelSpacing = new string(' ', 4 + 2);
+    private readonly static string noLabelSpacing = new(' ', 4 + 2);
 
     public ProxyConsoleFormatter(IOptions<ConsoleFormatterOptions> options) : base("devproxy")
     {
@@ -71,14 +70,14 @@ public class ProxyConsoleFormatter : ConsoleFormatter
                 // buffer request logs until the request is finished processing
                 if (!_requestLogs.ContainsKey(requestId.Value))
                 {
-                    _requestLogs[requestId.Value] = new();
+                    _requestLogs[requestId.Value] = [];
                 }
                 _requestLogs[requestId.Value].Add(requestLog);
             }
         }
     }
 
-    private int? GetRequestIdScope(IExternalScopeProvider? scopeProvider)
+    private static int? GetRequestIdScope(IExternalScopeProvider? scopeProvider)
     {
         int? requestId = null;
 
@@ -150,7 +149,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         textWriter.Write(message);
     }
 
-    private void WriteLogMessageBoxedWithInvertedLabels(string[] message, MessageType messageType, TextWriter textWriter, bool lastMessage = false)
+    private static void WriteLogMessageBoxedWithInvertedLabels(string[] message, MessageType messageType, TextWriter textWriter, bool lastMessage = false)
     {
         var label = GetMessageTypeString(messageType);
         var (bgColor, fgColor) = GetMessageTypeColor(messageType);

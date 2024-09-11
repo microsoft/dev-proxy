@@ -15,8 +15,8 @@ namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
 internal class HttpFile
 {
-    public Dictionary<string, string> Variables { get; set; } = new();
-    public List<HttpFileRequest> Requests { get; set; } = new();
+    public Dictionary<string, string> Variables { get; set; } = [];
+    public List<HttpFileRequest> Requests { get; set; } = [];
 
     public string Serialize()
     {
@@ -52,7 +52,7 @@ internal class HttpFile
         return sb.ToString();
     }
 
-    private string GetRequestName(HttpFileRequest request)
+    private static string GetRequestName(HttpFileRequest request)
     {
         var url = new Uri(request.Url);
         return $"{request.Method.ToLower()}{url.Segments.Last().Replace("/", "").ToPascalCase()}";
@@ -64,7 +64,7 @@ internal class HttpFileRequest
     public string Method { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public string? Body { get; set; }
-    public List<HttpFileRequestHeader> Headers { get; set; } = new();
+    public List<HttpFileRequestHeader> Headers { get; set; } = [];
 }
 
 internal class HttpFileRequestHeader
@@ -85,7 +85,7 @@ internal class HttpFileGeneratorPluginConfiguration
     public bool IncludeOptionsRequests { get; set; } = false;
 }
 
-public class HttpFileGeneratorPlugin : BaseReportingPlugin
+public class HttpFileGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(HttpFileGeneratorPlugin);
     public static readonly string GeneratedHttpFilesKey = "GeneratedHttpFiles";
@@ -93,20 +93,16 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
     private readonly string[] headersToExtract = ["authorization", "key"];
     private readonly string[] queryParametersToExtract = ["key"];
 
-    public HttpFileGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    public override async Task RegisterAsync()
     {
-    }
-
-    public override void Register()
-    {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         Logger.LogInformation("Creating HTTP file from recorded requests...");
 
@@ -116,7 +112,7 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
             return;
         }
 
-        var httpFile = await GetHttpRequests(e.RequestLogs);
+        var httpFile = await GetHttpRequestsAsync(e.RequestLogs);
         DeduplicateRequests(httpFile);
         ExtractVariables(httpFile);
 
@@ -133,7 +129,7 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
         e.GlobalData[GeneratedHttpFilesKey] = generatedHttpFiles;
     }
 
-    private async Task<HttpFile> GetHttpRequests(IEnumerable<RequestLog> requestLogs)
+    private async Task<HttpFile> GetHttpRequestsAsync(IEnumerable<RequestLog> requestLogs)
     {
         var httpFile = new HttpFile();
 
@@ -147,7 +143,7 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
             }
 
             if (!_configuration.IncludeOptionsRequests &&
-                String.Equals(request.Context.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+                string.Equals(request.Context.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
             {
                 Logger.LogDebug("Skipping OPTIONS request {url}...", request.Context.Session.HttpClient.Request.RequestUri);
                 continue;
@@ -280,7 +276,7 @@ public class HttpFileGeneratorPlugin : BaseReportingPlugin
         }
     }
 
-    private string GetVariableName(HttpFileRequest request, string variableName)
+    private static string GetVariableName(HttpFileRequest request, string variableName)
     {
         var url = new Uri(request.Url);
         return $"{url.Host.Replace(".", "_").Replace("-", "_")}_{variableName.Replace("-", "_")}";

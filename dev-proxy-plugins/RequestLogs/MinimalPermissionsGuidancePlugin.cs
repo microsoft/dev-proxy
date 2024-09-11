@@ -4,10 +4,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.DevProxy.Plugins.MinimalPermissions;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -37,18 +37,14 @@ internal class MinimalPermissionsGuidancePluginConfiguration
     public IEnumerable<string>? PermissionsToExclude { get; set; }
 }
 
-public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
+public class MinimalPermissionsGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
     public override string Name => nameof(MinimalPermissionsGuidancePlugin);
-    private MinimalPermissionsGuidancePluginConfiguration _configuration = new();
+    private readonly MinimalPermissionsGuidancePluginConfiguration _configuration = new();
 
-    public MinimalPermissionsGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
+    public override async Task RegisterAsync()
     {
-    }
-
-    public override void Register()
-    {
-        base.Register();
+        await base.RegisterAsync();
 
         ConfigSection?.Bind(_configuration);
         // we need to do it this way because .NET doesn't distinguish between
@@ -65,10 +61,10 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             _configuration.PermissionsToExclude = _configuration.PermissionsToExclude.Where(p => !string.IsNullOrEmpty(p));
         }
 
-        PluginEvents.AfterRecordingStop += AfterRecordingStop;
+        PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStop(object? sender, RecordingArgs e)
+    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
     {
         if (!e.RequestLogs.Any())
         {
@@ -182,7 +178,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
             Logger.LogInformation("Evaluating delegated permissions for: {endpoints}", string.Join(", ", delegatedEndpoints.Select(e => $"{e.method} {e.url}")));
 
-            await EvaluateMinimalScopes(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
+            await EvaluateMinimalScopesAsync(delegatedEndpoints, scopesToEvaluate, PermissionsType.Delegated, delegatedPermissionsInfo);
         }
 
         if (applicationEndpoints.Count > 0)
@@ -192,19 +188,19 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
             Logger.LogInformation("Evaluating application permissions for: {endpoints}", string.Join(", ", applicationEndpoints.Select(e => $"{e.method} {e.url}")));
 
-            await EvaluateMinimalScopes(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
+            await EvaluateMinimalScopesAsync(applicationEndpoints, rolesToEvaluate, PermissionsType.Application, applicationPermissionsInfo);
         }
 
         StoreReport(report, e);
     }
 
-    private (string method, string url)[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
+    private static (string method, string url)[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
     {
         var requests = new List<(string method, string url)>();
 
         if (string.IsNullOrEmpty(batchBody))
         {
-            return requests.ToArray();
+            return [.. requests];
         }
 
         try
@@ -212,7 +208,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
             var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody, ProxyUtils.JsonSerializerOptions);
             if (batch == null)
             {
-                return requests.ToArray();
+                return [.. requests];
             }
 
             foreach (var request in batch.Requests)
@@ -229,7 +225,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
         }
         catch { }
 
-        return requests.ToArray();
+        return [.. requests];
     }
 
     /// <summary>
@@ -238,7 +234,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
     /// If it can't get the permissions, returns PermissionType.Application
     /// and an empty array
     /// </summary>
-    private (PermissionsType type, IEnumerable<string> permissions) GetPermissionsAndType(RequestLog request)
+    private static (PermissionsType type, IEnumerable<string> permissions) GetPermissionsAndType(RequestLog request)
     {
         var authHeader = request.Context?.Session.HttpClient.Request.Headers.GetFirstHeader("Authorization");
         if (authHeader == null)
@@ -286,7 +282,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
         }
     }
 
-    private async Task EvaluateMinimalScopes(IEnumerable<(string method, string url)> endpoints, IEnumerable<string> permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
+    private async Task EvaluateMinimalScopesAsync(IEnumerable<(string method, string url)> endpoints, IEnumerable<string> permissionsFromAccessToken, PermissionsType scopeType, MinimalPermissionsInfo permissionsInfo)
     {
         var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
 
@@ -315,7 +311,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
 
             if (scopeType == PermissionsType.Delegated)
             {
-                minimalPermissions = await GraphUtils.UpdateUserScopes(minimalPermissions, endpoints, scopeType, Logger);
+                minimalPermissions = await GraphUtils.UpdateUserScopesAsync(minimalPermissions, endpoints, scopeType, Logger);
             }
 
             if (minimalPermissions.Any())
@@ -350,7 +346,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
         }
     }
 
-    private (string method, string url) GetMethodAndUrl(string message)
+    private static (string method, string url) GetMethodAndUrl(string message)
     {
         var info = message.Split(" ");
         if (info.Length > 2)
@@ -360,7 +356,7 @@ public class MinimalPermissionsGuidancePlugin : BaseReportingPlugin
         return (method: info[0], url: info[1]);
     }
 
-    private string GetTokenizedUrl(string absoluteUrl)
+    private static string GetTokenizedUrl(string absoluteUrl)
     {
         var sanitizedUrl = ProxyUtils.SanitizeUrl(absoluteUrl);
         return "/" + string.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(Uri.UnescapeDataString));
