@@ -7,20 +7,15 @@ namespace Microsoft.DevProxy.ApiControllers;
 
 [ApiController]
 [Route("[controller]")]
-public class ProxyController : ControllerBase
+public class ProxyController(IProxyState proxyState) : ControllerBase
 {
-    private readonly IProxyState _proxyState;
-
-    public ProxyController(IProxyState proxyState)
-    {
-        _proxyState = proxyState;
-    }
+    private readonly IProxyState _proxyState = proxyState;
 
     [HttpGet]
     public ProxyInfo Get() => ProxyInfo.From(_proxyState);
 
     [HttpPost]
-    public IActionResult Set([FromBody] ProxyInfo proxyInfo)
+    public async Task<IActionResult> SetAsync([FromBody] ProxyInfo proxyInfo)
     {
         if (proxyInfo.ConfigFile != null)
         {
@@ -35,7 +30,7 @@ public class ProxyController : ControllerBase
             }
             else
             {
-                _proxyState.StopRecording();
+                await _proxyState.StopRecordingAsync();
             }
         }
 
@@ -43,9 +38,9 @@ public class ProxyController : ControllerBase
     }
 
     [HttpPost("raiseMockRequest")]
-    public void RaiseMockRequest()
+    public async Task RaiseMockRequestAsync()
     {
-        _proxyState.RaiseMockRequest();
+        await _proxyState.RaiseMockRequestAsync();
         Response.StatusCode = 202;
     }
 

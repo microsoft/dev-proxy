@@ -3,12 +3,13 @@
 
 using Microsoft.DevProxy;
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.DevProxy.Abstractions.LanguageModel;
 using Microsoft.DevProxy.CommandHandlers;
 using Microsoft.DevProxy.Logging;
 using Microsoft.Extensions.Logging.Console;
 using System.CommandLine;
 
-PluginEvents pluginEvents = new PluginEvents();
+PluginEvents pluginEvents = new();
 
 ILogger BuildLogger()
 {
@@ -58,7 +59,8 @@ if (hasGlobalOption || hasSubCommand)
     return;
 }
 
-PluginLoaderResult loaderResults = new PluginLoader(logger).LoadPlugins(pluginEvents, context);
+var pluginLoader = new PluginLoader(logger);
+PluginLoaderResult loaderResults = await pluginLoader.LoadPluginsAsync(pluginEvents, context);
 // have all the plugins init
 pluginEvents.RaiseInit(new InitArgs());
 
@@ -75,10 +77,10 @@ loaderResults.ProxyPlugins
     .ToList()
     .ForEach(rootCommand.AddCommand);
 
-rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, options.ToArray(), loaderResults.UrlsToWatch, logger);
+rootCommand.Handler = proxyHost.GetCommandHandler(pluginEvents, [.. options], loaderResults.UrlsToWatch, logger);
 
 // filter args to retrieve options
-var incomingOptions = args.Where(arg => arg.StartsWith("-")).ToArray();
+var incomingOptions = args.Where(arg => arg.StartsWith('-')).ToArray();
 
 // remove the global options from the incoming options
 incomingOptions = incomingOptions.Except(globalOptions).ToArray();

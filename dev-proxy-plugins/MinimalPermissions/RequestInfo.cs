@@ -1,7 +1,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Microsoft.DevProxy.Plugins.RequestLogs.MinimalPermissions;
+namespace Microsoft.DevProxy.Plugins.MinimalPermissions;
 
 public class RequestInfo
 {

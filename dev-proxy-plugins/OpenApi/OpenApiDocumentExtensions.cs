@@ -4,7 +4,9 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
+#pragma warning disable IDE0130
 namespace Microsoft.OpenApi.Models;
+#pragma warning restore IDE0130
 
 public static class OpenApiDocumentExtensions
 {
@@ -80,7 +82,7 @@ public static class OpenApiDocumentExtensions
             return [];
         }
 
-        var globalScopes = new string[] { };
+        var globalScopes = Array.Empty<string>();
         var globalOAuth2Requirement = openApiDocument.SecurityRequirements
             .FirstOrDefault(req => req.ContainsKey(oauth2Scheme));
         if (globalOAuth2Requirement is not null)

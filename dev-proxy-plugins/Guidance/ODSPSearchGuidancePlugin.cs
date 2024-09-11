@@ -8,34 +8,30 @@ using Titanium.Web.Proxy.Http;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
-public class ODSPSearchGuidancePlugin : BaseProxyPlugin
+public class ODSPSearchGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    public ODSPSearchGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
-
     public override string Name => nameof(ODSPSearchGuidancePlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.BeforeRequest += BeforeRequest;
+        PluginEvents.BeforeRequest += BeforeRequestAsync;
     }
 
-    private Task BeforeRequest(object sender, ProxyRequestArgs e)
+    private Task BeforeRequestAsync(object sender, ProxyRequestArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         if (UrlsToWatch is not null &&
             e.HasRequestUrlMatch(UrlsToWatch) &&
-            !String.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
             WarnDeprecatedSearch(request))
             Logger.LogRequest(BuildUseGraphSearchMessage(), MessageType.Warning, new LoggingContext(e.Session));
 
         return Task.CompletedTask;
     }
 
-    private bool WarnDeprecatedSearch(Request request)
+    private static bool WarnDeprecatedSearch(Request request)
     {
         if (!ProxyUtils.IsGraphRequest(request) ||
             request.Method != "GET")
@@ -61,5 +57,5 @@ public class ODSPSearchGuidancePlugin : BaseProxyPlugin
         }
     }
 
-    private static string[] BuildUseGraphSearchMessage() => new[] { $"To get the best search experience, use the Microsoft Search APIs in Microsoft Graph.", $"More info at https://aka.ms/devproxy/guidance/odspsearch" };
+    private static string[] BuildUseGraphSearchMessage() => [$"To get the best search experience, use the Microsoft Search APIs in Microsoft Graph.", $"More info at https://aka.ms/devproxy/guidance/odspsearch"];
 }

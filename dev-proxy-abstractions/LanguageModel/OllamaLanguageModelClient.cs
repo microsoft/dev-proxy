@@ -5,28 +5,28 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.DevProxy.Abstractions;
+namespace Microsoft.DevProxy.Abstractions.LanguageModel;
 
 public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration, ILogger logger) : ILanguageModelClient
 {
     private readonly LanguageModelConfiguration? _configuration = configuration;
     private readonly ILogger _logger = logger;
     private bool? _lmAvailable;
-    private Dictionary<string, OllamaLanguageModelCompletionResponse> _cacheCompletion = new();
-    private Dictionary<ILanguageModelChatCompletionMessage[], OllamaLanguageModelChatCompletionResponse> _cacheChatCompletion = new();
+    private readonly Dictionary<string, OllamaLanguageModelCompletionResponse> _cacheCompletion = [];
+    private readonly Dictionary<ILanguageModelChatCompletionMessage[], OllamaLanguageModelChatCompletionResponse> _cacheChatCompletion = [];
 
-    public async Task<bool> IsEnabled()
+    public async Task<bool> IsEnabledAsync()
     {
         if (_lmAvailable.HasValue)
         {
             return _lmAvailable.Value;
         }
 
-        _lmAvailable = await IsEnabledInternal();
+        _lmAvailable = await IsEnabledInternalAsync();
         return _lmAvailable.Value;
     }
 
-    private async Task<bool> IsEnabledInternal()
+    private async Task<bool> IsEnabledInternalAsync()
     {
         if (_configuration is null || !_configuration.Enabled)
         {
@@ -59,7 +59,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
                 return false;
             }
 
-            var testCompletion = await GenerateCompletionInternal("Are you there? Reply with a yes or no.");
+            var testCompletion = await GenerateCompletionInternalAsync("Are you there? Reply with a yes or no.");
             if (testCompletion?.Error is not null)
             {
                 _logger.LogError("Error: {error}", testCompletion.Error);
@@ -75,7 +75,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
         }
     }
 
-    public async Task<ILanguageModelCompletionResponse?> GenerateCompletion(string prompt)
+    public async Task<ILanguageModelCompletionResponse?> GenerateCompletionAsync(string prompt)
     {
         using var scope = _logger.BeginScope(nameof(OllamaLanguageModelClient));
 
@@ -86,7 +86,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
 
         if (!_lmAvailable.HasValue)
         {
-            _logger.LogError("Language model availability is not checked. Call {isEnabled} first.", nameof(IsEnabled));
+            _logger.LogError("Language model availability is not checked. Call {isEnabled} first.", nameof(IsEnabledAsync));
             return null;
         }
 
@@ -101,7 +101,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
             return cachedResponse;
         }
 
-        var response = await GenerateCompletionInternal(prompt);
+        var response = await GenerateCompletionInternalAsync(prompt);
         if (response == null)
         {
             return null;
@@ -122,7 +122,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
         }
     }
 
-    private async Task<OllamaLanguageModelCompletionResponse?> GenerateCompletionInternal(string prompt)
+    private async Task<OllamaLanguageModelCompletionResponse?> GenerateCompletionInternalAsync(string prompt)
     {
         Debug.Assert(_configuration != null, "Configuration is null");
 
@@ -158,7 +158,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
         }
     }
 
-    public async Task<ILanguageModelCompletionResponse?> GenerateChatCompletion(ILanguageModelChatCompletionMessage[] messages)
+    public async Task<ILanguageModelCompletionResponse?> GenerateChatCompletionAsync(ILanguageModelChatCompletionMessage[] messages)
     {
         using var scope = _logger.BeginScope(nameof(OllamaLanguageModelClient));
 
@@ -169,7 +169,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
 
         if (!_lmAvailable.HasValue)
         {
-            _logger.LogError("Language model availability is not checked. Call {isEnabled} first.", nameof(IsEnabled));
+            _logger.LogError("Language model availability is not checked. Call {isEnabled} first.", nameof(IsEnabledAsync));
             return null;
         }
 
@@ -184,7 +184,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
             return cachedResponse;
         }
 
-        var response = await GenerateChatCompletionInternal(messages);
+        var response = await GenerateChatCompletionInternalAsync(messages);
         if (response == null)
         {
             return null;
@@ -205,7 +205,7 @@ public class OllamaLanguageModelClient(LanguageModelConfiguration? configuration
         }
     }
 
-    private async Task<OllamaLanguageModelChatCompletionResponse?> GenerateChatCompletionInternal(ILanguageModelChatCompletionMessage[] messages)
+    private async Task<OllamaLanguageModelChatCompletionResponse?> GenerateChatCompletionInternalAsync(ILanguageModelChatCompletionMessage[] messages)
     {
         Debug.Assert(_configuration != null, "Configuration is null");
 

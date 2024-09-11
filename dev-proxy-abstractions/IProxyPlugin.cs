@@ -10,5 +10,5 @@ public interface IProxyPlugin
     string Name { get; }
     Option[] GetOptions();
     Command[] GetCommands();
-    void Register();
+    Task RegisterAsync();
 }

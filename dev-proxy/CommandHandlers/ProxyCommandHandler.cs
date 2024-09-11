@@ -2,41 +2,37 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
+using Microsoft.VisualStudio.Threading;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 
 namespace Microsoft.DevProxy.CommandHandlers;
 
-public class ProxyCommandHandler : ICommandHandler
+public class ProxyCommandHandler(IPluginEvents pluginEvents,
+                           Option[] options,
+                           ISet<UrlToWatch> urlsToWatch,
+                           ILogger logger) : ICommandHandler
 {
-    private readonly IPluginEvents _pluginEvents;
-    private readonly Option[] _options;
-    private readonly ISet<UrlToWatch> _urlsToWatch;
-    private readonly ILogger _logger;
+    private readonly IPluginEvents _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
+    private readonly Option[] _options = options ?? throw new ArgumentNullException(nameof(options));
+    private readonly ISet<UrlToWatch> _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public static ProxyConfiguration Configuration { get => ConfigurationFactory.Value; }
 
-    public ProxyCommandHandler(IPluginEvents pluginEvents,
-                               Option[] options,
-                               ISet<UrlToWatch> urlsToWatch,
-                               ILogger logger)
-    {
-        _pluginEvents = pluginEvents ?? throw new ArgumentNullException(nameof(pluginEvents));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _urlsToWatch = urlsToWatch ?? throw new ArgumentNullException(nameof(urlsToWatch));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     public int Invoke(InvocationContext context)
     {
-        return InvokeAsync(context).GetAwaiter().GetResult();
+        var joinableTaskContext = new JoinableTaskContext();
+        var joinableTaskFactory = new JoinableTaskFactory(joinableTaskContext);
+        
+        return joinableTaskFactory.Run(async () => await InvokeAsync(context));
     }
 
     public async Task<int> InvokeAsync(InvocationContext context)
     {
         ParseOptions(context);
         _pluginEvents.RaiseOptionsLoaded(new OptionsLoadedArgs(context, _options));
-        await CheckForNewVersion();
+        await CheckForNewVersionAsync();
 
         try
         {
@@ -70,7 +66,7 @@ public class ProxyCommandHandler : ICommandHandler
             app.UseSwagger();
             app.UseSwaggerUI();
             app.MapControllers();
-            app.Run();
+            await app.RunAsync();
 
             return 0;
         }
@@ -142,9 +138,9 @@ public class ProxyCommandHandler : ICommandHandler
         }
     }
 
-    private async Task CheckForNewVersion()
+    private async Task CheckForNewVersionAsync()
     {
-        var newReleaseInfo = await UpdateNotification.CheckForNewVersion(Configuration.NewVersionNotification);
+        var newReleaseInfo = await UpdateNotification.CheckForNewVersionAsync(Configuration.NewVersionNotification);
         if (newReleaseInfo != null)
         {
             _logger.LogError(

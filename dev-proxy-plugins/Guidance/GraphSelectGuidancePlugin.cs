@@ -8,32 +8,28 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
-public class GraphSelectGuidancePlugin : BaseProxyPlugin
+public class GraphSelectGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseProxyPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    public GraphSelectGuidancePlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : base(pluginEvents, context, logger, urlsToWatch, configSection)
-    {
-    }
-
     public override string Name => nameof(GraphSelectGuidancePlugin);
 
-    public override void Register()
+    public override async Task RegisterAsync()
     {
-        base.Register();
+        await base.RegisterAsync();
 
-        PluginEvents.AfterResponse += AfterResponse;
+        PluginEvents.AfterResponse += AfterResponseAsync;
 
         // let's not await so that it doesn't block the proxy startup
-        _ = MSGraphDbUtils.GenerateMSGraphDb(Logger, true);
+        _ = MSGraphDbUtils.GenerateMSGraphDbAsync(Logger, true);
     }
 
-    private Task AfterResponse(object? sender, ProxyResponseArgs e)
+    private Task AfterResponseAsync(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
         if (UrlsToWatch is not null &&
             e.HasRequestUrlMatch(UrlsToWatch) &&
-            !String.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
             WarnNoSelect(request))
-            Logger.LogRequest(BuildUseSelectMessage(request), MessageType.Warning, new LoggingContext(e.Session));
+            Logger.LogRequest(BuildUseSelectMessage(), MessageType.Warning, new LoggingContext(e.Session));
 
         return Task.CompletedTask;
     }
@@ -84,11 +80,11 @@ public class GraphSelectGuidancePlugin : BaseProxyPlugin
     }
 
     private static string GetSelectParameterGuidanceUrl() => "https://aka.ms/devproxy/guidance/select";
-    private static string[] BuildUseSelectMessage(Request r) => new[] { $"To improve performance of your application, use the $select parameter.", $"More info at {GetSelectParameterGuidanceUrl()}" };
+    private static string[] BuildUseSelectMessage() => [$"To improve performance of your application, use the $select parameter.", $"More info at {GetSelectParameterGuidanceUrl()}"];
 
     private static string GetTokenizedUrl(string absoluteUrl)
     {
         var sanitizedUrl = ProxyUtils.SanitizeUrl(absoluteUrl);
-        return "/" + String.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(s => Uri.UnescapeDataString(s)));
+        return "/" + string.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(Uri.UnescapeDataString));
     }
 }

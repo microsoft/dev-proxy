@@ -3,26 +3,24 @@
 
 using System.CommandLine.Invocation;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Threading;
 
 namespace Microsoft.DevProxy.CommandHandlers;
 
-public class MSGraphDbCommandHandler : ICommandHandler
+public class MSGraphDbCommandHandler(ILogger logger) : ICommandHandler
 {
-    private readonly ILogger _logger;
-
-    public MSGraphDbCommandHandler(ILogger logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger _logger = logger;
 
     public int Invoke(InvocationContext context)
     {
-        return InvokeAsync(context).GetAwaiter().GetResult();
+        var joinableTaskContext = new JoinableTaskContext();
+        var joinableTaskFactory = new JoinableTaskFactory(joinableTaskContext);
+        
+        return joinableTaskFactory.Run(async () => await InvokeAsync(context));
     }
 
     public async Task<int> InvokeAsync(InvocationContext context)
     {
-        return await MSGraphDbUtils.GenerateMSGraphDb(_logger);
+        return await MSGraphDbUtils.GenerateMSGraphDbAsync(_logger);
     }
 }

@@ -7,23 +7,17 @@ using System.Text.Json;
 
 namespace Microsoft.DevProxy.Plugins.Behavior;
 
-internal class RateLimitingCustomResponseLoader : IDisposable
+internal class RateLimitingCustomResponseLoader(ILogger logger, RateLimitConfiguration configuration) : IDisposable
 {
-    private readonly ILogger _logger;
-    private readonly RateLimitConfiguration _configuration;
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly RateLimitConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
-    public RateLimitingCustomResponseLoader(ILogger logger, RateLimitConfiguration configuration)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-    }
-
-    private string _customResponseFilePath => Path.Combine(Directory.GetCurrentDirectory(), _configuration.CustomResponseFile);
+    private string CustomResponseFilePath => Path.Combine(Directory.GetCurrentDirectory(), _configuration.CustomResponseFile);
     private FileSystemWatcher? _watcher;
 
     public void LoadResponse()
     {
-        if (!File.Exists(_customResponseFilePath))
+        if (!File.Exists(CustomResponseFilePath))
         {
             _logger.LogWarning("File {configurationFile} not found. No response will be provided", _configuration.CustomResponseFile);
             return;
@@ -31,7 +25,7 @@ internal class RateLimitingCustomResponseLoader : IDisposable
 
         try
         {
-            using var stream = new FileStream(_customResponseFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var stream = new FileStream(CustomResponseFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new StreamReader(stream);
             var responseString = reader.ReadToEnd();
             var response = JsonSerializer.Deserialize<MockResponseResponse>(responseString, ProxyUtils.JsonSerializerOptions);
@@ -53,8 +47,8 @@ internal class RateLimitingCustomResponseLoader : IDisposable
             return;
         }
 
-        string path = Path.GetDirectoryName(_customResponseFilePath) ?? throw new InvalidOperationException($"{_customResponseFilePath} is an invalid path");
-        if (!File.Exists(_customResponseFilePath))
+        string path = Path.GetDirectoryName(CustomResponseFilePath) ?? throw new InvalidOperationException($"{CustomResponseFilePath} is an invalid path");
+        if (!File.Exists(CustomResponseFilePath))
         {
             _logger.LogWarning("File {configurationFile} not found. No mocks will be provided", _configuration.CustomResponseFile);
             return;
@@ -66,7 +60,7 @@ internal class RateLimitingCustomResponseLoader : IDisposable
                              | NotifyFilters.FileName
                              | NotifyFilters.LastWrite
                              | NotifyFilters.Size,
-            Filter = Path.GetFileName(_customResponseFilePath)
+            Filter = Path.GetFileName(CustomResponseFilePath)
         };
         _watcher.Changed += ResponseFile_Changed;
         _watcher.Created += ResponseFile_Changed;
