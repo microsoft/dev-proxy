@@ -102,7 +102,7 @@ public class MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext 
         }
     }
 
-    private (string method, string url)[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
+    private static (string method, string url)[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
     {
         var requests = new List<(string, string)>();
 
@@ -198,6 +198,6 @@ public class MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext 
     private static string GetTokenizedUrl(string absoluteUrl)
     {
         var sanitizedUrl = ProxyUtils.SanitizeUrl(absoluteUrl);
-        return "/" + string.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(s => Uri.UnescapeDataString(s)));
+        return "/" + string.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(Uri.UnescapeDataString));
     }
 }

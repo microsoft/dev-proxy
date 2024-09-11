@@ -22,7 +22,8 @@ public static class ProxyUtils
     private static readonly Regex itemPathRegex = new(@"(?:\/)[\w]+:[\w\/.]+(:(?=\/)|$)");
     private static readonly Regex sanitizedItemPathRegex = new("^[a-z]+:<value>$", RegexOptions.IgnoreCase);
     private static readonly Regex entityNameRegex = new("^((microsoft.graph(.[a-z]+)+)|[a-z]+)$", RegexOptions.IgnoreCase);
-    private static readonly Regex allAlphaRegex = new("^[a-z]+$", RegexOptions.IgnoreCase);
+    // all alpha must include 2 to allow for oauth2PermissionScopes
+    private static readonly Regex allAlphaRegex = new("^[a-z2]+$", RegexOptions.IgnoreCase);
     private static readonly Regex deprecationRegex = new("^[a-z]+_v2$", RegexOptions.IgnoreCase);
     private static readonly Regex functionCallRegex = new(@"^[a-z]+\(.*\)$", RegexOptions.IgnoreCase);
     private static readonly JsonSerializerOptions jsonSerializerOptions = new()
