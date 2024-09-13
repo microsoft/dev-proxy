@@ -25,19 +25,23 @@ public enum AuthPluginAuthType
     OAuth2
 }
 
-[Flags]
 public enum AuthPluginApiKeyIn
 {
-    Header = 1,
-    Query = 2,
-    Cookie = 4
+    Header,
+    Query,
+    Cookie
 }
 
-public class AuthPluginApiKeyConfiguration
+public class AuthPluginApiKeyParameter
 {
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public AuthPluginApiKeyIn? In { get; set; }
     public string? Name { get; set; }
+}
+
+public class AuthPluginApiKeyConfiguration
+{
+    public AuthPluginApiKeyParameter[]? Parameters { get; set; }
     public string[]? AllowedKeys { get; set; }
 }
 
@@ -104,16 +108,20 @@ public class AuthPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogg
         {
             Debug.Assert(_configuration.ApiKey is not null);
 
-            if (_configuration.ApiKey.In == null)
+            if (_configuration.ApiKey.Parameters == null ||
+                _configuration.ApiKey.Parameters.Length == 0)
             {
-                Logger.LogError("ApiKey.In is required when using ApiKey auth type");
+                Logger.LogError("ApiKey.Parameters is required when using ApiKey auth type");
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(_configuration.ApiKey.Name))
+            foreach (var parameter in _configuration.ApiKey.Parameters)
             {
-                Logger.LogError("ApiKey.Name is required when using ApiKey auth type");
-                return;
+                if (parameter.In is null || parameter.Name is null)
+                {
+                    Logger.LogError("ApiKey.In and ApiKey.Name are required for each parameter");
+                    return;
+                }
             }
 
             if (_configuration.ApiKey.AllowedKeys == null || _configuration.ApiKey.AllowedKeys.Length == 0)
@@ -474,32 +482,30 @@ public class AuthPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogg
     {
         Debug.Assert(_configuration is not null);
         Debug.Assert(_configuration.ApiKey is not null);
-        Debug.Assert(_configuration.ApiKey.Name is not null);
+        Debug.Assert(_configuration.ApiKey.Parameters is not null);
 
         string? apiKey = null;
-        string name = _configuration.ApiKey.Name;
 
-        if ((_configuration.ApiKey.In & AuthPluginApiKeyIn.Header) == AuthPluginApiKeyIn.Header)
+        foreach (var parameter in _configuration.ApiKey.Parameters)
         {
-            Logger.LogDebug("Getting API key from header");
-            apiKey = GetApiKeyFromHeader(session.HttpClient.Request, name);
-            Logger.LogDebug("API key from header: {apiKey}", apiKey ?? "(not found)");
-        }
+            if (parameter.In is null || parameter.Name is null)
+            {
+                continue;
+            }
 
-        if ((_configuration.ApiKey.In & AuthPluginApiKeyIn.Query) == AuthPluginApiKeyIn.Query &&
-            apiKey is null)
-        {
-            Logger.LogDebug("Getting API key from query");
-            apiKey = GetApiKeyFromQuery(session.HttpClient.Request, name);
-            Logger.LogDebug("API key from query: {apiKey}", apiKey ?? "(not found)");
-        }
+            Logger.LogDebug("Getting API key from parameter {param} in {in}", parameter.Name, parameter.In);
+            apiKey = parameter.In switch {
+                AuthPluginApiKeyIn.Header => GetApiKeyFromHeader(session.HttpClient.Request, parameter.Name),
+                AuthPluginApiKeyIn.Query => GetApiKeyFromQuery(session.HttpClient.Request, parameter.Name),
+                AuthPluginApiKeyIn.Cookie => GetApiKeyFromCookie(session.HttpClient.Request, parameter.Name),
+                _ => null
+            };
+            Logger.LogDebug("API key from parameter {param} in {in}: {apiKey}", parameter.Name, parameter.In, apiKey ?? "(not found)");
 
-        if ((_configuration.ApiKey.In & AuthPluginApiKeyIn.Cookie) == AuthPluginApiKeyIn.Cookie &&
-            apiKey is null)
-        {
-            Logger.LogDebug("Getting API key from cookie");
-            apiKey = GetApiKeyFromCookie(session.HttpClient.Request, name);
-            Logger.LogDebug("API key from cookie: {apiKey}", apiKey ?? "(not found)");
+            if (apiKey is not null)
+            {
+                break;
+            }
         }
 
         return apiKey;
