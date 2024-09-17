@@ -1,34 +1,42 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.DevProxy.Plugins.MinimalPermissions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi.Readers;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
-public class MinimalPermissionsPluginReport
+public class MinimalPermissionsPluginReportApiResult
 {
-    public required IEnumerable<RequestInfo> Requests { get; init; }
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    public required PermissionsType PermissionsType { get; init; }
-    public required IEnumerable<string> MinimalPermissions { get; init; }
-    public required IEnumerable<string> Errors { get; init; }
+    public required string ApiName { get; init; }
+    public required string[] Requests { get; init; }
+    public required string[] TokenPermissions { get; init; }
+    public required string[] MinimalPermissions { get; init; }
+    public required string[] ExcessivePermissions { get; init; }
+    public required bool UsesMinimalPermissions { get; init; }
 }
 
-internal class MinimalPermissionsPluginConfiguration
+public class MinimalPermissionsPluginReport
 {
-    public PermissionsType Type { get; set; } = PermissionsType.Delegated;
+    public required MinimalPermissionsPluginReportApiResult[] Results { get; init; }
+    public required string[] UnmatchedRequests { get; init; }
+    public required ApiPermissionError[] Errors { get; init; }
+}
+
+public class MinimalPermissionsPluginConfiguration
+{
+    public string? ApiSpecsFolderPath { get; set; }
 }
 
 public class MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
 {
-    public override string Name => nameof(MinimalPermissionsPlugin);
     private readonly MinimalPermissionsPluginConfiguration _configuration = new();
+    private Dictionary<string, OpenApiDocument>? _apiSpecsByUrl;
+    public override string Name => nameof(MinimalPermissionsPlugin);
 
     public override async Task RegisterAsync()
     {
@@ -36,168 +44,202 @@ public class MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext 
 
         ConfigSection?.Bind(_configuration);
 
+        if (string.IsNullOrWhiteSpace(_configuration.ApiSpecsFolderPath))
+        {
+            throw new InvalidOperationException("ApiSpecsFolderPath is required.");
+        }
+        if (!Path.Exists(_configuration.ApiSpecsFolderPath))
+        {
+            throw new InvalidOperationException($"ApiSpecsFolderPath '{_configuration.ApiSpecsFolderPath}' does not exist.");
+        }
+
         PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
-    private async Task AfterRecordingStopAsync(object? sender, RecordingArgs e)
+#pragma warning disable CS1998
+    private async Task AfterRecordingStopAsync(object sender, RecordingArgs e)
+#pragma warning restore CS1998
     {
-        if (!e.RequestLogs.Any())
+        var interceptedRequests = e.RequestLogs
+            .Where(l =>
+                l.MessageType == MessageType.InterceptedRequest &&
+                !l.MessageLines.First().StartsWith("OPTIONS") &&
+                l.Context?.Session is not null &&
+                l.Context.Session.HttpClient.Request.Headers.Any(h => h.Name.Equals("authorization", StringComparison.OrdinalIgnoreCase))
+            );
+        if (!interceptedRequests.Any())
         {
+            Logger.LogDebug("No requests to process");
             return;
         }
 
-        var methodAndUrlComparer = new MethodAndUrlComparer();
-        var endpoints = new List<(string method, string url)>();
+        Logger.LogInformation("Checking if recorded API requests use minimal permissions as defined in API specs...");
 
-        foreach (var request in e.RequestLogs)
+        _apiSpecsByUrl ??= LoadApiSpecs(_configuration.ApiSpecsFolderPath!);
+        if (_apiSpecsByUrl is null || _apiSpecsByUrl.Count == 0)
         {
-            if (request.MessageType != MessageType.InterceptedRequest)
-            {
-                continue;
-            }
+            Logger.LogWarning("No API definitions found in the specified folder.");
+            return;
+        }
 
-            var methodAndUrlString = request.MessageLines.First();
-            var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
-            if (methodAndUrl.method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
+        var (requestsByApiSpec, unmatchedApiSpecRequests) = GetRequestsByApiSpec(interceptedRequests, _apiSpecsByUrl);
 
-            var uri = new Uri(methodAndUrl.url);
-            if (!ProxyUtils.IsGraphUrl(uri))
-            {
-                continue;
-            }
+        var errors = new List<ApiPermissionError>();
+        var results = new List<MinimalPermissionsPluginReportApiResult>();
+        var unmatchedRequests = new List<string>(
+            unmatchedApiSpecRequests.Select(r => r.MessageLines.First())
+        );
 
-            if (ProxyUtils.IsGraphBatchUrl(uri))
+        foreach (var (apiSpec, requests) in requestsByApiSpec)
+        {
+            var minimalPermissions = apiSpec.CheckMinimalPermissions(requests, Logger);
+
+            var result = new MinimalPermissionsPluginReportApiResult
             {
-                var graphVersion = ProxyUtils.IsGraphBetaUrl(uri) ? "beta" : "v1.0";
-                var requestsFromBatch = GetRequestsFromBatch(request.Context?.Session.HttpClient.Request.BodyString!, graphVersion, uri.Host);
-                endpoints.AddRange(requestsFromBatch);
+                ApiName = GetApiName(minimalPermissions.OperationsFromRequests.First().OriginalUrl),
+                Requests = minimalPermissions.OperationsFromRequests
+                    .Select(o => $"{o.Method} {o.OriginalUrl}")
+                    .Distinct()
+                    .ToArray(),
+                TokenPermissions = minimalPermissions.TokenPermissions.Distinct().ToArray(),
+                MinimalPermissions = minimalPermissions.MinimalScopes,
+                ExcessivePermissions = minimalPermissions.TokenPermissions.Except(minimalPermissions.MinimalScopes).ToArray(),
+                UsesMinimalPermissions = !minimalPermissions.TokenPermissions.Except(minimalPermissions.MinimalScopes).Any()
+            };
+            results.Add(result);
+
+            var unmatchedApiRequests = minimalPermissions.OperationsFromRequests
+                .Where(o => minimalPermissions.UnmatchedOperations.Contains($"{o.Method} {o.TokenizedUrl}"))
+                .Select(o => $"{o.Method} {o.OriginalUrl}");
+            unmatchedRequests.AddRange(unmatchedApiRequests);
+            errors.AddRange(minimalPermissions.Errors);
+
+            if (result.UsesMinimalPermissions)
+            {
+                Logger.LogInformation(
+                    "API {apiName} is called with minimal permissions: {minimalPermissions}",
+                    result.ApiName,
+                    string.Join(", ", result.MinimalPermissions)
+                );
             }
             else
             {
-                methodAndUrl = (methodAndUrl.method, GetTokenizedUrl(methodAndUrl.url));
-                endpoints.Add(methodAndUrl);
+                Logger.LogWarning(
+                    "Calling API {apiName} with excessive permissions: {excessivePermissions}. Minimal permissions are: {minimalPermissions}",
+                    result.ApiName,
+                    string.Join(", ", result.ExcessivePermissions),
+                    string.Join(", ", result.MinimalPermissions)
+                );
+            }
+
+            if (unmatchedApiRequests.Any())
+            {
+                Logger.LogWarning(
+                    "Unmatched requests for API {apiName}:{newLine}- {unmatchedRequests}",
+                    result.ApiName,
+                    Environment.NewLine,
+                    string.Join($"{Environment.NewLine}- ", unmatchedApiRequests)
+                );
+            }
+
+            if (minimalPermissions.Errors.Count != 0)
+            {
+                Logger.LogWarning(
+                    "Errors for API {apiName}:{newLine}- {errors}",
+                    result.ApiName,
+                    Environment.NewLine,
+                    string.Join($"{Environment.NewLine}- ", minimalPermissions.Errors.Select(e => $"{e.Request}: {e.Error}"))
+                );
             }
         }
 
-        // Remove duplicates
-        endpoints = endpoints.Distinct(methodAndUrlComparer).ToList();
-
-        if (endpoints.Count == 0)
+        var report = new MinimalPermissionsPluginReport()
         {
-            Logger.LogInformation("No requests to Microsoft Graph endpoints recorded. Will not retrieve minimal permissions.");
-            return;
-        }
+            Results = [.. results],
+            UnmatchedRequests = [.. unmatchedRequests],
+            Errors = [.. errors]
+        };
 
-        Logger.LogInformation("Retrieving minimal permissions for:\r\n{endpoints}\r\n", string.Join(Environment.NewLine, endpoints.Select(e => $"- {e.method} {e.url}")));
-
-        Logger.LogWarning("This plugin is in preview and may not return the correct results.\r\nPlease review the permissions and test your app before using them in production.\r\nIf you have any feedback, please open an issue at https://aka.ms/devproxy/issue.\r\n");
-
-        var report = await DetermineMinimalScopesAsync(endpoints);
-        if (report is not null)
-        {
-            StoreReport(report, e);
-        }
+        StoreReport(report, e);
     }
 
-    private static (string method, string url)[] GetRequestsFromBatch(string batchBody, string graphVersion, string graphHostName)
+    private Dictionary<string, OpenApiDocument> LoadApiSpecs(string apiSpecsFolderPath)
     {
-        var requests = new List<(string, string)>();
-
-        if (string.IsNullOrEmpty(batchBody))
+        var apiDefinitions = new Dictionary<string, OpenApiDocument>();
+        foreach (var file in Directory.EnumerateFiles(apiSpecsFolderPath, "*.*", SearchOption.AllDirectories))
         {
-            return [.. requests];
-        }
-
-        try
-        {
-            var batch = JsonSerializer.Deserialize<GraphBatchRequestPayload>(batchBody, ProxyUtils.JsonSerializerOptions);
-            if (batch == null)
+            var extension = Path.GetExtension(file);
+            if (!extension.Equals(".json", StringComparison.OrdinalIgnoreCase) &&
+                !extension.Equals(".yaml", StringComparison.OrdinalIgnoreCase) &&
+                !extension.Equals(".yml", StringComparison.OrdinalIgnoreCase))
             {
-                return [.. requests];
+                Logger.LogDebug("Skipping file '{file}' because it is not a JSON or YAML file", file);
+                continue;
             }
 
-            foreach (var request in batch.Requests)
+            Logger.LogDebug("Processing file '{file}'...", file);
+            try
             {
-                try
+                var apiDefinition = new OpenApiStringReader().Read(File.ReadAllText(file), out _);
+                if (apiDefinition is null)
                 {
-                    var method = request.Method;
-                    var url = request.Url;
-                    var absoluteUrl = $"https://{graphHostName}/{graphVersion}{url}";
-                    requests.Add((method, GetTokenizedUrl(absoluteUrl)));
+                    continue;
                 }
-                catch { }
+                if (apiDefinition.Servers is null || apiDefinition.Servers.Count == 0)
+                {
+                    Logger.LogDebug("No servers found in API definition file '{file}'", file);
+                    continue;
+                }
+                foreach (var server in apiDefinition.Servers)
+                {
+                    if (server.Url is null)
+                    {
+                        Logger.LogDebug("No URL found for server '{server}'", server.Description ?? "unnamed");
+                        continue;
+                    }
+                    apiDefinitions[server.Url] = apiDefinition;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load API definition from file '{file}'", file);
             }
         }
-        catch { }
-
-        return [.. requests];
+        return apiDefinitions;
     }
 
-    private async Task<MinimalPermissionsPluginReport?> DetermineMinimalScopesAsync(IEnumerable<(string method, string url)> endpoints)
+    private (Dictionary<OpenApiDocument, List<RequestLog>> RequestsByApiSpec, IEnumerable<RequestLog> UnmatchedRequests) GetRequestsByApiSpec(IEnumerable<RequestLog> interceptedRequests, Dictionary<string, OpenApiDocument> apiSpecsByUrl)
     {
-        var payload = endpoints.Select(e => new RequestInfo { Method = e.method, Url = e.url });
-
-        try
+        var unmatchedRequests = new List<RequestLog>();
+        var requestsByApiSpec = new Dictionary<OpenApiDocument, List<RequestLog>>();
+        foreach (var request in interceptedRequests)
         {
-            var url = $"https://graphexplorerapi.azurewebsites.net/permissions?scopeType={GraphUtils.GetScopeTypeString(_configuration.Type)}";
-            using var client = new HttpClient();
-            var stringPayload = JsonSerializer.Serialize(payload, ProxyUtils.JsonSerializerOptions);
-            Logger.LogDebug("Calling {url} with payload\r\n{stringPayload}", url, stringPayload);
+            var url = request.MessageLines.First().Split(' ')[1];
+            Logger.LogDebug("Matching request {requestUrl} to API specs...", url);
 
-            var response = await client.PostAsJsonAsync(url, payload);
-            var content = await response.Content.ReadAsStringAsync();
-
-            Logger.LogDebug("Response:\r\n{content}", content);
-
-            var resultsAndErrors = JsonSerializer.Deserialize<ResultsAndErrors>(content, ProxyUtils.JsonSerializerOptions);
-            var minimalScopes = resultsAndErrors?.Results?.Select(p => p.Value) ?? [];
-            var errors = resultsAndErrors?.Errors?.Select(e => $"- {e.Url} ({e.Message})") ?? [];
-
-            if (_configuration.Type == PermissionsType.Delegated)
+            var matchingKey = apiSpecsByUrl.Keys.FirstOrDefault(url.StartsWith);
+            if (matchingKey is null)
             {
-                minimalScopes = await GraphUtils.UpdateUserScopesAsync(minimalScopes, endpoints, _configuration.Type, Logger);
+                Logger.LogDebug("No matching API spec found for {requestUrl}", url);
+                unmatchedRequests.Add(request);
+                continue;
             }
 
-            if (minimalScopes.Any())
+            if (!requestsByApiSpec.TryGetValue(apiSpecsByUrl[matchingKey], out List<RequestLog>? value))
             {
-                Logger.LogInformation("Minimal permissions:\r\n{permissions}", string.Join(", ", minimalScopes));
-            }
-            if (errors.Any())
-            {
-                Logger.LogError("Couldn't determine minimal permissions for the following URLs:\r\n{errors}", string.Join(Environment.NewLine, errors));
+                value = [];
+                requestsByApiSpec[apiSpecsByUrl[matchingKey]] = value;
             }
 
-            return new MinimalPermissionsPluginReport
-            {
-                Requests = payload.ToArray(),
-                PermissionsType = _configuration.Type,
-                MinimalPermissions = minimalScopes,
-                Errors = errors.ToArray()
-            };
+            value.Add(request);
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "An error has occurred while retrieving minimal permissions:");
-            return null;
-        }
+
+        return (requestsByApiSpec, unmatchedRequests);
     }
 
-    private static (string method, string url) GetMethodAndUrl(string message)
+    private static string GetApiName(string url)
     {
-        var info = message.Split(" ");
-        if (info.Length > 2)
-        {
-            info = [info[0], string.Join(" ", info.Skip(1))];
-        }
-        return (info[0], info[1]);
-    }
-
-    private static string GetTokenizedUrl(string absoluteUrl)
-    {
-        var sanitizedUrl = ProxyUtils.SanitizeUrl(absoluteUrl);
-        return "/" + string.Join("", new Uri(sanitizedUrl).Segments.Skip(2).Select(Uri.UnescapeDataString));
+        var uri = new Uri(url);
+        return uri.Authority;
     }
 }

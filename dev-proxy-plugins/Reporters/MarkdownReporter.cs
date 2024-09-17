@@ -22,8 +22,8 @@ public class MarkdownReporter(IPluginEvents pluginEvents, IProxyContext context,
         { typeof(ExecutionSummaryPluginReportByUrl), TransformExecutionSummaryByUrl },
         { typeof(ExecutionSummaryPluginReportByMessageType), TransformExecutionSummaryByMessageType },
         { typeof(HttpFileGeneratorPlugin), TransformHttpFileGeneratorReport },
-        { typeof(MinimalPermissionsGuidancePluginReport), TransformMinimalPermissionsGuidanceReport },
-        { typeof(MinimalPermissionsPluginReport), TransformMinimalPermissionsReport },
+        { typeof(GraphMinimalPermissionsGuidancePluginReport), TransformMinimalPermissionsGuidanceReport },
+        { typeof(GraphMinimalPermissionsPluginReport), TransformMinimalPermissionsReport },
         { typeof(OpenApiSpecGeneratorPluginReport), TransformOpenApiSpecGeneratorReport }
     };
 
@@ -366,13 +366,13 @@ public class MarkdownReporter(IPluginEvents pluginEvents, IProxyContext context,
 
     private static string? TransformMinimalPermissionsGuidanceReport(object report)
     {
-        var minimalPermissionsGuidanceReport = (MinimalPermissionsGuidancePluginReport)report;
+        var minimalPermissionsGuidanceReport = (GraphMinimalPermissionsGuidancePluginReport)report;
 
         var sb = new StringBuilder();
         sb.AppendLine("# Minimal permissions report");
         sb.AppendLine();
 
-        void transformPermissionsInfo(MinimalPermissionsInfo permissionsInfo, string type)
+        void transformPermissionsInfo(GraphMinimalPermissionsInfo permissionsInfo, string type)
         {
             sb.AppendLine($"## Minimal {type} permissions");
             sb.AppendLine();
@@ -433,7 +433,7 @@ public class MarkdownReporter(IPluginEvents pluginEvents, IProxyContext context,
 
     private static string? TransformMinimalPermissionsReport(object report)
     {
-        var minimalPermissionsReport = (MinimalPermissionsPluginReport)report;
+        var minimalPermissionsReport = (GraphMinimalPermissionsPluginReport)report;
 
         var sb = new StringBuilder();
         sb.AppendLine($"# Minimal {minimalPermissionsReport.PermissionsType.ToString().ToLower()} permissions report");

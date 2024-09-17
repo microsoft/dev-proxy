@@ -142,13 +142,13 @@
         "configSection": "executionSummaryPlugin"
       },
       {
-        "name": "MinimalPermissionsPlugin",
+        "name": "GraphMinimalPermissionsPlugin",
         "enabled": true,
         "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll",
-        "configSection": "minimalPermissionsPlugin"
+        "configSection": "graphMinimalPermissionsPlugin"
       },
       {
-        "name": "MinimalPermissionsGuidancePlugin",
+        "name": "GraphMinimalPermissionsGuidancePlugin",
         "enabled": false,
         "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll"
       },
@@ -181,7 +181,7 @@
     "executionSummaryPlugin": {
       "groupBy": "url"
     },
-    "minimalPermissionsPlugin": {
+    "graphMinimalPermissionsPlugin": {
       "type": "delegated"
     },
     "cachingGuidance": {

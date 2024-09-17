@@ -31,17 +31,17 @@ public class GraphUtils
         return workload;
     }
 
-    internal static string GetScopeTypeString(PermissionsType type)
+    internal static string GetScopeTypeString(GraphPermissionsType type)
     {
         return type switch
         {
-            PermissionsType.Application => "Application",
-            PermissionsType.Delegated => "DelegatedWork",
+            GraphPermissionsType.Application => "Application",
+            GraphPermissionsType.Delegated => "DelegatedWork",
             _ => throw new InvalidOperationException($"Unknown scope type: {type}")
         };
     }
 
-    internal static async Task<IEnumerable<string>> UpdateUserScopesAsync(IEnumerable<string> minimalScopes, IEnumerable<(string method, string url)> endpoints, PermissionsType permissionsType, ILogger logger)
+    internal static async Task<IEnumerable<string>> UpdateUserScopesAsync(IEnumerable<string> minimalScopes, IEnumerable<(string method, string url)> endpoints, GraphPermissionsType permissionsType, ILogger logger)
     {
         var userEndpoints = endpoints.Where(e => e.url.Contains("/users/{", StringComparison.OrdinalIgnoreCase));
         if (!userEndpoints.Any())
@@ -59,7 +59,7 @@ public class GraphUtils
         });
         var tasks = urls.Select(u => {
             logger.LogTrace("Calling {url}...", u);
-            return httpClient.GetFromJsonAsync<PermissionInfo[]>(u);
+            return httpClient.GetFromJsonAsync<GraphPermissionInfo[]>(u);
         });
         await Task.WhenAll(tasks);
 
