@@ -215,7 +215,7 @@ public class ExecutionSummaryPlugin(IPluginEvents pluginEvents, IProxyContext co
 
     private static string GetRequestMessage(RequestLog requestLog)
     {
-        return string.Join(' ', requestLog.MessageLines);
+        return string.Join(' ', requestLog.Message);
     }
 
     private static string GetMethodAndUrl(RequestLog requestLog)

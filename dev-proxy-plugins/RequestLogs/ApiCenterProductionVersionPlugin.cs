@@ -164,7 +164,7 @@ public class ApiCenterProductionVersionPlugin(IPluginEvents pluginEvents, IProxy
 
         foreach (var request in interceptedRequests)
         {
-            var methodAndUrlString = request.MessageLines.First();
+            var methodAndUrlString = request.Message;
             var methodAndUrl = methodAndUrlString.Split(' ');
             var (method, url) = (methodAndUrl[0], methodAndUrl[1]);
             if (method == "OPTIONS")

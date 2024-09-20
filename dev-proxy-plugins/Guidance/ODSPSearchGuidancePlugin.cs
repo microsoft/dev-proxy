@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions;
 using Titanium.Web.Proxy.Http;
+using Titanium.Web.Proxy.EventArguments;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
@@ -21,21 +22,33 @@ public class ODSPSearchGuidancePlugin(IPluginEvents pluginEvents, IProxyContext 
 
     private Task BeforeRequestAsync(object sender, ProxyRequestArgs e)
     {
-        Request request = e.Session.HttpClient.Request;
-        if (UrlsToWatch is not null &&
-            e.HasRequestUrlMatch(UrlsToWatch) &&
-            !string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
-            WarnDeprecatedSearch(request))
+        if (UrlsToWatch is null ||
+            !e.HasRequestUrlMatch(UrlsToWatch))
+        {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping OPTIONS request", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+
+        if (WarnDeprecatedSearch(e.Session))
+        {
             Logger.LogRequest(BuildUseGraphSearchMessage(), MessageType.Warning, new LoggingContext(e.Session));
+        }
 
         return Task.CompletedTask;
     }
 
-    private static bool WarnDeprecatedSearch(Request request)
+    private bool WarnDeprecatedSearch(SessionEventArgs session)
     {
+        Request request = session.HttpClient.Request;
         if (!ProxyUtils.IsGraphRequest(request) ||
             request.Method != "GET")
         {
+            Logger.LogRequest("Not a Microsoft Graph GET request", MessageType.Skipped, new LoggingContext(session));
             return false;
         }
 
@@ -53,9 +66,11 @@ public class ODSPSearchGuidancePlugin(IPluginEvents pluginEvents, IProxyContext 
         }
         else
         {
+            Logger.LogRequest("Not a SharePoint search request", MessageType.Skipped, new LoggingContext(session));
             return false;
         }
     }
 
-    private static string[] BuildUseGraphSearchMessage() => [$"To get the best search experience, use the Microsoft Search APIs in Microsoft Graph.", $"More info at https://aka.ms/devproxy/guidance/odspsearch"];
+    private static string BuildUseGraphSearchMessage() => 
+        $"To get the best search experience, use the Microsoft Search APIs in Microsoft Graph. More info at https://aka.ms/devproxy/guidance/odspsearch";
 }

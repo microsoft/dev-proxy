@@ -22,10 +22,19 @@ public class GraphClientRequestIdGuidancePlugin(IPluginEvents pluginEvents, IPro
     private Task BeforeRequestAsync(object? sender, ProxyRequestArgs e)
     {
         Request request = e.Session.HttpClient.Request;
-        if (UrlsToWatch is not null &&
-          e.HasRequestUrlMatch(UrlsToWatch) &&
-          !string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
-          WarnNoClientRequestId(request))
+        if (UrlsToWatch is null ||
+            !e.HasRequestUrlMatch(UrlsToWatch))
+        {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping OPTIONS request", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+
+        if (WarnNoClientRequestId(request))
         {
             Logger.LogRequest(BuildAddClientRequestIdMessage(), MessageType.Warning, new LoggingContext(e.Session));
 
@@ -33,6 +42,10 @@ public class GraphClientRequestIdGuidancePlugin(IPluginEvents pluginEvents, IPro
             {
                 Logger.LogRequest(MessageUtils.BuildUseSdkMessage(request), MessageType.Tip, new LoggingContext(e.Session));
             }
+        }
+        else
+        {
+            Logger.LogRequest("client-request-id header present", MessageType.Skipped, new LoggingContext(e.Session));
         }
 
         return Task.CompletedTask;
@@ -43,9 +56,6 @@ public class GraphClientRequestIdGuidancePlugin(IPluginEvents pluginEvents, IPro
         !request.Headers.HeaderExists("client-request-id");
 
     private static string GetClientRequestIdGuidanceUrl() => "https://aka.ms/devproxy/guidance/client-request-id";
-    private static string[] BuildAddClientRequestIdMessage() => [
-        $"To help Microsoft investigate errors, to each request to Microsoft Graph",
-        "add the client-request-id header with a unique GUID.",
-        $"More info at {GetClientRequestIdGuidanceUrl()}"
-    ];
+    private static string BuildAddClientRequestIdMessage() =>
+        $"To help Microsoft investigate errors, to each request to Microsoft Graph add the client-request-id header with a unique GUID. More info at {GetClientRequestIdGuidanceUrl()}";
 }

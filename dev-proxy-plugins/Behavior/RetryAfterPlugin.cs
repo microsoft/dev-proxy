@@ -26,11 +26,20 @@ public class RetryAfterPlugin(IPluginEvents pluginEvents, IProxyContext context,
 
     private Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
-        if (e.ResponseState.HasBeenSet ||
-            UrlsToWatch is null ||
-            string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) ||
+        if (e.ResponseState.HasBeenSet)
+        {
+            Logger.LogRequest("Response already set", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (UrlsToWatch is null ||
             !e.ShouldExecute(UrlsToWatch))
         {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping OPTIONS request", MessageType.Skipped, new LoggingContext(e.Session));
             return Task.CompletedTask;
         }
 
@@ -43,11 +52,13 @@ public class RetryAfterPlugin(IPluginEvents pluginEvents, IProxyContext context,
         var request = e.Session.HttpClient.Request;
         if (!e.GlobalData.TryGetValue(ThrottledRequestsKey, out object? value))
         {
+            Logger.LogRequest("Request not throttled", MessageType.Skipped, new LoggingContext(e.Session));
             return;
         }
 
         if (value is not List<ThrottlerInfo> throttledRequests)
         {
+            Logger.LogRequest("Request not throttled", MessageType.Skipped, new LoggingContext(e.Session));
             return;
         }
 
@@ -59,6 +70,7 @@ public class RetryAfterPlugin(IPluginEvents pluginEvents, IProxyContext context,
 
         if (throttledRequests.Count == 0)
         {
+            Logger.LogRequest("Request not throttled", MessageType.Skipped, new LoggingContext(e.Session));
             return;
         }
 
@@ -67,14 +79,16 @@ public class RetryAfterPlugin(IPluginEvents pluginEvents, IProxyContext context,
             var throttleInfo = throttler.ShouldThrottle(request, throttler.ThrottlingKey);
             if (throttleInfo.ThrottleForSeconds > 0)
             {
-                var messageLines = new[] { $"Calling {request.Url} before waiting for the Retry-After period.", "Request will be throttled.", $"Throttling on {throttler.ThrottlingKey}." };
-                Logger.LogRequest(messageLines, MessageType.Failed, new LoggingContext(e.Session));
+                var message = $"Calling {request.Url} before waiting for the Retry-After period. Request will be throttled. Throttling on {throttler.ThrottlingKey}.";
+                Logger.LogRequest(message, MessageType.Failed, new LoggingContext(e.Session));
 
                 throttler.ResetTime = DateTime.Now.AddSeconds(throttleInfo.ThrottleForSeconds);
-                UpdateProxyResponse(e, throttleInfo, string.Join(' ', messageLines));
-                break;
+                UpdateProxyResponse(e, throttleInfo, string.Join(' ', message));
+                return;
             }
         }
+
+        Logger.LogRequest("Request not throttled", MessageType.Skipped, new LoggingContext(e.Session));
     }
 
     private static void UpdateProxyResponse(ProxyRequestArgs e, ThrottlingInfo throttlingInfo, string message)

@@ -37,4 +37,5 @@ public class ProxyConfiguration : IProxyConfiguration
     public LanguageModelConfiguration? LanguageModel { get; set; }
     public MockRequestHeader[]? FilterByHeaders { get; set; }
     public int ApiPort { get; set; } = 8897;
+    public bool ShowSkipMessages { get; set; } = true;
 }

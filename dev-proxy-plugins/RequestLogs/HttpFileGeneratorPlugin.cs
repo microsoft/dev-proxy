@@ -149,7 +149,7 @@ public class HttpFileGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext c
                 continue;
             }
 
-            var methodAndUrlString = request.MessageLines.First();
+            var methodAndUrlString = request.Message;
             Logger.LogDebug("Adding request {methodAndUrl}...", methodAndUrlString);
 
             var methodAndUrl = methodAndUrlString.Split(' ');

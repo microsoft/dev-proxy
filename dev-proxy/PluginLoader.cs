@@ -13,10 +13,11 @@ internal class PluginLoaderResult(ISet<UrlToWatch> urlsToWatch, IEnumerable<IPro
     public IEnumerable<IProxyPlugin> ProxyPlugins { get; } = proxyPlugins ?? throw new ArgumentNullException(nameof(proxyPlugins));
 }
 
-internal class PluginLoader(ILogger logger)
+internal class PluginLoader(ILogger logger, ILoggerFactory loggerFactory)
 {
     private PluginConfig? _pluginConfig;
     private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ILoggerFactory _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
 
     public async Task<PluginLoaderResult> LoadPluginsAsync(IPluginEvents pluginEvents, IProxyContext proxyContext)
     {
@@ -87,7 +88,8 @@ internal class PluginLoader(ILogger logger)
             if (type.Name == pluginReference.Name &&
                 typeof(IProxyPlugin).IsAssignableFrom(type))
             {
-                IProxyPlugin? result = Activator.CreateInstance(type, [pluginEvents, context, _logger, urlsToWatch, configSection]) as IProxyPlugin;
+                var logger = _loggerFactory.CreateLogger(type.Name);
+                IProxyPlugin? result = Activator.CreateInstance(type, [pluginEvents, context, logger, urlsToWatch, configSection]) as IProxyPlugin;
                 if (result is not null && result.Name == pluginReference.Name)
                 {
                     return result;

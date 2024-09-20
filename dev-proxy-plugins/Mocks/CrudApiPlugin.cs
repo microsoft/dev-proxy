@@ -146,28 +146,36 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
 
-        if (UrlsToWatch is not null && e.ShouldExecute(UrlsToWatch))
+        if (UrlsToWatch is null ||
+            !e.ShouldExecute(UrlsToWatch))
         {
-            if (!AuthorizeRequest(e))
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+
+        if (!AuthorizeRequest(e))
+        {
+            SendUnauthorizedResponse(e.Session);
+            state.HasBeenSet = true;
+            return Task.CompletedTask;
+        }
+
+        var actionAndParams = GetMatchingActionHandler(request);
+        if (actionAndParams is not null)
+        {
+            if (!AuthorizeRequest(e, actionAndParams.Value.action))
             {
                 SendUnauthorizedResponse(e.Session);
                 state.HasBeenSet = true;
                 return Task.CompletedTask;
             }
 
-            var actionAndParams = GetMatchingActionHandler(request);
-            if (actionAndParams is not null)
-            {
-                if (!AuthorizeRequest(e, actionAndParams.Value.action))
-                {
-                    SendUnauthorizedResponse(e.Session);
-                    state.HasBeenSet = true;
-                    return Task.CompletedTask;
-                }
-
-                actionAndParams.Value.handler(e.Session, actionAndParams.Value.action, actionAndParams.Value.parameters);
-                state.HasBeenSet = true;
-            }
+            actionAndParams.Value.handler(e.Session, actionAndParams.Value.action, actionAndParams.Value.parameters);
+            state.HasBeenSet = true;
+        }
+        else
+        {
+            Logger.LogRequest("Did not match any action", MessageType.Skipped, new LoggingContext(e.Session));
         }
 
         return Task.CompletedTask;
@@ -193,7 +201,7 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
         // is there a token
         if (string.IsNullOrEmpty(token))
         {
-            Logger.LogRequest(["401 Unauthorized", "No token found on the request."], MessageType.Failed, new LoggingContext(e.Session));
+            Logger.LogRequest("401 Unauthorized. No token found on the request.", MessageType.Failed, new LoggingContext(e.Session));
             return false;
         }
 
@@ -201,7 +209,7 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
         var tokenHeaderParts = token.Split(' ');
         if (tokenHeaderParts.Length != 2 || tokenHeaderParts[0] != "Bearer")
         {
-            Logger.LogRequest(["401 Unauthorized", "The specified token is not a valid Bearer token."], MessageType.Failed, new LoggingContext(e.Session));
+            Logger.LogRequest("401 Unauthorized. The specified token is not a valid Bearer token.", MessageType.Failed, new LoggingContext(e.Session));
             return false;
         }
 
@@ -241,7 +249,7 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
                 {
                     var rolesRequired = string.Join(", ", authConfig.Roles);
 
-                    Logger.LogRequest(["401 Unauthorized", $"The specified token does not have the necessary role(s). Required one of: {rolesRequired}, found: {rolesFromTheToken}"], MessageType.Failed, new LoggingContext(e.Session));
+                    Logger.LogRequest($"401 Unauthorized. The specified token does not have the necessary role(s). Required one of: {rolesRequired}, found: {rolesFromTheToken}", MessageType.Failed, new LoggingContext(e.Session));
                     return false;
                 }
 
@@ -257,7 +265,7 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
                 {
                     var scopesRequired = string.Join(", ", authConfig.Scopes);
 
-                    Logger.LogRequest(["401 Unauthorized", $"The specified token does not have the necessary scope(s). Required one of: {scopesRequired}, found: {scopesFromTheToken}"], MessageType.Failed, new LoggingContext(e.Session));
+                    Logger.LogRequest($"401 Unauthorized. The specified token does not have the necessary scope(s). Required one of: {scopesRequired}, found: {scopesFromTheToken}", MessageType.Failed, new LoggingContext(e.Session));
                     return false;
                 }
 
@@ -266,7 +274,7 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
         }
         catch (Exception ex)
         {
-            Logger.LogRequest(["401 Unauthorized", $"The specified token is not valid: {ex.Message}"], MessageType.Failed, new LoggingContext(e.Session));
+            Logger.LogRequest($"401 Unauthorized. The specified token is not valid: {ex.Message}", MessageType.Failed, new LoggingContext(e.Session));
             return false;
         }
 
@@ -332,7 +340,7 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
     private void GetAll(SessionEventArgs e, CrudApiAction action, IDictionary<string, string> parameters)
     {
         SendJsonResponse(JsonConvert.SerializeObject(_data, Formatting.Indented), HttpStatusCode.OK, e);
-        Logger.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+        Logger.LogRequest($"200 {action.Url}", MessageType.Mocked, new LoggingContext(e));
     }
 
     private void GetOne(SessionEventArgs e, CrudApiAction action, IDictionary<string, string> parameters)
@@ -343,17 +351,17 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
             if (item is null)
             {
                 SendNotFoundResponse(e);
-                Logger.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+                Logger.LogRequest($"404 {action.Url}", MessageType.Mocked, new LoggingContext(e));
                 return;
             }
 
             SendJsonResponse(JsonConvert.SerializeObject(item, Formatting.Indented), HttpStatusCode.OK, e);
-            Logger.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest($"200 {action.Url}", MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest($"500 {action.Url}", MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -363,12 +371,12 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
         {
             var items = (_data?.SelectTokens(ReplaceParams(action.Query, parameters))) ?? [];
             SendJsonResponse(JsonConvert.SerializeObject(items, Formatting.Indented), HttpStatusCode.OK, e);
-            Logger.LogRequest([$"200 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest($"200 {action.Url}", MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest($"500 {action.Url}", MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -378,12 +386,12 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
         {
             _data?.Add(JObject.Parse(e.HttpClient.Request.BodyString));
             SendJsonResponse(JsonConvert.SerializeObject(e.HttpClient.Request.BodyString, Formatting.Indented), HttpStatusCode.Created, e);
-            Logger.LogRequest([$"201 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest($"201 {action.Url}", MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest($"500 {action.Url}", MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -395,18 +403,18 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
             if (item is null)
             {
                 SendNotFoundResponse(e);
-                Logger.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+                Logger.LogRequest($"404 {action.Url}", MessageType.Mocked, new LoggingContext(e));
                 return;
             }
             var update = JObject.Parse(e.HttpClient.Request.BodyString);
             ((JContainer)item)?.Merge(update);
             SendEmptyResponse(HttpStatusCode.NoContent, e);
-            Logger.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest($"204 {action.Url}", MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest($"500 {action.Url}", MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -418,18 +426,18 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
             if (item is null)
             {
                 SendNotFoundResponse(e);
-                Logger.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+                Logger.LogRequest($"404 {action.Url}", MessageType.Mocked, new LoggingContext(e));
                 return;
             }
             var update = JObject.Parse(e.HttpClient.Request.BodyString);
             ((JContainer)item)?.Replace(update);
             SendEmptyResponse(HttpStatusCode.NoContent, e);
-            Logger.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest($"204 {action.Url}", MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest($"500 {action.Url}", MessageType.Failed, new LoggingContext(e));
         }
     }
 
@@ -441,18 +449,18 @@ public class CrudApiPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
             if (item is null)
             {
                 SendNotFoundResponse(e);
-                Logger.LogRequest([$"404 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+                Logger.LogRequest($"404 {action.Url}", MessageType.Mocked, new LoggingContext(e));
                 return;
             }
 
             item?.Remove();
             SendEmptyResponse(HttpStatusCode.NoContent, e);
-            Logger.LogRequest([$"204 {action.Url}"], MessageType.Mocked, new LoggingContext(e));
+            Logger.LogRequest($"204 {action.Url}", MessageType.Mocked, new LoggingContext(e));
         }
         catch (Exception ex)
         {
             SendJsonResponse(JsonConvert.SerializeObject(ex, Formatting.Indented), HttpStatusCode.InternalServerError, e);
-            Logger.LogRequest([$"500 {action.Url}"], MessageType.Failed, new LoggingContext(e));
+            Logger.LogRequest($"500 {action.Url}", MessageType.Failed, new LoggingContext(e));
         }
     }
 

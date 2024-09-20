@@ -20,6 +20,7 @@ public class GraphMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext c
     {
         if (_configuration.NoMocks)
         {
+            Logger.LogRequest("Mocks are disabled", MessageType.Skipped, new LoggingContext(e.Session));
             // mocking has been disabled. Nothing to do
             return;
         }
@@ -71,7 +72,7 @@ public class GraphMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext c
                     }
                 };
 
-                Logger.LogRequest([$"502 {request.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
+                Logger.LogRequest($"502 {request.Url}", MessageType.Mocked, new LoggingContext(e.Session));
             }
             else
             {
@@ -129,7 +130,7 @@ public class GraphMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext c
                     Body = body
                 };
 
-                Logger.LogRequest([$"{mockResponse.Response?.StatusCode ?? 200} {mockResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
+                Logger.LogRequest($"{mockResponse.Response?.StatusCode ?? 200} {mockResponse.Request?.Url}", MessageType.Mocked, new LoggingContext(e.Session));
             }
 
             responses.Add(response);
@@ -145,7 +146,7 @@ public class GraphMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext c
         var batchResponseString = JsonSerializer.Serialize(batchResponse, ProxyUtils.JsonSerializerOptions);
         ProcessMockResponse(ref batchResponseString, batchHeaders, e, null);
         e.Session.GenericResponse(batchResponseString ?? string.Empty, HttpStatusCode.OK, batchHeaders.Select(h => new HttpHeader(h.Name, h.Value)));
-        Logger.LogRequest([$"200 {e.Session.HttpClient.Request.RequestUri}"], MessageType.Mocked, new LoggingContext(e.Session));
+        Logger.LogRequest($"200 {e.Session.HttpClient.Request.RequestUri}", MessageType.Mocked, new LoggingContext(e.Session));
         e.ResponseState.HasBeenSet = true;
     }
 

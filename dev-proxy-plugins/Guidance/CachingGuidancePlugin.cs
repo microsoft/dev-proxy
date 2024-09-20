@@ -30,9 +30,14 @@ public class CachingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext con
     private Task BeforeRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (UrlsToWatch is null ||
-          !e.HasRequestUrlMatch(UrlsToWatch) ||
-          string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+            !e.HasRequestUrlMatch(UrlsToWatch))
         {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping OPTIONS request", MessageType.Skipped, new LoggingContext(e.Session));
             return Task.CompletedTask;
         }
 
@@ -44,6 +49,7 @@ public class CachingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext con
         {
             value = now;
             _interceptedRequests.Add(url, value);
+            Logger.LogRequest("First request", MessageType.Skipped, new LoggingContext(e.Session));
             return Task.CompletedTask;
         }
 
@@ -53,14 +59,15 @@ public class CachingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext con
         {
             Logger.LogRequest(BuildCacheWarningMessage(request, _configuration.CacheThresholdSeconds, lastIntercepted), MessageType.Warning, new LoggingContext(e.Session));
         }
+        else
+        {
+            Logger.LogRequest("Request outside of cache window", MessageType.Skipped, new LoggingContext(e.Session));
+        }
 
         _interceptedRequests[url] = now;
         return Task.CompletedTask;
     }
 
-    private static string[] BuildCacheWarningMessage(Request r, int _warningSeconds, DateTime lastIntercepted) => [
-        $"Another request to {r.RequestUri.PathAndQuery} intercepted within {_warningSeconds} seconds.",
-        $"Last intercepted at {lastIntercepted}.",
-        "Consider using cache to avoid calling the API too often."
-    ];
+    private static string BuildCacheWarningMessage(Request r, int _warningSeconds, DateTime lastIntercepted) =>
+        $"Another request to {r.RequestUri.PathAndQuery} intercepted within {_warningSeconds} seconds. Last intercepted at {lastIntercepted}. Consider using cache to avoid calling the API too often.";
 }

@@ -63,7 +63,7 @@ public class MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext 
         var interceptedRequests = e.RequestLogs
             .Where(l =>
                 l.MessageType == MessageType.InterceptedRequest &&
-                !l.MessageLines.First().StartsWith("OPTIONS") &&
+                !l.Message.StartsWith("OPTIONS") &&
                 l.Context?.Session is not null &&
                 l.Context.Session.HttpClient.Request.Headers.Any(h => h.Name.Equals("authorization", StringComparison.OrdinalIgnoreCase))
             );
@@ -87,7 +87,7 @@ public class MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext 
         var errors = new List<ApiPermissionError>();
         var results = new List<MinimalPermissionsPluginReportApiResult>();
         var unmatchedRequests = new List<string>(
-            unmatchedApiSpecRequests.Select(r => r.MessageLines.First())
+            unmatchedApiSpecRequests.Select(r => r.Message)
         );
 
         foreach (var (apiSpec, requests) in requestsByApiSpec)
@@ -214,7 +214,7 @@ public class MinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyContext 
         var requestsByApiSpec = new Dictionary<OpenApiDocument, List<RequestLog>>();
         foreach (var request in interceptedRequests)
         {
-            var url = request.MessageLines.First().Split(' ')[1];
+            var url = request.Message.Split(' ')[1];
             Logger.LogDebug("Matching request {requestUrl} to API specs...", url);
 
             var matchingKey = apiSpecsByUrl.Keys.FirstOrDefault(url.StartsWith);

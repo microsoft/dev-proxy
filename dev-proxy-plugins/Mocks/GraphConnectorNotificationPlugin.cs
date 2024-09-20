@@ -40,6 +40,7 @@ public class GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxy
     {
         if (!ProxyUtils.IsGraphRequest(e.Session.HttpClient.Request))
         {
+            Logger.LogRequest("Request is not a Microsoft Graph request", MessageType.Skipped, new LoggingContext(e.Session));
             return Task.CompletedTask;
         }
 
@@ -51,6 +52,7 @@ public class GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxy
     {
         if (_ticket is null)
         {
+            Logger.LogRequest("No ticket found in the Graph request", MessageType.Skipped, new LoggingContext(session));
             return;
         }
 
@@ -58,6 +60,7 @@ public class GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxy
 
         if (request.Method != "POST" && request.Method != "DELETE")
         {
+            Logger.LogRequest("Skipping non-POST and -DELETE request", MessageType.Skipped, new LoggingContext(session));
             return;
         }
 
@@ -66,19 +69,24 @@ public class GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxy
             (request.Method == "DELETE" &&
             !request.RequestUri.AbsolutePath.Contains("/external/connections/", StringComparison.OrdinalIgnoreCase)))
         {
+            Logger.LogRequest("Skipping non-connection request", MessageType.Skipped, new LoggingContext(session));
             return;
         }
 
         var ticketFromHeader = request.Headers.FirstOrDefault(h => h.Name.Equals("GraphConnectors-Ticket", StringComparison.OrdinalIgnoreCase))?.Value;
         if (ticketFromHeader is null)
         {
-            Logger.LogRequest(["No ticket header found in the Graph connector notification"], MessageType.Failed, new LoggingContext(session));
+            Logger.LogRequest("No ticket header found in the Graph connector notification", MessageType.Failed, new LoggingContext(session));
             return;
         }
 
         if (ticketFromHeader != _ticket)
         {
-            Logger.LogRequest([$"Ticket on the request does not match the expected ticket. Expected: {_ticket}. Request: {ticketFromHeader}"], MessageType.Failed, new LoggingContext(session));
+            Logger.LogRequest($"Ticket on the request does not match the expected ticket. Expected: {_ticket}. Request: {ticketFromHeader}", MessageType.Failed, new LoggingContext(session));
+        }
+        else
+        {
+            Logger.LogRequest("Ticket verified", MessageType.Normal, new LoggingContext(session));
         }
     }
 
@@ -104,13 +112,13 @@ public class GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxy
 
         try
         {
-            Logger.LogRequest(["Sending Graph connector notification"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
+            Logger.LogRequest("Sending Graph connector notification", MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
 
             var response = await httpClient.SendAsync(requestMessage);
 
             if (response.StatusCode != HttpStatusCode.Accepted)
             {
-                Logger.LogRequest([$"Incorrect response status code {(int)response.StatusCode} {response.StatusCode}. Expected: 202 Accepted"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
+                Logger.LogRequest($"Incorrect response status code {(int)response.StatusCode} {response.StatusCode}. Expected: 202 Accepted", MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
             }
 
             if (response.Content is not null)
@@ -118,7 +126,7 @@ public class GraphConnectorNotificationPlugin(IPluginEvents pluginEvents, IProxy
                 var content = await response.Content.ReadAsStringAsync();
                 if (!string.IsNullOrEmpty(content))
                 {
-                    Logger.LogRequest(["Received response body while empty response expected"], MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
+                    Logger.LogRequest("Received response body while empty response expected", MessageType.Failed, _configuration.Request.Method, _configuration.Request.Url);
                 }
             }
         }

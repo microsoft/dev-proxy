@@ -323,7 +323,7 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
                 continue;
             }
 
-            var methodAndUrlString = request.MessageLines.First();
+            var methodAndUrlString = request.Message.First();
             Logger.LogDebug("Processing request {methodAndUrlString}...", methodAndUrlString);
 
             try

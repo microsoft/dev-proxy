@@ -147,6 +147,7 @@ public class RateLimitingPlugin(IPluginEvents pluginEvents, IProxyContext contex
         if (UrlsToWatch is null ||
             !e.HasRequestUrlMatch(UrlsToWatch))
         {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
             return Task.CompletedTask;
         }
 
@@ -158,10 +159,15 @@ public class RateLimitingPlugin(IPluginEvents pluginEvents, IProxyContext contex
     {
         var session = e.Session;
         var state = e.ResponseState;
-        if (e.ResponseState.HasBeenSet ||
-            UrlsToWatch is null ||
+        if (state.HasBeenSet)
+        {
+            Logger.LogRequest("Response already set", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (UrlsToWatch is null ||
             !e.ShouldExecute(UrlsToWatch))
         {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
             return Task.CompletedTask;
         }
 
@@ -189,7 +195,7 @@ public class RateLimitingPlugin(IPluginEvents pluginEvents, IProxyContext contex
             _resourcesRemaining = 0;
             var request = e.Session.HttpClient.Request;
 
-            Logger.LogRequest([$"Exceeded resource limit when calling {request.Url}.", "Request will be throttled"], MessageType.Failed, new LoggingContext(e.Session));
+            Logger.LogRequest($"Exceeded resource limit when calling {request.Url}. Request will be throttled", MessageType.Failed, new LoggingContext(e.Session));
             if (_configuration.WhenLimitExceeded == RateLimitResponseWhenLimitExceeded.Throttle)
             {
                 if (!e.GlobalData.TryGetValue(RetryAfterPlugin.ThrottledRequestsKey, out object? value))
@@ -250,9 +256,13 @@ public class RateLimitingPlugin(IPluginEvents pluginEvents, IProxyContext contex
                 }
                 else
                 {
-                    Logger.LogRequest([$"Custom behavior not set. {_configuration.CustomResponseFile} not found."], MessageType.Failed, new LoggingContext(e.Session));
+                    Logger.LogRequest($"Custom behavior not set. {_configuration.CustomResponseFile} not found.", MessageType.Failed, new LoggingContext(e.Session));
                 }
             }
+        }
+        else
+        {
+            Logger.LogRequest($"Resources remaining: {_resourcesRemaining}", MessageType.Skipped, new LoggingContext(e.Session));
         }
 
         StoreRateLimitingHeaders(e);

@@ -92,7 +92,7 @@ public class ApiCenterMinimalPermissionsPlugin(IPluginEvents pluginEvents, IProx
         var interceptedRequests = e.RequestLogs
             .Where(l =>
                 l.MessageType == MessageType.InterceptedRequest &&
-                !l.MessageLines.First().StartsWith("OPTIONS") &&
+                !l.Message.StartsWith("OPTIONS") &&
                 l.Context?.Session is not null &&
                 l.Context.Session.HttpClient.Request.Headers.Any(h => h.Name.Equals("authorization", StringComparison.OrdinalIgnoreCase))
             );
@@ -122,7 +122,7 @@ public class ApiCenterMinimalPermissionsPlugin(IPluginEvents pluginEvents, IProx
         var errors = new List<ApiPermissionError>();
         var results = new List<ApiCenterMinimalPermissionsPluginReportApiResult>();
         var unmatchedRequests = new List<string>(
-            unmatchedApicRequests.Select(r => r.MessageLines.First())
+            unmatchedApicRequests.Select(r => r.Message)
         );
         
         foreach (var (apiDefinition, requests) in requestsByApiDefinition)
@@ -214,7 +214,7 @@ public class ApiCenterMinimalPermissionsPlugin(IPluginEvents pluginEvents, IProx
         var requestsByApiDefinition = new Dictionary<ApiDefinition, List<RequestLog>>();
         foreach (var request in interceptedRequests)
         {
-            var url = request.MessageLines.First().Split(' ')[1];
+            var url = request.Message.Split(' ')[1];
             Logger.LogDebug("Matching request {requestUrl} to API definitions...", url);
 
             var matchingKey = apiDefinitionsByUrl.Keys.FirstOrDefault(url.StartsWith);

@@ -49,6 +49,10 @@ public class GenericRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext 
             var error = matchingResponse.Responses.ElementAt(_random.Next(0, matchingResponse.Responses.Length));
             UpdateProxyResponse(e, error);
         }
+        else
+        {
+            Logger.LogRequest("No matching error response found", MessageType.Skipped, new LoggingContext(e.Session));
+        }
     }
 
     private ThrottlingInfo ShouldThrottle(Request request, string throttlingKey)
@@ -171,7 +175,7 @@ public class GenericRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext 
             session.GenericResponse(body, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
         }
         e.ResponseState.HasBeenSet = true;
-        Logger.LogRequest([$"{error.StatusCode} {statusCode}"], MessageType.Chaos, new LoggingContext(e.Session));
+        Logger.LogRequest($"{error.StatusCode} {statusCode}", MessageType.Chaos, new LoggingContext(e.Session));
     }
 
     // throttle requests per host
@@ -197,18 +201,26 @@ public class GenericRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext 
 
     private Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
-        if (!e.ResponseState.HasBeenSet
-            && UrlsToWatch is not null
-            && e.ShouldExecute(UrlsToWatch))
+        if (e.ResponseState.HasBeenSet)
         {
-            var failMode = ShouldFail();
-
-            if (failMode == GenericRandomErrorFailMode.PassThru && Context.Configuration?.Rate != 100)
-            {
-                return Task.CompletedTask;
-            }
-            FailResponse(e);
+            Logger.LogRequest("Response already set", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
         }
+        if (UrlsToWatch is null ||
+            !e.ShouldExecute(UrlsToWatch))
+        {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+
+        var failMode = ShouldFail();
+
+        if (failMode == GenericRandomErrorFailMode.PassThru && Context.Configuration?.Rate != 100)
+        {
+            Logger.LogRequest("Pass through", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        FailResponse(e);
 
         return Task.CompletedTask;
     }

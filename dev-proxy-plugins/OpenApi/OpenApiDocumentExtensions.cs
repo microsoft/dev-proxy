@@ -130,7 +130,7 @@ public static class OpenApiDocumentExtensions
         foreach (var request in requests)
         {
             // get scopes from the token
-            var methodAndUrl = request.MessageLines.First();
+            var methodAndUrl = request.Message;
             var methodAndUrlChunks = methodAndUrl.Split(' ');
             logger.LogDebug("Checking request {request}...", methodAndUrl);
             var (method, url) = (methodAndUrlChunks[0].ToUpper(), methodAndUrlChunks[1]);

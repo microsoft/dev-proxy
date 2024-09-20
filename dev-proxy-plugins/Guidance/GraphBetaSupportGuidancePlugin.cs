@@ -22,17 +22,28 @@ public class GraphBetaSupportGuidancePlugin(IPluginEvents pluginEvents, IProxyCo
     private Task AfterResponseAsync(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
-        if (UrlsToWatch is not null &&
-            e.HasRequestUrlMatch(UrlsToWatch) &&
-            !string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
-            ProxyUtils.IsGraphBetaRequest(request))
-            Logger.LogRequest(BuildBetaSupportMessage(), MessageType.Warning, new LoggingContext(e.Session));
+        if (UrlsToWatch is null ||
+            !e.HasRequestUrlMatch(UrlsToWatch))
+        {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping OPTIONS request", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (!ProxyUtils.IsGraphBetaRequest(request))
+        {
+            Logger.LogRequest("Not a Microsoft Graph beta request", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+
+        Logger.LogRequest(BuildBetaSupportMessage(), MessageType.Warning, new LoggingContext(e.Session));
         return Task.CompletedTask;
     }
 
     private static string GetBetaSupportGuidanceUrl() => "https://aka.ms/devproxy/guidance/beta-support";
-    private static string[] BuildBetaSupportMessage()
-    {
-        return [$"Don't use beta APIs in production because they can change or be deprecated.", $"More info at {GetBetaSupportGuidanceUrl()}"];
-    }
+    private static string BuildBetaSupportMessage() =>
+        $"Don't use beta APIs in production because they can change or be deprecated. More info at {GetBetaSupportGuidanceUrl()}";
 }

@@ -99,7 +99,7 @@ public class MockRequestPlugin(IPluginEvents pluginEvents, IProxyContext context
 
         try
         {
-            Logger.LogRequest(["Sending mock request"], MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
+            Logger.LogRequest("Sending mock request", MessageType.Mocked, _configuration.Request.Method, _configuration.Request.Url);
 
             await httpClient.SendAsync(requestMessage);
         }
