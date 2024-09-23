@@ -346,8 +346,52 @@ internal class ProxyHost
         var outdatedShortOption = new Option<bool>("--short", "Return version only");
         outdatedCommand.AddOption(outdatedShortOption);
         outdatedCommand.SetHandler(async versionOnly => await OutdatedCommandHandler.CheckVersionAsync(versionOnly, logger), outdatedShortOption);
-
         command.Add(outdatedCommand);
+
+        var jwtCommand = new Command("jwt", "Manage JSON Web Tokens ");
+        var jwtCreateCommand = new Command("create", "Create a new JWT token");
+        var jwtSchemeOption = new Option<string>("--scheme", "The scheme name to use for the token.");
+        jwtSchemeOption.SetDefaultValue("Bearer");
+        jwtCreateCommand.AddOption(jwtSchemeOption);
+        var jwtNameOption = new Option<string>("--name", "The name of the user to create the token for.");
+        jwtNameOption.AddAlias("-n");
+        jwtNameOption.SetDefaultValue("Dev Proxy");
+        jwtCreateCommand.AddOption(jwtNameOption);
+        var jwtAudienceOption = new Option<string>("--audience", "The audiences to create the token for.");
+        jwtAudienceOption.AddAlias("-a");
+        jwtAudienceOption.SetDefaultValue("https://myserver.com");
+        jwtCreateCommand.AddOption(jwtAudienceOption);
+        var jwtIssuerOption = new Option<string>("--issuer", "The issuer of the token.");
+        jwtIssuerOption.AddAlias("-i");
+        jwtIssuerOption.SetDefaultValue("dev-proxy");
+        jwtCreateCommand.AddOption(jwtIssuerOption);
+        var jwtRolesOption = new Option<string>("--roles", "A role claim to add to the token. Specify once for each scope. Use a comma to separate scopes.");
+        jwtRolesOption.AddAlias("-r");
+        jwtCreateCommand.AddOption(jwtRolesOption);
+        var jwtScopesOption = new Option<string>("--scopes", "A scope claim to add to the token. Specify once for each scope. Use a comma to separate roles.");
+        jwtScopesOption.AddAlias("-s");
+        jwtCreateCommand.AddOption(jwtScopesOption);
+        var jwtClaimsOption = new Option<string>("--claims", "Claims to add to the token. Specify once for each claim in the format \"name=value\". Use a comma to separate claims.");
+        jwtClaimsOption.AddAlias("-c");
+        jwtCreateCommand.AddOption(jwtClaimsOption);
+        var jwtValidForOption = new Option<double>("--valid-for", "The duration for which the token is valid. Duration is set in hours.");
+        jwtValidForOption.AddAlias("-v");
+        jwtValidForOption.SetDefaultValue((double)1);
+        jwtCreateCommand.AddOption(jwtValidForOption);
+
+        jwtCreateCommand.SetHandler(
+            JwtCommandHandler.CreateToken,
+                jwtSchemeOption,
+                jwtNameOption,
+                jwtAudienceOption,
+                jwtIssuerOption,
+                jwtRolesOption,
+                jwtScopesOption,
+                jwtClaimsOption,
+                jwtValidForOption
+            );
+        jwtCommand.Add(jwtCreateCommand);
+        command.Add(jwtCommand);
 
         return command;
     }
