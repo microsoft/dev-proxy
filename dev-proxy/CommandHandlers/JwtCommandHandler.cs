@@ -12,28 +12,23 @@ namespace Microsoft.DevProxy.CommandHandlers;
 
 public static class JwtCommandHandler
 {
-    public static void CreateToken(string scheme, string name, string audience, string issuer, string roles, string scopes, string claims, double validFor)
+    public static void CreateToken(string scheme, string name, IEnumerable<string> audience, string issuer, IEnumerable<string> roles, IEnumerable<string> scopes, IEnumerable<string> claims, double validFor)
     {
         var jwtIssuer = new JwtIssuer(
             issuer,
             RandomNumberGenerator.GetBytes(32)
         );
 
-        var parsedClaims = ParseClaims(claims);
-        var parsedRoles = ParseStringArray(roles);
-        var parsedScopes = ParseStringArray(scopes);
-        var parsedAudiences = ParseStringArray(audience);
-
         var options = new JwtCreatorOptions(
             scheme,
             name,
-            parsedAudiences,
+            audience,
             issuer,
             DateTime.UtcNow,
             DateTime.UtcNow.AddHours(validFor),
-            parsedRoles,
-            parsedScopes,
-            parsedClaims
+            roles,
+            scopes,
+            ParseClaims(claims)
         );
 
         var jwtToken = jwtIssuer.Create(options);
@@ -50,17 +45,8 @@ public static class JwtCommandHandler
         Console.WriteLine(jwt.Token);
     }
 
-    private static List<string> ParseStringArray(string roles)
-    {
-        return string.IsNullOrWhiteSpace(roles) ? [] : roles.Split(',').ToList();
-    }
-
-    private static Dictionary<string, string> ParseClaims(string claims)
-    {
-        return string.IsNullOrWhiteSpace(claims)
-            ? []
-            : claims.Split(',').Select(claim => claim.Split('=')).ToDictionary(claim => claim[0], claim => claim[1]);
-    }
+    private static Dictionary<string, string> ParseClaims(IEnumerable<string> claims) 
+        => claims.Select(claim => claim.Split(" ")).ToDictionary(claimParts => claimParts[0], claimParts => claimParts[1]);
 }
 
 internal sealed class JwtIssuer(string issuer, byte[] signingKeyMaterial)
@@ -97,7 +83,8 @@ internal sealed class JwtIssuer(string issuer, byte[] signingKeyMaterial)
         // creator methods and constructors don't provide a way of setting multiple
         // audiences. Instead, we have to register an `aud` claim for each audience
         // we want to add so that the multiple audiences are populated correctly.
-        if (options.Audiences is { Count: > 0 } audiences)
+        
+        if (options.Audiences.ToList() is { Count: > 0 } audiences)
         {
             identity.AddClaims(audiences.Select(aud => new Claim(JwtRegisteredClaimNames.Aud, aud)));
         }
@@ -121,9 +108,9 @@ internal record Jwt(string Id, string Scheme, string Name, string Audience, Date
         string scheme,
         JwtSecurityToken token,
         string encodedToken,
-        IEnumerable<string> scopes = null,
-        IEnumerable<string> roles = null,
-        IDictionary<string, string> customClaims = null)
+        IEnumerable<string> scopes,
+        IEnumerable<string> roles,
+        IDictionary<string, string> customClaims)
     {
         return new Jwt(token.Id, scheme, token.Subject, string.Join(", ", token.Audiences), token.ValidFrom, token.ValidTo, token.IssuedAt, encodedToken)
         {
@@ -137,10 +124,10 @@ internal record Jwt(string Id, string Scheme, string Name, string Audience, Date
 internal sealed record JwtCreatorOptions(
     string Scheme,
     string Name,
-    List<string> Audiences,
+    IEnumerable<string> Audiences,
     string Issuer,
     DateTime NotBefore,
     DateTime ExpiresOn,
-    List<string> Roles,
-    List<string> Scopes,
+    IEnumerable<string> Roles,
+    IEnumerable<string> Scopes,
     Dictionary<string, string> Claims);
