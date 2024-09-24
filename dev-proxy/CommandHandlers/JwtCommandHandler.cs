@@ -145,8 +145,6 @@ internal sealed record JwtCreatorOptions
 
     public static JwtCreatorOptions Create(JwtOptions options)
     {
-        var validFor = options.ValidFor == 0 ? 60 : options.ValidFor;
-
         return new JwtCreatorOptions
         {
             Scheme = "Bearer",
@@ -157,7 +155,7 @@ internal sealed record JwtCreatorOptions
             Scopes = options.Scopes ?? [],
             Claims = options.Claims ?? [],
             NotBefore = DateTime.UtcNow,
-            ExpiresOn = DateTime.UtcNow.AddMinutes(validFor)
+            ExpiresOn = DateTime.UtcNow.AddMinutes(options.ValidFor == 0 ? 60 : options.ValidFor)
         };
     }
 }
