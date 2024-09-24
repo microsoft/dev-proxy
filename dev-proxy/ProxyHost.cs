@@ -353,7 +353,6 @@ internal class ProxyHost
         var jwtCreateCommand = new Command("create", "Create a new JWT token");
         var jwtNameOption = new Option<string>("--name", "The name of the user to create the token for.");
         jwtNameOption.AddAlias("-n");
-        jwtNameOption.SetDefaultValue("Dev Proxy");
         jwtCreateCommand.AddOption(jwtNameOption);
 
         var jwtAudienceOption = new Option<IEnumerable<string>>("--audience", "The audiences to create the token for.")
@@ -361,12 +360,10 @@ internal class ProxyHost
             AllowMultipleArgumentsPerToken = true
         };
         jwtAudienceOption.AddAlias("-a");
-        jwtAudienceOption.SetDefaultValue(new[] { "https://myserver.com" });
         jwtCreateCommand.AddOption(jwtAudienceOption);
 
         var jwtIssuerOption = new Option<string>("--issuer", "The issuer of the token.");
         jwtIssuerOption.AddAlias("-i");
-        jwtIssuerOption.SetDefaultValue("dev-proxy");
         jwtCreateCommand.AddOption(jwtIssuerOption);
 
         var jwtRolesOption = new Option<IEnumerable<string>>("--roles", "A role claim to add to the token. Specify once for each scope.")
@@ -390,16 +387,16 @@ internal class ProxyHost
                 foreach (var token in result.Tokens)
                 {
                     var claim = token.Value.Split(":");
-                    var (key, value) = (claim[0], claim[1]);
-                    
-                    if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
-                    {
-                        result.ErrorMessage = $"Invalid claim format: '{claim}'. Expected format is name:value.";
+
+                    if (claim.Length != 2)
+                    {   
+                        result.ErrorMessage = $"Invalid claim format: '{token.Value}'. Expected format is name:value.";
                         return claims ?? [];
                     }
 
                     try
                     {
+                        var (key, value) = (claim[0], claim[1]);
                         claims.Add(key, value);
                     }
                     catch (Exception ex)
@@ -417,18 +414,19 @@ internal class ProxyHost
 
         var jwtValidForOption = new Option<double>("--valid-for", "The duration for which the token is valid. Duration is set in minutes.");
         jwtValidForOption.AddAlias("-v");
-        jwtValidForOption.SetDefaultValue((double)60);
         jwtCreateCommand.AddOption(jwtValidForOption);
 
-        jwtCreateCommand.SetHandler(
-            JwtCommandHandler.CreateToken,
-            jwtNameOption,
-            jwtAudienceOption,
-            jwtIssuerOption,
-            jwtRolesOption,
-            jwtScopesOption,
-            jwtClaimsOption,
-            jwtValidForOption
+        jwtCreateCommand.SetHandler( 
+            JwtCommandHandler.GetToken,
+            new JwtBinder(
+                jwtNameOption,
+                jwtAudienceOption,
+                jwtIssuerOption,
+                jwtRolesOption,
+                jwtScopesOption,
+                jwtClaimsOption,
+                jwtValidForOption
+            )
         );
         jwtCommand.Add(jwtCreateCommand);
 

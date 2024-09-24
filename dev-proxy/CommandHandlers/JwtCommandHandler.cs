@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Microsoft.DevProxy.ApiControllers;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
@@ -10,33 +11,31 @@ using System.Security.Principal;
 
 namespace Microsoft.DevProxy.CommandHandlers;
 
-public static class JwtCommandHandler
+internal static class JwtCommandHandler
 {
-    private const string Scheme = "Bearer";
-
-    public static void CreateToken(string name, IEnumerable<string> audience, string issuer, IEnumerable<string> roles, IEnumerable<string> scopes, Dictionary<string,string> claims, double validFor)
+    internal static void GetToken(JwtOptions jwtOptions)
     {
+        var token = JwtTokenGenerator.CreateToken(jwtOptions);
+
+        Console.WriteLine(token);
+    }
+}
+
+internal static class JwtTokenGenerator
+{
+    internal static string CreateToken(JwtOptions jwtOptions)
+    {
+        var options = JwtCreatorOptions.Create(jwtOptions);
+
         var jwtIssuer = new JwtIssuer(
-            issuer,
+            options.Issuer,
             RandomNumberGenerator.GetBytes(32)
-        );
-        
-        var options = new JwtCreatorOptions(
-            Scheme,
-            name,
-            audience,
-            issuer,
-            DateTime.UtcNow,
-            DateTime.UtcNow.AddMinutes(validFor),
-            roles,
-            scopes,
-            claims
         );
 
         var jwtToken = jwtIssuer.Create(options);
 
         var jwt = Jwt.Create(
-            Scheme,
+            options.Scheme,
             jwtToken,
             new JwtSecurityTokenHandler().WriteToken(jwtToken),
             options.Scopes,
@@ -44,7 +43,7 @@ public static class JwtCommandHandler
             options.Claims
         );
 
-        Console.WriteLine(jwt.Token);
+        return jwt.Token;
     }
 }
 
@@ -132,13 +131,34 @@ internal record Jwt(string Id, string Scheme, string Name, string Audience, Date
     }
 }
 
-internal sealed record JwtCreatorOptions(
-    string Scheme,
-    string Name,
-    IEnumerable<string> Audiences,
-    string Issuer,
-    DateTime NotBefore,
-    DateTime ExpiresOn,
-    IEnumerable<string> Roles,
-    IEnumerable<string> Scopes,
-    Dictionary<string, string> Claims);
+internal sealed record JwtCreatorOptions
+{
+    public required string Scheme { get; init; }
+    public required string Name { get; init; }
+    public required IEnumerable<string> Audiences { get; init; }
+    public required string Issuer { get; init; }
+    public DateTime NotBefore { get; init; }
+    public DateTime ExpiresOn { get; init; }
+    public required IEnumerable<string> Roles { get; init; }
+    public required IEnumerable<string> Scopes { get; init; }
+    public required Dictionary<string, string> Claims { get; init; }
+
+    public static JwtCreatorOptions Create(JwtOptions options)
+    {
+        var validFor = options.ValidFor == 0 ? 60 : options.ValidFor;
+
+        return new JwtCreatorOptions
+        {
+            Scheme = "Bearer",
+            Name = options.Name ?? "Dev Proxy",
+            Audiences = options.Audiences ?? ["https://myserver.com"],
+            Issuer = options.Issuer ?? "dev-proxy",
+            Roles = options.Roles ?? [],
+            Scopes = options.Scopes ?? [],
+            Claims = options.Claims ?? [],
+            NotBefore = DateTime.UtcNow,
+            ExpiresOn = DateTime.UtcNow.AddMinutes(validFor)
+        };
+    }
+}
+
