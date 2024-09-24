@@ -361,7 +361,7 @@ internal class ProxyHost
             AllowMultipleArgumentsPerToken = true
         };
         jwtAudienceOption.AddAlias("-a");
-        jwtAudienceOption.SetDefaultValue("https://myserver.com");
+        jwtAudienceOption.SetDefaultValue(new[] { "https://myserver.com" });
         jwtCreateCommand.AddOption(jwtAudienceOption);
 
         var jwtIssuerOption = new Option<string>("--issuer", "The issuer of the token.");
