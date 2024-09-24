@@ -76,7 +76,7 @@ internal sealed class JwtIssuer(string issuer, byte[] signingKeyMaterial)
         if (options.Claims is { Count: > 0 } claimsToAdd)
         {
             // filter out registered claims
-            // https://www.rfc-editor.org/rfc/rfc7519#section-4.1
+            // https://www.rfc-editor.org/rfc/rfc7519#section-4.1            
             claimsToAdd.Remove(JwtRegisteredClaimNames.Iss);
             claimsToAdd.Remove(JwtRegisteredClaimNames.Sub);
             claimsToAdd.Remove(JwtRegisteredClaimNames.Aud);
@@ -84,6 +84,8 @@ internal sealed class JwtIssuer(string issuer, byte[] signingKeyMaterial)
             claimsToAdd.Remove(JwtRegisteredClaimNames.Nbf);
             claimsToAdd.Remove(JwtRegisteredClaimNames.Iat);
             claimsToAdd.Remove(JwtRegisteredClaimNames.Jti);
+            claimsToAdd.Remove("scp");
+            claimsToAdd.Remove("roles");
 
             identity.AddClaims(claimsToAdd.Select(kvp => new Claim(kvp.Key, kvp.Value)));
         }
