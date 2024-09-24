@@ -389,10 +389,10 @@ internal class ProxyHost
                 var claims = new Dictionary<string, string>();
                 foreach (var token in result.Tokens)
                 {
-                    var claim = token.Value;
-                    var parts = claim.Split(':');
-                    var isValidClaim = parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1]);
-                    if (!isValidClaim)
+                    var claim = token.Value.Split(":");
+                    var (key, value) = (claim[0], claim[1]);
+                    
+                    if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
                     {
                         result.ErrorMessage = $"Invalid claim format: '{claim}'. Expected format is name:value.";
                         return claims ?? [];
@@ -400,7 +400,7 @@ internal class ProxyHost
 
                     try
                     {
-                        claims.Add(parts[0], parts[1]);
+                        claims.Add(key, value);
                     }
                     catch (Exception ex)
                     {
