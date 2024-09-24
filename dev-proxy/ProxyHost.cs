@@ -4,6 +4,7 @@
 using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.CommandHandlers;
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Net;
 
@@ -350,13 +351,11 @@ internal class ProxyHost
 
         var jwtCommand = new Command("jwt", "Manage JSON Web Tokens ");
         var jwtCreateCommand = new Command("create", "Create a new JWT token");
-        var jwtSchemeOption = new Option<string>("--scheme", "The scheme name to use for the token.");
-        jwtSchemeOption.SetDefaultValue("Bearer");
-        jwtCreateCommand.AddOption(jwtSchemeOption);
         var jwtNameOption = new Option<string>("--name", "The name of the user to create the token for.");
         jwtNameOption.AddAlias("-n");
         jwtNameOption.SetDefaultValue("Dev Proxy");
         jwtCreateCommand.AddOption(jwtNameOption);
+
         var jwtAudienceOption = new Option<IEnumerable<string>>("--audience", "The audiences to create the token for.")
         {
             AllowMultipleArgumentsPerToken = true
@@ -364,45 +363,67 @@ internal class ProxyHost
         jwtAudienceOption.AddAlias("-a");
         jwtAudienceOption.SetDefaultValue("https://myserver.com");
         jwtCreateCommand.AddOption(jwtAudienceOption);
+
         var jwtIssuerOption = new Option<string>("--issuer", "The issuer of the token.");
         jwtIssuerOption.AddAlias("-i");
         jwtIssuerOption.SetDefaultValue("dev-proxy");
         jwtCreateCommand.AddOption(jwtIssuerOption);
-        var jwtRolesOption = new Option<IEnumerable<string>>("--roles", "A role claim to add to the token. Specify once for each scope. Use a comma to separate scopes.")
+
+        var jwtRolesOption = new Option<IEnumerable<string>>("--roles", "A role claim to add to the token. Specify once for each scope.")
         {
             AllowMultipleArgumentsPerToken = true
         };
         jwtRolesOption.AddAlias("-r");
         jwtCreateCommand.AddOption(jwtRolesOption);
-        var jwtScopesOption = new Option<IEnumerable<string>>("--scopes", "A scope claim to add to the token. Specify once for each scope. Use a comma to separate roles.")
+
+        var jwtScopesOption = new Option<IEnumerable<string>>("--scopes", "A scope claim to add to the token. Specify once for each scope.")
         {
             AllowMultipleArgumentsPerToken = true
         };
         jwtScopesOption.AddAlias("-s");
         jwtCreateCommand.AddOption(jwtScopesOption);
-        var jwtClaimsOption = new Option<IEnumerable<string>>("--claims", "Claims to add to the token. Specify once for each claim in the format \"name=value\". Use a comma to separate claims.")
+
+        var jwtClaimsOption = new Option<Dictionary<string, string>>("--claims",
+            description: "Claims to add to the token. Specify once for each claim in the format \"name:value\".",
+            parseArgument: result => {
+                var claims = new Dictionary<string, string>();
+                foreach (var token in result.Tokens)
+                {
+                    var claim = token.Value;
+                    var parts = claim.Split(':');
+                    var isValidClaim = parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1]);
+                    if (!isValidClaim)
+                    {
+                        result.ErrorMessage = $"Invalid claim format: '{claim}'. Expected format is name:value.";
+                        return claims ?? [];
+                    }
+                    claims.Add(parts[0], parts[1]);
+                }
+                return claims;
+            }
+        )
         {
-            AllowMultipleArgumentsPerToken = true
+            AllowMultipleArgumentsPerToken = true,
         };
-        jwtClaimsOption.AddAlias("-c");
         jwtCreateCommand.AddOption(jwtClaimsOption);
+
         var jwtValidForOption = new Option<double>("--valid-for", "The duration for which the token is valid. Duration is set in minutes.");
         jwtValidForOption.AddAlias("-v");
-        jwtValidForOption.SetDefaultValue((double)90);
+        jwtValidForOption.SetDefaultValue((double)60);
         jwtCreateCommand.AddOption(jwtValidForOption);
 
         jwtCreateCommand.SetHandler(
             JwtCommandHandler.CreateToken,
-                jwtSchemeOption,
-                jwtNameOption,
-                jwtAudienceOption,
-                jwtIssuerOption,
-                jwtRolesOption,
-                jwtScopesOption,
-                jwtClaimsOption,
-                jwtValidForOption
-            );
+            jwtNameOption,
+            jwtAudienceOption,
+            jwtIssuerOption,
+            jwtRolesOption,
+            jwtScopesOption,
+            jwtClaimsOption,
+            jwtValidForOption
+        );
         jwtCommand.Add(jwtCreateCommand);
+
         command.Add(jwtCommand);
 
         return command;

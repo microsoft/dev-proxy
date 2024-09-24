@@ -12,29 +12,31 @@ namespace Microsoft.DevProxy.CommandHandlers;
 
 public static class JwtCommandHandler
 {
-    public static void CreateToken(string scheme, string name, IEnumerable<string> audience, string issuer, IEnumerable<string> roles, IEnumerable<string> scopes, IEnumerable<string> claims, double validFor)
+    private const string Scheme = "Bearer";
+
+    public static void CreateToken(string name, IEnumerable<string> audience, string issuer, IEnumerable<string> roles, IEnumerable<string> scopes, Dictionary<string,string> claims, double validFor)
     {
         var jwtIssuer = new JwtIssuer(
             issuer,
             RandomNumberGenerator.GetBytes(32)
         );
-
+        
         var options = new JwtCreatorOptions(
-            scheme,
+            Scheme,
             name,
             audience,
             issuer,
             DateTime.UtcNow,
-            DateTime.UtcNow.AddHours(validFor),
+            DateTime.UtcNow.AddMinutes(validFor),
             roles,
             scopes,
-            ParseClaims(claims)
+            claims
         );
 
         var jwtToken = jwtIssuer.Create(options);
 
         var jwt = Jwt.Create(
-            scheme,
+            Scheme,
             jwtToken,
             new JwtSecurityTokenHandler().WriteToken(jwtToken),
             options.Scopes,
@@ -44,9 +46,6 @@ public static class JwtCommandHandler
 
         Console.WriteLine(jwt.Token);
     }
-
-    private static Dictionary<string, string> ParseClaims(IEnumerable<string> claims) 
-        => claims.Select(claim => claim.Split(" ")).ToDictionary(claimParts => claimParts[0], claimParts => claimParts[1]);
 }
 
 internal sealed class JwtIssuer(string issuer, byte[] signingKeyMaterial)
@@ -66,12 +65,12 @@ internal sealed class JwtIssuer(string issuer, byte[] signingKeyMaterial)
 
         if (options.Scopes is { } scopesToAdd)
         {
-            identity.AddClaims(scopesToAdd.Select(s => new Claim("scope", s)));
+            identity.AddClaims(scopesToAdd.Select(s => new Claim("scp", s)));
         }
 
         if (options.Roles is { } rolesToAdd)
         {
-            identity.AddClaims(rolesToAdd.Select(r => new Claim(ClaimTypes.Role, r)));
+            identity.AddClaims(rolesToAdd.Select(r => new Claim("roles", r)));
         }
 
         if (options.Claims is { Count: > 0 } claimsToAdd)
@@ -83,7 +82,7 @@ internal sealed class JwtIssuer(string issuer, byte[] signingKeyMaterial)
         // creator methods and constructors don't provide a way of setting multiple
         // audiences. Instead, we have to register an `aud` claim for each audience
         // we want to add so that the multiple audiences are populated correctly.
-        
+
         if (options.Audiences.ToList() is { Count: > 0 } audiences)
         {
             identity.AddClaims(audiences.Select(aud => new Claim(JwtRegisteredClaimNames.Aud, aud)));
