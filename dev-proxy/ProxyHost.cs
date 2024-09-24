@@ -355,7 +355,7 @@ internal class ProxyHost
         jwtNameOption.AddAlias("-n");
         jwtCreateCommand.AddOption(jwtNameOption);
 
-        var jwtAudienceOption = new Option<IEnumerable<string>>("--audience", "The audiences to create the token for.")
+        var jwtAudienceOption = new Option<IEnumerable<string>>("--audience", "The audiences to create the token for. Specify once for each audience")
         {
             AllowMultipleArgumentsPerToken = true
         };
@@ -366,7 +366,7 @@ internal class ProxyHost
         jwtIssuerOption.AddAlias("-i");
         jwtCreateCommand.AddOption(jwtIssuerOption);
 
-        var jwtRolesOption = new Option<IEnumerable<string>>("--roles", "A role claim to add to the token. Specify once for each scope.")
+        var jwtRolesOption = new Option<IEnumerable<string>>("--roles", "A role claim to add to the token. Specify once for each role.")
         {
             AllowMultipleArgumentsPerToken = true
         };
