@@ -397,7 +397,15 @@ internal class ProxyHost
                         result.ErrorMessage = $"Invalid claim format: '{claim}'. Expected format is name:value.";
                         return claims ?? [];
                     }
-                    claims.Add(parts[0], parts[1]);
+
+                    try
+                    {
+                        claims.Add(parts[0], parts[1]);
+                    }
+                    catch (Exception ex)
+                    {
+                        result.ErrorMessage = ex.Message;
+                    }
                 }
                 return claims;
             }
