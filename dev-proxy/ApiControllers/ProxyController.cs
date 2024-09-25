@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.DevProxy.CommandHandlers;
 
 namespace Microsoft.DevProxy.ApiControllers;
 
@@ -49,5 +50,13 @@ public class ProxyController(IProxyState proxyState) : ControllerBase
     {
         Response.StatusCode = 202;
         _proxyState.StopProxy();
+    }
+
+    [HttpPost("createJwtToken")]
+    public IActionResult CreateJwtToken([FromBody] JwtOptions jwtOptions)
+    {
+        var token = JwtTokenGenerator.CreateToken(jwtOptions);
+
+        return Ok(new JwtInfo { Token = token });
     }
 }
