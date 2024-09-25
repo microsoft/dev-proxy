@@ -9,6 +9,8 @@ using Microsoft.DevProxy.Logging;
 using Microsoft.Extensions.Logging.Console;
 using System.CommandLine;
 
+_ = Announcement.ShowAsync();
+
 PluginEvents pluginEvents = new();
 
 ILogger BuildLogger()
