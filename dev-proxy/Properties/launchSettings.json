@@ -41,6 +41,10 @@
     "Config": {
       "commandName": "Project",
       "commandLineArgs": "config"
+    },
+    "Jwt create": {
+      "commandName": "Project",
+      "commandLineArgs": "jwt create"
     }
   }
 }
