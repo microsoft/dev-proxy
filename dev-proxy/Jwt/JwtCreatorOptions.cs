@@ -27,7 +27,7 @@ internal sealed record JwtCreatorOptions
             Scopes = options.Scopes ?? [],
             Claims = options.Claims ?? [],
             NotBefore = DateTime.UtcNow,
-            ExpiresOn = DateTime.UtcNow.AddMinutes(options.ValidFor == 0 ? 60 : options.ValidFor)
+            ExpiresOn = DateTime.UtcNow.AddMinutes(options.ValidFor ?? 60)
         };
     }
 }

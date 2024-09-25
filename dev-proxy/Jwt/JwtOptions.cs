@@ -11,5 +11,5 @@ public class JwtOptions
     public IEnumerable<string>? Roles { get; set; }
     public IEnumerable<string>? Scopes { get; set; }
     public Dictionary<string, string>? Claims { get; set; }
-    public double ValidFor { get; set; }
+    public double? ValidFor { get; set; }
 }

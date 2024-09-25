@@ -18,16 +18,6 @@ internal static class JwtTokenGenerator
         );
 
         var jwtToken = jwtIssuer.CreateSecurityToken(options);
-
-        var jwt = Jwt.Create(
-            options.Scheme,
-            jwtToken,
-            new JwtSecurityTokenHandler().WriteToken(jwtToken),
-            options.Scopes,
-            options.Roles,
-            options.Claims
-        );
-
-        return jwt.Token;
+        return new JwtSecurityTokenHandler().WriteToken(jwtToken);
     }
 }
