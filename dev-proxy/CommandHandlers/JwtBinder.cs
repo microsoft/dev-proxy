@@ -1,4 +1,7 @@
-﻿using Microsoft.DevProxy.ApiControllers;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using Microsoft.DevProxy.Jwt;
 using System.CommandLine;
 using System.CommandLine.Binding;
 

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.DevProxy.CommandHandlers;
+using Microsoft.DevProxy.Jwt;
 
 namespace Microsoft.DevProxy.ApiControllers;
 
