@@ -1,4 +1,4 @@
-$versionString = "v0.21.0-beta.1"
+$versionString = "v0.22.0-beta.1"
 $version = $versionString.Substring(1)
 
 Remove-Item ../bld -Recurse -Force
