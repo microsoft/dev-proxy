@@ -22,8 +22,8 @@ public class PlainTextReporter(IPluginEvents pluginEvents, IProxyContext context
         { typeof(ExecutionSummaryPluginReportByUrl), TransformExecutionSummaryByUrl },
         { typeof(ExecutionSummaryPluginReportByMessageType), TransformExecutionSummaryByMessageType },
         { typeof(HttpFileGeneratorPluginReport), TransformHttpFileGeneratorReport },
-        { typeof(MinimalPermissionsGuidancePluginReport), TransformMinimalPermissionsGuidanceReport },
-        { typeof(MinimalPermissionsPluginReport), TransformMinimalPermissionsReport },
+        { typeof(GraphMinimalPermissionsGuidancePluginReport), TransformMinimalPermissionsGuidanceReport },
+        { typeof(GraphMinimalPermissionsPluginReport), TransformMinimalPermissionsReport },
         { typeof(OpenApiSpecGeneratorPluginReport), TransformOpenApiSpecGeneratorReport }
     };
 
@@ -362,7 +362,7 @@ public class PlainTextReporter(IPluginEvents pluginEvents, IProxyContext context
 
     private static string? TransformMinimalPermissionsReport(object report)
     {
-        var minimalPermissionsReport = (MinimalPermissionsPluginReport)report;
+        var minimalPermissionsReport = (GraphMinimalPermissionsPluginReport)report;
 
         var sb = new StringBuilder();
 
@@ -390,11 +390,11 @@ public class PlainTextReporter(IPluginEvents pluginEvents, IProxyContext context
 
     private static string? TransformMinimalPermissionsGuidanceReport(object report)
     {
-        var minimalPermissionsGuidanceReport = (MinimalPermissionsGuidancePluginReport)report;
+        var minimalPermissionsGuidanceReport = (GraphMinimalPermissionsGuidancePluginReport)report;
 
         var sb = new StringBuilder();
 
-        void transformPermissionsInfo(MinimalPermissionsInfo permissionsInfo, string type)
+        void transformPermissionsInfo(GraphMinimalPermissionsInfo permissionsInfo, string type)
         {
             sb.AppendLine($"{type} permissions for:");
             sb.AppendLine();
