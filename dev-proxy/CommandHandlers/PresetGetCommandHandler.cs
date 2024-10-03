@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.DevProxy.Abstractions;
-using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
