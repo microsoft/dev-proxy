@@ -34,18 +34,18 @@ public class OpenAIMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext 
 
     private async Task OnRequestAsync(object sender, ProxyRequestArgs e)
     {
-        using var scope = Logger.BeginScope(Name);
-
         var request = e.Session.HttpClient.Request;
         if (request.Method is null ||
             !request.Method.Equals("POST", StringComparison.OrdinalIgnoreCase) ||
             !request.HasBody)
         {
+            Logger.LogRequest("Request is not a POST request with a body", MessageType.Skipped, new LoggingContext(e.Session));
             return;
         }
 
         if (!TryGetOpenAIRequest(request.BodyString, out var openAiRequest))
         {
+            Logger.LogRequest("Skipping non-OpenAI request", MessageType.Skipped, new LoggingContext(e.Session));
             return;
         }
 
@@ -137,7 +137,7 @@ public class OpenAIMockResponsePlugin(IPluginEvents pluginEvents, IProxyContext 
             ]
         );
         e.ResponseState.HasBeenSet = true;
-        Logger.LogRequest([$"200 {localLmUrl}"], MessageType.Mocked, new LoggingContext(e.Session));
+        Logger.LogRequest($"200 {localLmUrl}", MessageType.Mocked, new LoggingContext(e.Session));
     }
 }
 

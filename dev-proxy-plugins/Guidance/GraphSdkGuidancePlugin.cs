@@ -22,14 +22,33 @@ public class GraphSdkGuidancePlugin(IPluginEvents pluginEvents, IProxyContext co
     private Task OnAfterResponseAsync(object? sender, ProxyResponseArgs e)
     {
         Request request = e.Session.HttpClient.Request;
-        // only show the message if there is an error.
-        if (e.Session.HttpClient.Response.StatusCode >= 400 &&
-            UrlsToWatch is not null &&
-            e.HasRequestUrlMatch(UrlsToWatch) &&
-            !string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
-            WarnNoSdk(request))
+        if (UrlsToWatch is null ||
+            !e.HasRequestUrlMatch(UrlsToWatch))
         {
-            Logger.LogRequest(MessageUtils.BuildUseSdkForErrorsMessage(request), MessageType.Tip, new LoggingContext(e.Session));
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping OPTIONS request", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+
+        // only show the message if there is an error.
+        if (e.Session.HttpClient.Response.StatusCode >= 400)
+        {
+            if (WarnNoSdk(request))
+            {
+                Logger.LogRequest(MessageUtils.BuildUseSdkForErrorsMessage(request), MessageType.Tip, new LoggingContext(e.Session));
+            }
+            else
+            {
+                Logger.LogRequest("Request issued using SDK", MessageType.Skipped, new LoggingContext(e.Session));
+            }
+        }
+        else
+        {
+            Logger.LogRequest("Skipping non-error response", MessageType.Skipped, new LoggingContext(e.Session));
         }
 
         return Task.CompletedTask;

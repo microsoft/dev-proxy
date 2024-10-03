@@ -17,12 +17,13 @@ public class ProxyConsoleFormatter : ConsoleFormatter
     // used to align single-line messages
     private const string _boxSpacing = "  ";
     private readonly Dictionary<int, List<RequestLog>> _requestLogs = [];
-    private readonly ConsoleFormatterOptions _options;
+    private readonly ProxyConsoleFormatterOptions _options;
     const string labelSpacing = " ";
     // label length + 2
     private readonly static string noLabelSpacing = new(' ', 4 + 2);
+    public static readonly string DefaultCategoryName = "devproxy";
 
-    public ProxyConsoleFormatter(IOptions<ConsoleFormatterOptions> options) : base("devproxy")
+    public ProxyConsoleFormatter(IOptions<ProxyConsoleFormatterOptions> options) : base(DefaultCategoryName)
     {
         // needed to properly required rounded corners in the box
         Console.OutputEncoding = Encoding.UTF8;
@@ -33,7 +34,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
     {
         if (logEntry.State is RequestLog requestLog)
         {
-            LogRequest(requestLog, scopeProvider, textWriter);
+            LogRequest(requestLog, logEntry.Category, scopeProvider, textWriter);
         }
         else
         {
@@ -41,12 +42,13 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         }
     }
 
-    private void LogRequest(RequestLog requestLog, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
+    private void LogRequest(RequestLog requestLog, string category, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
     {
         var messageType = requestLog.MessageType;
 
         // don't log intercepted response to console
-        if (messageType == MessageType.InterceptedResponse)
+        if (messageType == MessageType.InterceptedResponse ||
+            (messageType == MessageType.Skipped && !_options.ShowSkipMessages))
         {
             return;
         }
@@ -61,18 +63,21 @@ public class ProxyConsoleFormatter : ConsoleFormatter
                 // log all request logs for the request
                 foreach (var log in _requestLogs[requestId.Value])
                 {
-                    WriteLogMessageBoxedWithInvertedLabels(log.MessageLines, log.MessageType, textWriter, log == lastMessage);
+                    WriteLogMessageBoxedWithInvertedLabels(log, scopeProvider, textWriter, log == lastMessage);
                 }
                 _requestLogs.Remove(requestId.Value);
             }
             else
             {
                 // buffer request logs until the request is finished processing
-                if (!_requestLogs.ContainsKey(requestId.Value))
+                if (!_requestLogs.TryGetValue(requestId.Value, out List<RequestLog>? value))
                 {
-                    _requestLogs[requestId.Value] = [];
+                    value = ([]);
+                    _requestLogs[requestId.Value] = value;
                 }
-                _requestLogs[requestId.Value].Add(requestLog);
+
+                requestLog.PluginName = category == DefaultCategoryName ? null : category;
+                value.Add(requestLog);
             }
         }
     }
@@ -100,8 +105,9 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         // regular messages
         var logLevel = logEntry.LogLevel;
         var message = logEntry.Formatter(logEntry.State, logEntry.Exception);
+        var category = logEntry.Category == DefaultCategoryName ? null : logEntry.Category;
 
-        WriteMessageBoxedWithInvertedLabels(message, logLevel, scopeProvider, textWriter);
+        WriteMessageBoxedWithInvertedLabels(message, logLevel, category, scopeProvider, textWriter);
 
         if (logEntry.Exception is not null)
         {
@@ -111,7 +117,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         textWriter.WriteLine();
     }
 
-    private void WriteMessageBoxedWithInvertedLabels(string? message, LogLevel logLevel, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
+    private void WriteMessageBoxedWithInvertedLabels(string? message, LogLevel logLevel, string? category, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
     {
         if (message is null)
         {
@@ -146,51 +152,43 @@ public class ProxyConsoleFormatter : ConsoleFormatter
             }, textWriter);
         }
 
+        if (!string.IsNullOrEmpty(category))
+        {
+            textWriter.Write($"{category}: ");
+        }
+
         textWriter.Write(message);
     }
 
-    private static void WriteLogMessageBoxedWithInvertedLabels(string[] message, MessageType messageType, TextWriter textWriter, bool lastMessage = false)
+    private void WriteLogMessageBoxedWithInvertedLabels(RequestLog log, IExternalScopeProvider? scopeProvider, TextWriter textWriter, bool lastMessage = false)
     {
-        var label = GetMessageTypeString(messageType);
-        var (bgColor, fgColor) = GetMessageTypeColor(messageType);
+        var label = GetMessageTypeString(log.MessageType);
+        var (bgColor, fgColor) = GetMessageTypeColor(log.MessageType);
 
-        switch (messageType)
+        void writePluginName()
+        {
+            if (_options.IncludeScopes && log.PluginName is not null)
+            {
+                textWriter.Write($"{log.PluginName}: ");
+            }
+        }
+
+        switch (log.MessageType)
         {
             case MessageType.InterceptedRequest:
                 // always one line (method + URL)
                 // print label and top of the box
                 textWriter.WriteLine();
                 textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-                textWriter.WriteLine($"{(label.Length < 4 ? " " : "")}{labelSpacing}{_boxTopLeft}{message[0]}");
+                textWriter.Write($"{(label.Length < 4 ? " " : "")}{labelSpacing}{_boxTopLeft}");
+                writePluginName();
+                textWriter.WriteLine(log.Message);
                 break;
             default:
-                if (message.Length == 1)
-                {
-                    textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-                    textWriter.WriteLine($"{(label.Length < 4 ? " " : "")}{labelSpacing}{(lastMessage ? _boxBottomLeft : _boxLeft)}{message[0]}");
-                }
-                else
-                {
-                    for (var i = 0; i < message.Length; i++)
-                    {
-                        if (i == 0)
-                        {
-                            // print label and middle of the box
-                            textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
-                            textWriter.WriteLine($"{(label.Length < 4 ? " " : "")}{labelSpacing}{_boxLeft}{message[i]}");
-                        }
-                        else if (i < message.Length - 1)
-                        {
-                            // print middle of the box
-                            textWriter.WriteLine($"{noLabelSpacing}{labelSpacing}{_boxLeft}{message[i]}");
-                        }
-                        else
-                        {
-                            // print end of the box
-                            textWriter.WriteLine($"{noLabelSpacing}{labelSpacing}{(lastMessage ? _boxBottomLeft : _boxLeft)}{message[i]}");
-                        }
-                    }
-                }
+                textWriter.WriteColoredMessage($" {label} ", bgColor, fgColor);
+                textWriter.Write($"{(label.Length < 4 ? " " : "")}{labelSpacing}{(lastMessage ? _boxBottomLeft : _boxLeft)}");
+                writePluginName();
+                textWriter.WriteLine(log.Message);
                 break;
         }
     }
@@ -238,6 +236,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
             MessageType.Mocked => "mock",
             MessageType.Failed => "fail",
             MessageType.Tip => "tip",
+            MessageType.Skipped => "skip",
             _ => "    "
         };
     }
@@ -251,6 +250,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         {
             MessageType.InterceptedRequest => (bgColor, ConsoleColor.Gray),
             MessageType.PassedThrough => (ConsoleColor.Gray, fgColor),
+            MessageType.Skipped => (bgColor, ConsoleColor.Gray),
             MessageType.Chaos => (ConsoleColor.DarkRed, fgColor),
             MessageType.Warning => (ConsoleColor.DarkYellow, fgColor),
             MessageType.Mocked => (ConsoleColor.DarkMagenta, fgColor),

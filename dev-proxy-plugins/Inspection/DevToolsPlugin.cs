@@ -368,7 +368,7 @@ public class DevToolsPlugin(IPluginEvents pluginEvents, IProxyContext context, I
                 Entry = new()
                 {
                     Source = "network",
-                    Text = string.Join(" ", e.RequestLog.MessageLines),
+                    Text = string.Join(" ", e.RequestLog.Message),
                     Level = Entry.GetLevel(e.RequestLog.MessageType),
                     Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                     Url = e.RequestLog.Context?.Session.HttpClient.Request.Url,

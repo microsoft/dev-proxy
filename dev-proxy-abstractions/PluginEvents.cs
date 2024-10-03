@@ -99,35 +99,36 @@ public class OptionsLoadedArgs(InvocationContext context, Option[] options)
 
 public class RequestLog
 {
-    public string[] MessageLines { get; set; }
+    public string Message { get; set; }
     public MessageType MessageType { get; set; }
     [JsonIgnore]
     public LoggingContext? Context { get; set; }
     public string? Method { get; init; }
     public string? Url { get; init; }
+    public string? PluginName { get; set; }
 
-    public RequestLog(string[] messageLines, MessageType messageType, LoggingContext? context) :
-        this(messageLines, messageType, context?.Session.HttpClient.Request.Method, context?.Session.HttpClient.Request.Url, context)
+    public RequestLog(string message, MessageType messageType, LoggingContext? context) :
+        this(message, messageType, context?.Session.HttpClient.Request.Method, context?.Session.HttpClient.Request.Url, context)
     {
     }
 
-    public RequestLog(string[] messageLines, MessageType messageType, string method, string url) :
-        this(messageLines, messageType, method, url, context: null)
+    public RequestLog(string message, MessageType messageType, string method, string url) :
+        this(message, messageType, method, url, context: null)
     {
     }
 
-    private RequestLog(string[] messageLines, MessageType messageType, string? method, string? url, LoggingContext? context)
+    private RequestLog(string message, MessageType messageType, string? method, string? url, LoggingContext? context)
     {
-        MessageLines = messageLines ?? throw new ArgumentNullException(nameof(messageLines));
+        Message = message ?? throw new ArgumentNullException(nameof(message));
         MessageType = messageType;
         Context = context;
         Method = method;
         Url = url;
     }
 
-    public void Deconstruct(out string[] message, out MessageType messageType, out LoggingContext? context, out string? method, out string? url)
+    public void Deconstruct(out string message, out MessageType messageType, out LoggingContext? context, out string? method, out string? url)
     {
-        message = MessageLines;
+        message = Message;
         messageType = MessageType;
         context = Context;
         method = Method;

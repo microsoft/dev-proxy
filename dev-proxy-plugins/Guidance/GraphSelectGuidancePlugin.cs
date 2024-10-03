@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.DevProxy.Abstractions;
 using Titanium.Web.Proxy.Http;
 using Microsoft.Extensions.Logging;
+using Titanium.Web.Proxy.EventArguments;
 
 namespace Microsoft.DevProxy.Plugins.Guidance;
 
@@ -24,21 +25,33 @@ public class GraphSelectGuidancePlugin(IPluginEvents pluginEvents, IProxyContext
 
     private Task AfterResponseAsync(object? sender, ProxyResponseArgs e)
     {
-        Request request = e.Session.HttpClient.Request;
-        if (UrlsToWatch is not null &&
-            e.HasRequestUrlMatch(UrlsToWatch) &&
-            !string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
-            WarnNoSelect(request))
+        if (UrlsToWatch is null ||
+            !e.HasRequestUrlMatch(UrlsToWatch))
+        {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (string.Equals(e.Session.HttpClient.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping OPTIONS request", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+
+        if (WarnNoSelect(e.Session))
+        {
             Logger.LogRequest(BuildUseSelectMessage(), MessageType.Warning, new LoggingContext(e.Session));
+        }
 
         return Task.CompletedTask;
     }
 
-    private bool WarnNoSelect(Request request)
+    private bool WarnNoSelect(SessionEventArgs session)
     {
+        var request = session.HttpClient.Request;
         if (!ProxyUtils.IsGraphRequest(request) ||
             request.Method != "GET")
         {
+            Logger.LogRequest("Not a Microsoft Graph GET request", MessageType.Skipped, new LoggingContext(session));
             return false;
         }
 
@@ -52,6 +65,7 @@ public class GraphSelectGuidancePlugin(IPluginEvents pluginEvents, IProxyContext
         }
         else
         {
+            Logger.LogRequest("Endpoint does not support $select", MessageType.Skipped, new LoggingContext(session));
             return false;
         }
     }
@@ -80,7 +94,8 @@ public class GraphSelectGuidancePlugin(IPluginEvents pluginEvents, IProxyContext
     }
 
     private static string GetSelectParameterGuidanceUrl() => "https://aka.ms/devproxy/guidance/select";
-    private static string[] BuildUseSelectMessage() => [$"To improve performance of your application, use the $select parameter.", $"More info at {GetSelectParameterGuidanceUrl()}"];
+    private static string BuildUseSelectMessage() => 
+        $"To improve performance of your application, use the $select parameter. More info at {GetSelectParameterGuidanceUrl()}";
 
     private static string GetTokenizedUrl(string absoluteUrl)
     {

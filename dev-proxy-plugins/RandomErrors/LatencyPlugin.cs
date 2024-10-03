@@ -30,12 +30,15 @@ public class LatencyPlugin(IPluginEvents pluginEvents, IProxyContext context, IL
 
     private async Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
-        if (UrlsToWatch is not null
-            && e.ShouldExecute(UrlsToWatch))
+        if (UrlsToWatch is null ||
+            !e.ShouldExecute(UrlsToWatch))
         {
-            var delay = _random.Next(_configuration.MinMs, _configuration.MaxMs);
-            Logger.LogRequest([$"Delaying request for {delay}ms"], MessageType.Chaos, new LoggingContext(e.Session));
-            await Task.Delay(delay);
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return;
         }
+
+        var delay = _random.Next(_configuration.MinMs, _configuration.MaxMs);
+        Logger.LogRequest($"Delaying request for {delay}ms", MessageType.Chaos, new LoggingContext(e.Session));
+        await Task.Delay(delay);
     }
 }

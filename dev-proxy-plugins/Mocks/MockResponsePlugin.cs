@@ -105,37 +105,49 @@ public class MockResponsePlugin(IPluginEvents pluginEvents, IProxyContext contex
     {
         Request request = e.Session.HttpClient.Request;
         ResponseState state = e.ResponseState;
-        if (!_configuration.NoMocks && UrlsToWatch is not null && e.ShouldExecute(UrlsToWatch))
+        if (_configuration.NoMocks)
         {
-            var matchingResponse = GetMatchingMockResponse(request);
-            if (matchingResponse is not null)
-            {
-                ProcessMockResponseInternal(e, matchingResponse);
-                state.HasBeenSet = true;
-            }
-            else if (_configuration.BlockUnmockedRequests)
-            {
-                ProcessMockResponseInternal(e, new MockResponse
-                {
-                    Request = new()
-                    {
-                        Url = request.Url,
-                        Method = request.Method ?? ""
-                    },
-                    Response = new()
-                    {
-                        StatusCode = 502,
-                        Body = new GraphErrorResponseBody(new GraphErrorResponseError
-                        {
-                            Code = "Bad Gateway",
-                            Message = $"No mock response found for {request.Method} {request.Url}"
-                        })
-                    }
-                });
-                state.HasBeenSet = true;
-            }
+            Logger.LogRequest("Mocks disabled", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (UrlsToWatch is null ||
+            !e.ShouldExecute(UrlsToWatch))
+        {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
         }
 
+        var matchingResponse = GetMatchingMockResponse(request);
+        if (matchingResponse is not null)
+        {
+            ProcessMockResponseInternal(e, matchingResponse);
+            state.HasBeenSet = true;
+            return Task.CompletedTask;
+        }
+        else if (_configuration.BlockUnmockedRequests)
+        {
+            ProcessMockResponseInternal(e, new MockResponse
+            {
+                Request = new()
+                {
+                    Url = request.Url,
+                    Method = request.Method ?? ""
+                },
+                Response = new()
+                {
+                    StatusCode = 502,
+                    Body = new GraphErrorResponseBody(new GraphErrorResponseError
+                    {
+                        Code = "Bad Gateway",
+                        Message = $"No mock response found for {request.Method} {request.Url}"
+                    })
+                }
+            });
+            state.HasBeenSet = true;
+            return Task.CompletedTask;
+        }
+
+        Logger.LogRequest("No matching mock response found", MessageType.Skipped, new LoggingContext(e.Session));
         return Task.CompletedTask;
     }
 
@@ -294,7 +306,7 @@ public class MockResponsePlugin(IPluginEvents pluginEvents, IProxyContext contex
                     var bodyBytes = File.ReadAllBytes(filePath);
                     ProcessMockResponse(ref bodyBytes, headers, e, matchingResponse);
                     e.Session.GenericResponse(bodyBytes, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
-                    Logger.LogRequest([$"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
+                    Logger.LogRequest($"{matchingResponse.Response.StatusCode ?? 200} {matchingResponse.Request?.Url}", MessageType.Mocked, new LoggingContext(e.Session));
                     return;
                 }
             }
@@ -303,7 +315,8 @@ public class MockResponsePlugin(IPluginEvents pluginEvents, IProxyContext contex
                 body = bodyString;
             }
         }
-        else {
+        else
+        {
             // we need to remove the content-type header if the body is empty
             // some clients fail on empty body + content-type
             var contentTypeHeader = headers.FirstOrDefault(h => h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase));
@@ -315,6 +328,6 @@ public class MockResponsePlugin(IPluginEvents pluginEvents, IProxyContext contex
         ProcessMockResponse(ref body, headers, e, matchingResponse);
         e.Session.GenericResponse(body ?? string.Empty, statusCode, headers.Select(h => new HttpHeader(h.Name, h.Value)));
 
-        Logger.LogRequest([$"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}"], MessageType.Mocked, new LoggingContext(e.Session));
+        Logger.LogRequest($"{matchingResponse.Response?.StatusCode ?? 200} {matchingResponse.Request?.Url}", MessageType.Mocked, new LoggingContext(e.Session));
     }
 }

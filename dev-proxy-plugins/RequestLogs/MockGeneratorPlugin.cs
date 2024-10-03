@@ -43,7 +43,7 @@ public class MockGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext conte
                 continue;
             }
 
-            var methodAndUrlString = request.MessageLines.First();
+            var methodAndUrlString = request.Message;
             Logger.LogDebug("Processing request {methodAndUrlString}...", methodAndUrlString);
 
             var (method, url) = GetMethodAndUrl(methodAndUrlString);

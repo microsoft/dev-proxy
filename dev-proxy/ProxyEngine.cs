@@ -467,7 +467,7 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
             using var scope = _logger.BeginScope(e.HttpClient.Request.Method ?? "", e.HttpClient.Request.Url, e.GetHashCode());
 
             e.UserData = e.HttpClient.Request;
-            _logger.LogRequest([$"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}"], MessageType.InterceptedRequest, new LoggingContext(e));
+            _logger.LogRequest($"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}", MessageType.InterceptedRequest, new LoggingContext(e));
             await HandleRequestAsync(e, proxyRequestArgs);
         }
     }
@@ -479,7 +479,7 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
         // We only need to set the proxy header if the proxy has not set a response and the request is going to be sent to the target.
         if (!proxyRequestArgs.ResponseState.HasBeenSet)
         {
-            _logger?.LogRequest(["Passed through"], MessageType.PassedThrough, new LoggingContext(e));
+            _logger?.LogRequest("Passed through", MessageType.PassedThrough, new LoggingContext(e));
             AddProxyHeader(e.HttpClient.Request);
         }
     }
@@ -578,9 +578,9 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
             using var scope = _logger.BeginScope(e.HttpClient.Request.Method ?? "", e.HttpClient.Request.Url, e.GetHashCode());
 
             var message = $"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}";
-            _logger.LogRequest([message], MessageType.InterceptedResponse, new LoggingContext(e));
+            _logger.LogRequest(message, MessageType.InterceptedResponse, new LoggingContext(e));
             await _pluginEvents.RaiseProxyAfterResponseAsync(proxyResponseArgs, ExceptionHandler);
-            _logger.LogRequest([message], MessageType.FinishedProcessingRequest, new LoggingContext(e));
+            _logger.LogRequest(message, MessageType.FinishedProcessingRequest, new LoggingContext(e));
 
             // clean up
             _pluginData.Remove(e.GetHashCode());

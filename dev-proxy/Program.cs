@@ -13,26 +13,27 @@ _ = Announcement.ShowAsync();
 
 PluginEvents pluginEvents = new();
 
-ILogger BuildLogger()
+(ILogger, ILoggerFactory) BuildLogger()
 {
     var loggerFactory = LoggerFactory.Create(builder =>
     {
         builder
             .AddConsole(options =>
             {
-                options.FormatterName = "devproxy";
+                options.FormatterName = ProxyConsoleFormatter.DefaultCategoryName;
                 options.LogToStandardErrorThreshold = LogLevel.Warning;
             })
-            .AddConsoleFormatter<ProxyConsoleFormatter, ConsoleFormatterOptions>(options => {
+            .AddConsoleFormatter<ProxyConsoleFormatter, ProxyConsoleFormatterOptions>(options => {
                 options.IncludeScopes = true;
+                options.ShowSkipMessages = ProxyCommandHandler.Configuration.ShowSkipMessages;
             })
             .AddRequestLogger(pluginEvents)
             .SetMinimumLevel(ProxyHost.LogLevel ?? ProxyCommandHandler.Configuration.LogLevel);
     });
-    return loggerFactory.CreateLogger("devproxy");
+    return (loggerFactory.CreateLogger(ProxyConsoleFormatter.DefaultCategoryName), loggerFactory);
 }
 
-var logger = BuildLogger();
+var (logger, loggerFactory) = BuildLogger();
 
 var lmClient = new OllamaLanguageModelClient(ProxyCommandHandler.Configuration.LanguageModel, logger);
 IProxyContext context = new ProxyContext(ProxyCommandHandler.Configuration, ProxyEngine.Certificate, lmClient);
@@ -61,7 +62,7 @@ if (hasGlobalOption || hasSubCommand)
     return;
 }
 
-var pluginLoader = new PluginLoader(logger);
+var pluginLoader = new PluginLoader(logger, loggerFactory);
 PluginLoaderResult loaderResults = await pluginLoader.LoadPluginsAsync(pluginEvents, context);
 // have all the plugins init
 pluginEvents.RaiseInit(new InitArgs());

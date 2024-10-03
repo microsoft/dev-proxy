@@ -190,7 +190,7 @@ public class GraphRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext co
             }),
             ProxyUtils.JsonSerializerOptions
         );
-        Logger.LogRequest([$"{(int)errorStatus} {errorStatus}"], MessageType.Chaos, new LoggingContext(e.Session));
+        Logger.LogRequest($"{(int)errorStatus} {errorStatus}", MessageType.Chaos, new LoggingContext(e.Session));
         session.GenericResponse(body ?? string.Empty, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)));
     }
 
@@ -206,7 +206,7 @@ public class GraphRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext co
         var headers = ProxyUtils.BuildGraphResponseHeaders(request, requestId, requestDate);
 
         string body = JsonSerializer.Serialize(response, ProxyUtils.JsonSerializerOptions);
-        Logger.LogRequest([$"{(int)errorStatus} {errorStatus}"], MessageType.Chaos, new LoggingContext(ev.Session));
+        Logger.LogRequest($"{(int)errorStatus} {errorStatus}", MessageType.Chaos, new LoggingContext(ev.Session));
         session.GenericResponse(body, errorStatus, headers.Select(h => new HttpHeader(h.Name, h.Value)));
     }
 
@@ -254,26 +254,34 @@ public class GraphRandomErrorPlugin(IPluginEvents pluginEvents, IProxyContext co
     private Task OnRequestAsync(object? sender, ProxyRequestArgs e)
     {
         var state = e.ResponseState;
-        if (!e.ResponseState.HasBeenSet
-            && UrlsToWatch is not null
-            && e.ShouldExecute(UrlsToWatch))
+        if (state.HasBeenSet)
         {
-            var failMode = ShouldFail(e);
-
-            if (failMode == GraphRandomErrorFailMode.PassThru && Context.Configuration.Rate != 100)
-            {
-                return Task.CompletedTask;
-            }
-            if (ProxyUtils.IsGraphBatchUrl(e.Session.HttpClient.Request.RequestUri))
-            {
-                FailBatch(e);
-            }
-            else
-            {
-                FailResponse(e);
-            }
-            state.HasBeenSet = true;
+            Logger.LogRequest("Response already set", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
         }
+        if (UrlsToWatch is null ||
+            !e.ShouldExecute(UrlsToWatch))
+        {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+
+
+        var failMode = ShouldFail(e);
+        if (failMode == GraphRandomErrorFailMode.PassThru && Context.Configuration.Rate != 100)
+        {
+            Logger.LogRequest("Pass through", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (ProxyUtils.IsGraphBatchUrl(e.Session.HttpClient.Request.RequestUri))
+        {
+            FailBatch(e);
+        }
+        else
+        {
+            FailResponse(e);
+        }
+        state.HasBeenSet = true;
 
         return Task.CompletedTask;
     }

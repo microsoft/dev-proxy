@@ -56,7 +56,7 @@ public class GraphMinimalPermissionsPlugin(IPluginEvents pluginEvents, IProxyCon
                 continue;
             }
 
-            var methodAndUrlString = request.MessageLines.First();
+            var methodAndUrlString = request.Message;
             var methodAndUrl = GetMethodAndUrl(methodAndUrlString);
             if (methodAndUrl.method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
             {

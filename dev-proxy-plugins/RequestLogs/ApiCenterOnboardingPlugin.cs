@@ -114,7 +114,7 @@ public class ApiCenterOnboardingPlugin(IPluginEvents pluginEvents, IProxyContext
             .Where(l => l.MessageType == MessageType.InterceptedRequest)
             .Select(request =>
             {
-                var methodAndUrl = request.MessageLines.First().Split(' ');
+                var methodAndUrl = request.Message.Split(' ');
                 return (method: methodAndUrl[0], url: methodAndUrl[1]);
             })
             .Where(r => !r.method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))

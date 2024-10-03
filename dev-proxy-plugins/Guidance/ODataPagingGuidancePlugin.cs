@@ -25,16 +25,31 @@ public class ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext
     private Task OnBeforeRequestAsync(object? sender, ProxyRequestArgs e)
     {
         if (UrlsToWatch is null ||
-            e.Session.HttpClient.Request.Method != "GET" ||
             !e.HasRequestUrlMatch(UrlsToWatch))
         {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return Task.CompletedTask;
+        }
+        if (!string.Equals(e.Session.HttpClient.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping non-GET request", MessageType.Skipped, new LoggingContext(e.Session));
             return Task.CompletedTask;
         }
 
-        if (IsODataPagingUrl(e.Session.HttpClient.Request.RequestUri) &&
-            !pagingUrls.Contains(e.Session.HttpClient.Request.Url))
+        if (IsODataPagingUrl(e.Session.HttpClient.Request.RequestUri))
         {
-            Logger.LogRequest(BuildIncorrectPagingUrlMessage(), MessageType.Warning, new LoggingContext(e.Session));
+            if (!pagingUrls.Contains(e.Session.HttpClient.Request.Url))
+            {
+                Logger.LogRequest(BuildIncorrectPagingUrlMessage(), MessageType.Warning, new LoggingContext(e.Session));
+            }
+            else
+            {
+                Logger.LogRequest("Paging URL is correct", MessageType.Skipped, new LoggingContext(e.Session));
+            }
+        }
+        else
+        {
+            Logger.LogRequest("Not an OData paging URL", MessageType.Skipped, new LoggingContext(e.Session));
         }
 
         return Task.CompletedTask;
@@ -43,14 +58,27 @@ public class ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext
     private async Task OnBeforeResponseAsync(object? sender, ProxyResponseArgs e)
     {
         if (UrlsToWatch is null ||
-            !e.HasRequestUrlMatch(UrlsToWatch) ||
-            e.Session.HttpClient.Request.Method != "GET" ||
-            e.Session.HttpClient.Response.StatusCode >= 300 ||
-            e.Session.HttpClient.Response.ContentType is null ||
+            !e.HasRequestUrlMatch(UrlsToWatch))
+        {
+            Logger.LogRequest("URL not matched", MessageType.Skipped, new LoggingContext(e.Session));
+            return;
+        }
+        if (!string.Equals(e.Session.HttpClient.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogRequest("Skipping non-GET request", MessageType.Skipped, new LoggingContext(e.Session));
+            return;
+        }
+        if (e.Session.HttpClient.Response.StatusCode >= 300)
+        {
+            Logger.LogRequest("Skipping non-success response", MessageType.Skipped, new LoggingContext(e.Session));
+            return;
+        }
+        if (e.Session.HttpClient.Response.ContentType is null ||
             (!e.Session.HttpClient.Response.ContentType.Contains("json") &&
             !e.Session.HttpClient.Response.ContentType.Contains("application/atom+xml")) ||
             !e.Session.HttpClient.Response.HasBody)
         {
+            Logger.LogRequest("Skipping response with unsupported body type", MessageType.Skipped, new LoggingContext(e.Session));
             return;
         }
 
@@ -60,6 +88,7 @@ public class ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext
         var bodyString = await e.Session.GetResponseBodyAsString();
         if (string.IsNullOrEmpty(bodyString))
         {
+            Logger.LogRequest("Skipping empty response body", MessageType.Skipped, new LoggingContext(e.Session));
             return;
         }
 
@@ -76,6 +105,10 @@ public class ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext
         if (!string.IsNullOrEmpty(nextLink))
         {
             pagingUrls.Add(nextLink);
+        }
+        else
+        {
+            Logger.LogRequest("No next link found in the response", MessageType.Skipped, new LoggingContext(e.Session));
         }
     }
 
@@ -126,9 +159,6 @@ public class ODataPagingGuidancePlugin(IPluginEvents pluginEvents, IProxyContext
       uri.Query.Contains("$skiptoken") ||
       uri.Query.Contains("%24skiptoken");
 
-    private static string[] BuildIncorrectPagingUrlMessage() => [
-        "This paging URL seems to be created manually and is not aligned with paging information from the API.",
-        "This could lead to incorrect data in your app.",
-        "For more information about paging see https://aka.ms/devproxy/guidance/paging"
-    ];
+    private static string BuildIncorrectPagingUrlMessage() =>
+        "This paging URL seems to be created manually and is not aligned with paging information from the API. This could lead to incorrect data in your app. For more information about paging see https://aka.ms/devproxy/guidance/paging";
 }
