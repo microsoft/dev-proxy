@@ -31,7 +31,7 @@ internal sealed record JwtCreatorOptions
             Claims = options.Claims ?? [],
             NotBefore = DateTime.UtcNow,
             ExpiresOn = DateTime.UtcNow.AddMinutes(options.ValidFor ?? 60),
-            SigningKey = options.SigningKey ?? RandomNumberGenerator.GetHexString(32)
+            SigningKey = (string.IsNullOrEmpty(options.SigningKey) ? RandomNumberGenerator.GetHexString(32) : options.SigningKey)
         };
     }
 }

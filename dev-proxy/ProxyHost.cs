@@ -417,7 +417,7 @@ internal class ProxyHost
         jwtValidForOption.AddAlias("-v");
         jwtCreateCommand.AddOption(jwtValidForOption);
 
-        var jwtSigningKeyOption = new Option<string>("--signingkey", "The signing key to sign the token. Minimum length is 32 characters.");
+        var jwtSigningKeyOption = new Option<string>("--signing-key", "The signing key to sign the token. Minimum length is 32 characters.");
         jwtSigningKeyOption.AddAlias("-k");
         jwtSigningKeyOption.AddValidator(input =>
         {
