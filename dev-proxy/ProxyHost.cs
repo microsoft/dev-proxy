@@ -382,14 +382,15 @@ internal class ProxyHost
 
         var jwtClaimsOption = new Option<Dictionary<string, string>>("--claims",
             description: "Claims to add to the token. Specify once for each claim in the format \"name:value\".",
-            parseArgument: result => {
+            parseArgument: result =>
+            {
                 var claims = new Dictionary<string, string>();
                 foreach (var token in result.Tokens)
                 {
                     var claim = token.Value.Split(":");
 
                     if (claim.Length != 2)
-                    {   
+                    {
                         result.ErrorMessage = $"Invalid claim format: '{token.Value}'. Expected format is name:value.";
                         return claims ?? [];
                     }
@@ -416,7 +417,26 @@ internal class ProxyHost
         jwtValidForOption.AddAlias("-v");
         jwtCreateCommand.AddOption(jwtValidForOption);
 
-        jwtCreateCommand.SetHandler( 
+        var jwtSigningKeyOption = new Option<string>("--signing-key", "The signing key to sign the token. Minimum length is 32 characters.");
+        jwtSigningKeyOption.AddAlias("-k");
+        jwtSigningKeyOption.AddValidator(input =>
+        {
+            try
+            {
+                var value = input.GetValueForOption(jwtSigningKeyOption);
+                if (string.IsNullOrWhiteSpace(value) || value.Length < 32)
+                {
+                    input.ErrorMessage = $"Requires option '--{jwtSigningKeyOption.Name}' to be at least 32 characters";
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                input.ErrorMessage = ex.Message;
+            }
+        });
+        jwtCreateCommand.AddOption(jwtSigningKeyOption);
+
+        jwtCreateCommand.SetHandler(
             JwtCommandHandler.GetToken,
             new JwtBinder(
                 jwtNameOption,
@@ -425,7 +445,8 @@ internal class ProxyHost
                 jwtRolesOption,
                 jwtScopesOption,
                 jwtClaimsOption,
-                jwtValidForOption
+                jwtValidForOption,
+                jwtSigningKeyOption
             )
         );
         jwtCommand.Add(jwtCreateCommand);

@@ -55,6 +55,11 @@ public class ProxyController(IProxyState proxyState) : ControllerBase
     [HttpPost("createJwtToken")]
     public IActionResult CreateJwtToken([FromBody] JwtOptions jwtOptions)
     {
+        if (jwtOptions.SigningKey != null && jwtOptions.SigningKey.Length < 32)
+        {
+            return BadRequest("The specified signing key is too short. A signing key must be at least 32 characters.");
+        }
+
         var token = JwtTokenGenerator.CreateToken(jwtOptions);
 
         return Ok(new JwtInfo { Token = token });

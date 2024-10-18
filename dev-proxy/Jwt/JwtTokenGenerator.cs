@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Cryptography;
+using System.Text;
 
 namespace Microsoft.DevProxy.Jwt;
 
@@ -14,7 +14,7 @@ internal static class JwtTokenGenerator
 
         var jwtIssuer = new JwtIssuer(
             options.Issuer,
-            RandomNumberGenerator.GetBytes(32)
+            Encoding.UTF8.GetBytes(options.SigningKey)
         );
 
         var jwtToken = jwtIssuer.CreateSecurityToken(options);

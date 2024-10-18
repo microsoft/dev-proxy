@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Security.Cryptography;
+
 namespace Microsoft.DevProxy.Jwt;
 
 internal sealed record JwtCreatorOptions
@@ -14,6 +16,7 @@ internal sealed record JwtCreatorOptions
     public required IEnumerable<string> Roles { get; init; }
     public required IEnumerable<string> Scopes { get; init; }
     public required Dictionary<string, string> Claims { get; init; }
+    public required string SigningKey { get; init; }
 
     public static JwtCreatorOptions Create(JwtOptions options)
     {
@@ -27,7 +30,8 @@ internal sealed record JwtCreatorOptions
             Scopes = options.Scopes ?? [],
             Claims = options.Claims ?? [],
             NotBefore = DateTime.UtcNow,
-            ExpiresOn = DateTime.UtcNow.AddMinutes(options.ValidFor ?? 60)
+            ExpiresOn = DateTime.UtcNow.AddMinutes(options.ValidFor ?? 60),
+            SigningKey = (string.IsNullOrEmpty(options.SigningKey) ? RandomNumberGenerator.GetHexString(32) : options.SigningKey)
         };
     }
 }
