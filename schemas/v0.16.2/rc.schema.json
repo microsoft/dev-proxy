@@ -7,6 +7,9 @@
     "$schema": {
       "type":"string"
     },
+    "asSystemProxy": {
+      "type": "boolean"
+    },
     "ipAddress": {
       "type": "string",
       "format": "ipv4"
