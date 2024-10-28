@@ -76,6 +76,9 @@
     "record": {
       "type": "boolean"
     },
+    "showSkipMessages": {
+      "type": "boolean"
+    },
     "urlsToWatch": {
       "type": "array",
       "items": {
