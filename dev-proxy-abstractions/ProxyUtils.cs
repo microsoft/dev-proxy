@@ -339,7 +339,11 @@ public static class ProxyUtils
                     continue;
                 }
 
-                allHeaders.Remove(existingHeader);
+                // don't remove headers that we've just added
+                if (!headersToAdd.Contains(existingHeader))
+                {
+                    allHeaders.Remove(existingHeader);
+                }
             }
 
             allHeaders.Add(header);
