@@ -112,7 +112,8 @@ public class DevToolsPlugin(IPluginEvents pluginEvents, IProxyContext context, I
 
     private Process[] GetBrowserProcesses(string browserPath)
     {
-        return Process.GetProcesses().Where(p => {
+        return Process.GetProcesses().Where(p =>
+        {
             try
             {
                 return p.MainModule is not null && p.MainModule.FileName == browserPath;
@@ -290,15 +291,18 @@ public class DevToolsPlugin(IPluginEvents pluginEvents, IProxyContext context, I
             Body = string.Empty,
             Base64Encoded = false
         };
-        if (IsTextResponse(e.Session.HttpClient.Response.ContentType))
+        if (e.Session.HttpClient.Response.HasBody)
         {
-            body.Body = e.Session.HttpClient.Response.BodyString;
-            body.Base64Encoded = false;
-        }
-        else
-        {
-            body.Body = Convert.ToBase64String(e.Session.HttpClient.Response.Body);
-            body.Base64Encoded = true;
+            if (IsTextResponse(e.Session.HttpClient.Response.ContentType))
+            {
+                body.Body = e.Session.HttpClient.Response.BodyString;
+                body.Base64Encoded = false;
+            }
+            else
+            {
+                body.Body = Convert.ToBase64String(e.Session.HttpClient.Response.Body);
+                body.Base64Encoded = true;
+            }
         }
         responseBody.Add(e.Session.HttpClient.Request.GetHashCode().ToString(), body);
 
