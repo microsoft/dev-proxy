@@ -230,13 +230,14 @@ public class ProxyConsoleFormatter : ConsoleFormatter
         {
             MessageType.InterceptedRequest => "req",
             MessageType.InterceptedResponse => "res",
-            MessageType.PassedThrough => "api",
+            MessageType.PassedThrough => "pass",
             MessageType.Chaos => "oops",
             MessageType.Warning => "warn",
             MessageType.Mocked => "mock",
             MessageType.Failed => "fail",
             MessageType.Tip => "tip",
             MessageType.Skipped => "skip",
+            MessageType.Processed => "proc",
             _ => "    "
         };
     }
@@ -251,6 +252,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
             MessageType.InterceptedRequest => (bgColor, ConsoleColor.Gray),
             MessageType.PassedThrough => (ConsoleColor.Gray, fgColor),
             MessageType.Skipped => (bgColor, ConsoleColor.Gray),
+            MessageType.Processed => (ConsoleColor.DarkGreen, fgColor),
             MessageType.Chaos => (ConsoleColor.DarkRed, fgColor),
             MessageType.Warning => (ConsoleColor.DarkYellow, fgColor),
             MessageType.Mocked => (ConsoleColor.DarkMagenta, fgColor),
