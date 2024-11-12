@@ -17,7 +17,8 @@ public enum MessageType
     Mocked,
     InterceptedResponse,
     FinishedProcessingRequest,
-    Skipped
+    Skipped,
+    Processed
 }
 
 public class LoggingContext(SessionEventArgs session)
