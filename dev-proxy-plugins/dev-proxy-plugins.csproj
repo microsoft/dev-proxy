@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>Microsoft.DevProxy.Plugins</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -17,15 +17,15 @@
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0">
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.1.2">
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.2.0">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
