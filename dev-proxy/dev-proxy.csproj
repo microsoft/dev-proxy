@@ -39,7 +39,7 @@
     <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.22" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.11.20" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.0" />
     <PackageReference Include="Unobtanium.Web.Proxy" Version="0.1.5" />
