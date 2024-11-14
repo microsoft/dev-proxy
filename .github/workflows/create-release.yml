@@ -22,7 +22,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
       - name: Rename executable for beta
         if: contains(github.ref_name, '-beta')
         run: |
@@ -47,7 +47,7 @@ jobs:
         if: matrix.architecture == 'win-x64'
         run: dotnet build ./dev-proxy-abstractions/dev-proxy-abstractions.csproj -p:InformationalVersion=$("${{ github.ref_name }}".Substring(1)) -c Release --no-self-contained
       - name: Add plugins to output
-        run: cp ./dev-proxy/bin/Release/net8.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
+        run: cp ./dev-proxy/bin/Release/net9.0/${{ matrix.architecture }}/plugins ./${{ env.release }} -r
       - name: Remove unnecessary files
         run: |
           pushd
@@ -74,7 +74,7 @@ jobs:
         uses: thedoctor0/zip-release@master
         with:
           filename: '../../../../dev-proxy-abstractions-${{ github.ref_name }}.zip'
-          directory: './dev-proxy-abstractions/bin/Release/net8.0'
+          directory: './dev-proxy-abstractions/bin/Release/net9.0'
           exclusions: '*.json'
       - name: Upload abstractions
         if: matrix.architecture == 'win-x64'
