@@ -160,18 +160,25 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
         }
         _pluginEvents.AfterRequestLog += AfterRequestLogAsync;
 
-        while (!stoppingToken.IsCancellationRequested && _proxyServer.ProxyRunning)
+
+        try
         {
-            while (!Console.KeyAvailable)
+            while (!stoppingToken.IsCancellationRequested && _proxyServer.ProxyRunning)
             {
-                await Task.Delay(10, stoppingToken);
+                while (!Console.KeyAvailable)
+                {
+                    await Task.Delay(10, stoppingToken);
+                }
+                // we need this check or proxy will fail with an exception
+                // when run for example in VSCode's integrated terminal
+                if (isInteractive)
+                {
+                    await ReadKeysAsync();
+                }
             }
-            // we need this check or proxy will fail with an exception
-            // when run for example in VSCode's integrated terminal
-            if (isInteractive)
-            {
-                await ReadKeysAsync();
-            }
+        }
+        catch (TaskCanceledException)
+        {
         }
     }
 
