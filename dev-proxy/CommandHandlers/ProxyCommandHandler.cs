@@ -70,6 +70,10 @@ public class ProxyCommandHandler(IPluginEvents pluginEvents,
 
             return 0;
         }
+        catch (TaskCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while running Dev Proxy");
@@ -86,7 +90,6 @@ public class ProxyCommandHandler(IPluginEvents pluginEvents,
             return 1;
 #endif
         }
-
     }
 
     private void ParseOptions(InvocationContext context)
