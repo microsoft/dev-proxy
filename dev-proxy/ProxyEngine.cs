@@ -160,6 +160,10 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
         }
         _pluginEvents.AfterRequestLog += AfterRequestLogAsync;
 
+        if (!isInteractive)
+        {
+            return;
+        }
 
         try
         {
@@ -169,16 +173,13 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
                 {
                     await Task.Delay(10, stoppingToken);
                 }
-                // we need this check or proxy will fail with an exception
-                // when run for example in VSCode's integrated terminal
-                if (isInteractive)
-                {
-                    await ReadKeysAsync();
-                }
+
+                await ReadKeysAsync();
             }
         }
         catch (TaskCanceledException)
         {
+            throw;
         }
     }
 
@@ -335,7 +336,10 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
                 _proxyServer.ServerCertificateValidationCallback -= OnCertificateValidationAsync;
                 _proxyServer.ClientCertificateSelectionCallback -= OnCertificateSelectionAsync;
 
-                _proxyServer.Stop();
+                if (_proxyServer.ProxyRunning)
+                {
+                    _proxyServer.Stop();
+                }
             }
 
             if (RunTime.IsMac && _config.AsSystemProxy)

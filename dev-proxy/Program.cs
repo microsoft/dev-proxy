@@ -6,7 +6,6 @@ using Microsoft.DevProxy.Abstractions;
 using Microsoft.DevProxy.Abstractions.LanguageModel;
 using Microsoft.DevProxy.CommandHandlers;
 using Microsoft.DevProxy.Logging;
-using Microsoft.Extensions.Logging.Console;
 using System.CommandLine;
 
 _ = Announcement.ShowAsync();
@@ -23,7 +22,8 @@ PluginEvents pluginEvents = new();
                 options.FormatterName = ProxyConsoleFormatter.DefaultCategoryName;
                 options.LogToStandardErrorThreshold = LogLevel.Warning;
             })
-            .AddConsoleFormatter<ProxyConsoleFormatter, ProxyConsoleFormatterOptions>(options => {
+            .AddConsoleFormatter<ProxyConsoleFormatter, ProxyConsoleFormatterOptions>(options =>
+            {
                 options.IncludeScopes = true;
                 options.ShowSkipMessages = ProxyCommandHandler.Configuration.ShowSkipMessages;
             })
