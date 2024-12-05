@@ -45,6 +45,8 @@ class GeneratedByOpenApiExtension : IOpenApiExtension
 internal class OpenApiSpecGeneratorPluginConfiguration
 {
     public bool IncludeOptionsRequests { get; set; } = false;
+    
+    public int SpecVersion { get; set; } = 3;
 }
 
 public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
@@ -355,7 +357,15 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
         {
             var server = openApiDoc.Servers.First();
             var fileName = GetFileNameFromServerUrl(server.Url);
-            var docString = openApiDoc.SerializeAsJson(OpenApiSpecVersion.OpenApi3_0);
+
+            var openApiSpecVersion = _configuration.SpecVersion switch
+            {
+                2 => OpenApiSpecVersion.OpenApi2_0,
+                3 => OpenApiSpecVersion.OpenApi3_0,
+                _ => throw new NotSupportedException($"OpenAPI spec version {_configuration.SpecVersion} is not supported. Supported versions are 2 and 3.")
+            };
+            
+            var docString = openApiDoc.SerializeAsJson(openApiSpecVersion);
 
             Logger.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
             File.WriteAllText(fileName, docString);
