@@ -15,6 +15,7 @@ using System.Web;
 using System.Collections.Specialized;
 using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions.LanguageModel;
+using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -42,9 +43,18 @@ class GeneratedByOpenApiExtension : IOpenApiExtension
     }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+internal enum SpecVersion
+{
+    v2_0,
+    v3_0
+}
+
 internal class OpenApiSpecGeneratorPluginConfiguration
 {
     public bool IncludeOptionsRequests { get; set; } = false;
+
+    public SpecVersion SpecVersion { get; set; } = SpecVersion.v3_0;
 }
 
 public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
@@ -355,7 +365,15 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
         {
             var server = openApiDoc.Servers.First();
             var fileName = GetFileNameFromServerUrl(server.Url);
-            var docString = openApiDoc.SerializeAsJson(OpenApiSpecVersion.OpenApi3_0);
+
+            var openApiSpecVersion = _configuration.SpecVersion switch
+            {
+                SpecVersion.v2_0 => OpenApiSpecVersion.OpenApi2_0,
+                SpecVersion.v3_0 => OpenApiSpecVersion.OpenApi3_0,
+                _ => OpenApiSpecVersion.OpenApi3_0
+            };
+
+            var docString = openApiDoc.SerializeAsJson(openApiSpecVersion);
 
             Logger.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
             File.WriteAllText(fileName, docString);
@@ -449,7 +467,8 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
     {
         var prompt = $"For the specified request, generate an operation ID, compatible with an OpenAPI spec. Respond with just the ID in plain-text format. For example, for request such as `GET https://api.contoso.com/books/{{books-id}}` you return `getBookById`. For a request like `GET https://api.contoso.com/books/{{books-id}}/authors` you return `getAuthorsForBookById`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
         ILanguageModelCompletionResponse? id = null;
-        if (await Context.LanguageModelClient.IsEnabledAsync()) {
+        if (await Context.LanguageModelClient.IsEnabledAsync())
+        {
             id = await Context.LanguageModelClient.GenerateCompletionAsync(prompt);
         }
         return id?.Response ?? $"{method}{parametrizedPath.Replace('/', '.')}";
@@ -459,7 +478,8 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
     {
         var prompt = $"You're an expert in OpenAPI. You help developers build great OpenAPI specs for use with LLMs. For the specified request, generate a one-sentence description. Respond with just the description. For example, for a request such as `GET https://api.contoso.com/books/{{books-id}}` you return `Get a book by ID`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
         ILanguageModelCompletionResponse? description = null;
-        if (await Context.LanguageModelClient.IsEnabledAsync()) {
+        if (await Context.LanguageModelClient.IsEnabledAsync())
+        {
             description = await Context.LanguageModelClient.GenerateCompletionAsync(prompt);
         }
         return description?.Response ?? $"{method} {parametrizedPath}";
