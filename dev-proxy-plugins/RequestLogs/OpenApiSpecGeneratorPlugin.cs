@@ -45,8 +45,8 @@ class GeneratedByOpenApiExtension : IOpenApiExtension
 internal class OpenApiSpecGeneratorPluginConfiguration
 {
     public bool IncludeOptionsRequests { get; set; } = false;
-    
-    public int SpecVersion { get; set; } = 3;
+
+    public string SpecVersion { get; set; } = "3";
 }
 
 public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
@@ -294,6 +294,12 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
 
         ConfigSection?.Bind(_configuration);
 
+        if (_configuration.SpecVersion != "2" && _configuration.SpecVersion != "3")
+        {
+            Logger.LogError("OpenAPI spec version is not supported. Supported versions are 2 and 3.");
+            return;
+        }
+
         PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
@@ -358,13 +364,8 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
             var server = openApiDoc.Servers.First();
             var fileName = GetFileNameFromServerUrl(server.Url);
 
-            var openApiSpecVersion = _configuration.SpecVersion switch
-            {
-                2 => OpenApiSpecVersion.OpenApi2_0,
-                3 => OpenApiSpecVersion.OpenApi3_0,
-                _ => throw new NotSupportedException($"OpenAPI spec version {_configuration.SpecVersion} is not supported. Supported versions are 2 and 3.")
-            };
-            
+            var openApiSpecVersion = _configuration.SpecVersion == "2" ? OpenApiSpecVersion.OpenApi2_0 : OpenApiSpecVersion.OpenApi3_0;
+
             var docString = openApiDoc.SerializeAsJson(openApiSpecVersion);
 
             Logger.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
@@ -459,7 +460,8 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
     {
         var prompt = $"For the specified request, generate an operation ID, compatible with an OpenAPI spec. Respond with just the ID in plain-text format. For example, for request such as `GET https://api.contoso.com/books/{{books-id}}` you return `getBookById`. For a request like `GET https://api.contoso.com/books/{{books-id}}/authors` you return `getAuthorsForBookById`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
         ILanguageModelCompletionResponse? id = null;
-        if (await Context.LanguageModelClient.IsEnabledAsync()) {
+        if (await Context.LanguageModelClient.IsEnabledAsync())
+        {
             id = await Context.LanguageModelClient.GenerateCompletionAsync(prompt);
         }
         return id?.Response ?? $"{method}{parametrizedPath.Replace('/', '.')}";
@@ -469,7 +471,8 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
     {
         var prompt = $"You're an expert in OpenAPI. You help developers build great OpenAPI specs for use with LLMs. For the specified request, generate a one-sentence description. Respond with just the description. For example, for a request such as `GET https://api.contoso.com/books/{{books-id}}` you return `Get a book by ID`. Request: {method.ToUpper()} {serverUrl}{parametrizedPath}";
         ILanguageModelCompletionResponse? description = null;
-        if (await Context.LanguageModelClient.IsEnabledAsync()) {
+        if (await Context.LanguageModelClient.IsEnabledAsync())
+        {
             description = await Context.LanguageModelClient.GenerateCompletionAsync(prompt);
         }
         return description?.Response ?? $"{method} {parametrizedPath}";
