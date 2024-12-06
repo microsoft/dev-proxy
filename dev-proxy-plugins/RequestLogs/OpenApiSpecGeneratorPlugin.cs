@@ -15,6 +15,7 @@ using System.Web;
 using System.Collections.Specialized;
 using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions.LanguageModel;
+using System.Text.Json.Serialization;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -42,11 +43,18 @@ class GeneratedByOpenApiExtension : IOpenApiExtension
     }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+internal enum SpecVersion
+{
+    v2_0,
+    v3_0
+}
+
 internal class OpenApiSpecGeneratorPluginConfiguration
 {
     public bool IncludeOptionsRequests { get; set; } = false;
 
-    public string SpecVersion { get; set; } = "3";
+    public SpecVersion SpecVersion { get; set; } = SpecVersion.v3_0;
 }
 
 public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
@@ -294,12 +302,6 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
 
         ConfigSection?.Bind(_configuration);
 
-        if (_configuration.SpecVersion != "2" && _configuration.SpecVersion != "3")
-        {
-            Logger.LogError("OpenAPI spec version is not supported. Supported versions are 2 and 3.");
-            return;
-        }
-
         PluginEvents.AfterRecordingStop += AfterRecordingStopAsync;
     }
 
@@ -364,7 +366,12 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
             var server = openApiDoc.Servers.First();
             var fileName = GetFileNameFromServerUrl(server.Url);
 
-            var openApiSpecVersion = _configuration.SpecVersion == "2" ? OpenApiSpecVersion.OpenApi2_0 : OpenApiSpecVersion.OpenApi3_0;
+            var openApiSpecVersion = _configuration.SpecVersion switch
+            {
+                SpecVersion.v2_0 => OpenApiSpecVersion.OpenApi2_0,
+                SpecVersion.v3_0 => OpenApiSpecVersion.OpenApi3_0,
+                _ => OpenApiSpecVersion.OpenApi3_0
+            };
 
             var docString = openApiDoc.SerializeAsJson(openApiSpecVersion);
 
