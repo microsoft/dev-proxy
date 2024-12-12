@@ -16,7 +16,6 @@ using System.Collections.Specialized;
 using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions.LanguageModel;
 using System.Text.Json.Serialization;
-using Microsoft.DevProxy.Plugins.ApiCenter;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
