@@ -8,4 +8,6 @@ namespace Microsoft.DevProxy.Logging;
 public class ProxyConsoleFormatterOptions: ConsoleFormatterOptions
 {
     public bool ShowSkipMessages { get; set; } = true;
+
+    public bool ShowTimestamps { get; set; } = false;
 }

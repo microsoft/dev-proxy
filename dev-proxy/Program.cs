@@ -26,6 +26,7 @@ PluginEvents pluginEvents = new();
             {
                 options.IncludeScopes = true;
                 options.ShowSkipMessages = ProxyCommandHandler.Configuration.ShowSkipMessages;
+                options.ShowTimestamps = ProxyCommandHandler.Configuration.ShowTimestamps;
             })
             .AddRequestLogger(pluginEvents)
             .SetMinimumLevel(ProxyHost.LogLevel ?? ProxyCommandHandler.Configuration.LogLevel);

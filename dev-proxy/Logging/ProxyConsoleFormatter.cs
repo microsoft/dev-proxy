@@ -238,6 +238,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
             MessageType.Tip => "tip",
             MessageType.Skipped => "skip",
             MessageType.Processed => "proc",
+            MessageType.Timestamp => "time",
             _ => "    "
         };
     }
@@ -258,6 +259,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
             MessageType.Mocked => (ConsoleColor.DarkMagenta, fgColor),
             MessageType.Failed => (ConsoleColor.DarkRed, fgColor),
             MessageType.Tip => (ConsoleColor.DarkBlue, fgColor),
+            MessageType.Timestamp => (ConsoleColor.Gray, fgColor),
             _ => (bgColor, fgColor)
         };
     }

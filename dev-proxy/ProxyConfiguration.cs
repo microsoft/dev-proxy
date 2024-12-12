@@ -38,4 +38,5 @@ public class ProxyConfiguration : IProxyConfiguration
     public MockRequestHeader[]? FilterByHeaders { get; set; }
     public int ApiPort { get; set; } = 8897;
     public bool ShowSkipMessages { get; set; } = true;
+    public bool ShowTimestamps { get; set; } = true;
 }

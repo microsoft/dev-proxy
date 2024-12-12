@@ -18,7 +18,8 @@ public enum MessageType
     InterceptedResponse,
     FinishedProcessingRequest,
     Skipped,
-    Processed
+    Processed,
+    Timestamp
 }
 
 public class LoggingContext(SessionEventArgs session)
