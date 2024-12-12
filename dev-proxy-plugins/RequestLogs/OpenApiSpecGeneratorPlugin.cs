@@ -16,6 +16,7 @@ using System.Collections.Specialized;
 using Microsoft.Extensions.Logging;
 using Microsoft.DevProxy.Abstractions.LanguageModel;
 using System.Text.Json.Serialization;
+using Microsoft.DevProxy.Plugins.ApiCenter;
 
 namespace Microsoft.DevProxy.Plugins.RequestLogs;
 
@@ -50,11 +51,20 @@ internal enum SpecVersion
     v3_0
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+internal enum SpecFormat
+{
+    Json,
+    Yaml
+}
+
 internal class OpenApiSpecGeneratorPluginConfiguration
 {
     public bool IncludeOptionsRequests { get; set; } = false;
 
     public SpecVersion SpecVersion { get; set; } = SpecVersion.v3_0;
+
+    public SpecFormat SpecFormat { get; set; } = SpecFormat.Json;
 }
 
 public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContext context, ILogger logger, ISet<UrlToWatch> urlsToWatch, IConfigurationSection? configSection = null) : BaseReportingPlugin(pluginEvents, context, logger, urlsToWatch, configSection)
@@ -364,7 +374,7 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
         foreach (var openApiDoc in openApiDocs)
         {
             var server = openApiDoc.Servers.First();
-            var fileName = GetFileNameFromServerUrl(server.Url);
+            var fileName = GetFileNameFromServerUrl(server.Url, _configuration.SpecFormat);
 
             var openApiSpecVersion = _configuration.SpecVersion switch
             {
@@ -373,7 +383,12 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
                 _ => OpenApiSpecVersion.OpenApi3_0
             };
 
-            var docString = openApiDoc.SerializeAsJson(openApiSpecVersion);
+            var docString = _configuration.SpecFormat switch
+            {
+                SpecFormat.Json => openApiDoc.SerializeAsJson(openApiSpecVersion),
+                SpecFormat.Yaml => openApiDoc.SerializeAsYaml(openApiSpecVersion),
+                _ => openApiDoc.SerializeAsJson(openApiSpecVersion)
+            };
 
             Logger.LogDebug("  Writing OpenAPI spec to {fileName}...", fileName);
             File.WriteAllText(fileName, docString);
@@ -922,10 +937,16 @@ public class OpenApiSpecGeneratorPlugin(IPluginEvents pluginEvents, IProxyContex
         MergeSchema(contentFromOperation.Schema, apiResponse.Content.First().Value.Schema);
     }
 
-    private static string GetFileNameFromServerUrl(string serverUrl)
+    private static string GetFileNameFromServerUrl(string serverUrl, SpecFormat format)
     {
         var uri = new Uri(serverUrl);
-        var fileName = $"{uri.Host}-{DateTime.Now:yyyyMMddHHmmss}.json";
+        var ext = format switch
+        {
+            SpecFormat.Json => "json",
+            SpecFormat.Yaml => "yaml",
+            _ => "json"
+        };
+        var fileName = $"{uri.Host}-{DateTime.Now:yyyyMMddHHmmss}.{ext}";
         return fileName;
     }
 
