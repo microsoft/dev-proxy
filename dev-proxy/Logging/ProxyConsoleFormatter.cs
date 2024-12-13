@@ -48,7 +48,9 @@ public class ProxyConsoleFormatter : ConsoleFormatter
 
         // don't log intercepted response to console
         if (messageType == MessageType.InterceptedResponse ||
-            (messageType == MessageType.Skipped && !_options.ShowSkipMessages))
+            (messageType == MessageType.Skipped && !_options.ShowSkipMessages) ||
+                (messageType == MessageType.Timestamp && !_options.ShowTimestamps)
+            )
         {
             return;
         }

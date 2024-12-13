@@ -9,5 +9,5 @@ public class ProxyConsoleFormatterOptions: ConsoleFormatterOptions
 {
     public bool ShowSkipMessages { get; set; } = true;
 
-    public bool ShowTimestamps { get; set; } = false;
+    public bool ShowTimestamps { get; set; } = true;
 }
