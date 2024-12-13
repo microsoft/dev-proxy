@@ -261,7 +261,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
             MessageType.Mocked => (ConsoleColor.DarkMagenta, fgColor),
             MessageType.Failed => (ConsoleColor.DarkRed, fgColor),
             MessageType.Tip => (ConsoleColor.DarkBlue, fgColor),
-            MessageType.Timestamp => (ConsoleColor.Gray, fgColor),
+            MessageType.Timestamp => (bgColor, ConsoleColor.Gray),
             _ => (bgColor, fgColor)
         };
     }
