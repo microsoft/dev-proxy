@@ -20,4 +20,5 @@ public interface IProxyConfiguration
     bool Record { get; }
     IEnumerable<int> WatchPids { get; }
     IEnumerable<string> WatchProcessNames { get; }
+    bool ShowTimestamps { get; }
 }

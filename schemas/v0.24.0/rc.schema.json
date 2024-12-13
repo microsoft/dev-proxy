@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "$schema": {
-      "type":"string"
+      "type": "string"
     },
     "apiPort": {
       "type": "number",
@@ -101,6 +101,9 @@
       "items": {
         "type": "string"
       }
+    },
+    "showTimestamps": {
+      "type": "boolean"
     }
   },
   "required": [

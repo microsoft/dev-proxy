@@ -478,7 +478,11 @@ public class ProxyEngine(IProxyConfiguration config, ISet<UrlToWatch> urlsToWatc
             using var scope = _logger.BeginScope(e.HttpClient.Request.Method ?? "", e.HttpClient.Request.Url, e.GetHashCode());
 
             e.UserData = e.HttpClient.Request;
+
             _logger.LogRequest($"{e.HttpClient.Request.Method} {e.HttpClient.Request.Url}", MessageType.InterceptedRequest, new LoggingContext(e));
+
+            _logger.LogRequest($"{DateTimeOffset.UtcNow}", MessageType.Timestamp, new LoggingContext(e));
+
             await HandleRequestAsync(e, proxyRequestArgs);
         }
     }

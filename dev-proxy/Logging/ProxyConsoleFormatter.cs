@@ -48,7 +48,9 @@ public class ProxyConsoleFormatter : ConsoleFormatter
 
         // don't log intercepted response to console
         if (messageType == MessageType.InterceptedResponse ||
-            (messageType == MessageType.Skipped && !_options.ShowSkipMessages))
+            (messageType == MessageType.Skipped && !_options.ShowSkipMessages) ||
+                (messageType == MessageType.Timestamp && !_options.ShowTimestamps)
+            )
         {
             return;
         }
@@ -238,6 +240,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
             MessageType.Tip => "tip",
             MessageType.Skipped => "skip",
             MessageType.Processed => "proc",
+            MessageType.Timestamp => "time",
             _ => "    "
         };
     }
@@ -258,6 +261,7 @@ public class ProxyConsoleFormatter : ConsoleFormatter
             MessageType.Mocked => (ConsoleColor.DarkMagenta, fgColor),
             MessageType.Failed => (ConsoleColor.DarkRed, fgColor),
             MessageType.Tip => (ConsoleColor.DarkBlue, fgColor),
+            MessageType.Timestamp => (bgColor, ConsoleColor.Gray),
             _ => (bgColor, fgColor)
         };
     }

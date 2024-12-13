@@ -22,5 +22,6 @@
   "rate": 50,
   "logLevel": "information",
   "newVersionNotification": "stable",
-  "showSkipMessages": true
+  "showSkipMessages": true,
+  "showTimestamps": true
 }
