@@ -9,7 +9,8 @@ jobs:
     name: Submit to WinGet repository
     runs-on: windows-latest
     steps:
-      # Needed with GitHub Action CI because of https://github.com/microsoft/winget-create/issues/502
+      # Sometimes wingetcreate may fail to sync fork automatically, so we do it manually here.
+      # Ref: https://github.com/microsoft/winget-create/issues/502
       - name: Sync winget-pkgs fork
         # TODO: Replace <repo-owner> with the owner of the fork
         run: gh repo sync <repo-owner>/winget-pkgs -b master
