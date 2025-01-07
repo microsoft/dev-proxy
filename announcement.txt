@@ -1,3 +1,3 @@
 
-\033[1mGot 30 seconds?\033[0m
-Help improve Dev Proxy by answering a 1-question survey: \033[4mhttps://aka.ms/devproxy/survey\033[0m
+Got 30 seconds?
+Help improve Dev Proxy by answering a 1-question survey: https://aka.ms/devproxy/survey
