@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Text.RegularExpressions;
+
 namespace Microsoft.DevProxy;
 
 static class Announcement
@@ -12,6 +14,9 @@ static class Announcement
         var announcement = await GetAsync();
         if (!string.IsNullOrEmpty(announcement))
         {
+            // Unescape the announcement to remove any escape characters
+            // in case we're using ANSI escape codes for color formatting
+            announcement = Regex.Unescape(announcement);
             await Console.Error.WriteLineAsync(announcement);
         }
     }
