@@ -9,11 +9,11 @@ jobs:
     name: Submit to WinGet repository
     runs-on: windows-latest
     steps:
-      # Sometimes wingetcreate may fail to sync fork automatically, so we do it manually here.
-      # Ref: https://github.com/microsoft/winget-create/issues/502
+      # wingetcreate would sync fork automatically, but it may fail to do so if the fork
+      # is behind way too many commits or if the token doesn't have the right scopes.
+      # We sync the fork manually here to avoid any issues. Ref: https://github.com/microsoft/winget-create/issues/502
       - name: Sync winget-pkgs fork
-        # TODO: Replace <repo-owner> with the owner of the fork
-        run: gh repo sync <repo-owner>/winget-pkgs -b master
+        run: gh repo sync garrytrinder/winget-pkgs -b master
         env:
           GH_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
       - name: Submit package using wingetcreate
