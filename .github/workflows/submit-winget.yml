@@ -1,0 +1,32 @@
+name: Submit published release to WinGet community repository
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-winget:
+    name: Submit to WinGet repository
+    runs-on: windows-latest
+    steps:
+      # wingetcreate would sync fork automatically, but it may fail to do so if the fork
+      # is behind way too many commits or if the token doesn't have the right scopes.
+      # We sync the fork manually here to avoid any issues. Ref: https://github.com/microsoft/winget-create/issues/502
+      - name: Sync winget-pkgs fork
+        run: gh repo sync garrytrinder/winget-pkgs -b master
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+      - name: Submit package using wingetcreate
+        run: |
+          # Get installer info from release event
+          $assets = '${{ toJSON(github.event.release.assets) }}' | ConvertFrom-Json
+          $x64InstallerUrl = $assets | Where-Object -Property name -match 'dev-proxy-installer-win-x64-v.*exe$' | Select-Object -First 1 | Select -ExpandProperty browser_download_url
+          $packageVersion = (${{ toJSON(github.event.release.tag_name) }}).Trim('v')
+          $isPrerelease = '${{ toJSON(github.event.release.prerelease) }}' | ConvertFrom-Json
+
+          # WinGet PackageIdentifier
+          $packageId = $isPrerelease ? "Microsoft.DevProxy.Beta" : "Microsoft.DevProxy"
+
+          # Update package using wingetcreate
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe update $packageId --version $packageVersion --urls "$x64InstallerUrl|x64" --submit --token "${{ secrets.WINGET_GITHUB_TOKEN }}"
