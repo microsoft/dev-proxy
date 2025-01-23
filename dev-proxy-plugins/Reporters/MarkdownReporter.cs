@@ -24,7 +24,8 @@ public class MarkdownReporter(IPluginEvents pluginEvents, IProxyContext context,
         { typeof(HttpFileGeneratorPlugin), TransformHttpFileGeneratorReport },
         { typeof(GraphMinimalPermissionsGuidancePluginReport), TransformMinimalPermissionsGuidanceReport },
         { typeof(GraphMinimalPermissionsPluginReport), TransformMinimalPermissionsReport },
-        { typeof(OpenApiSpecGeneratorPluginReport), TransformOpenApiSpecGeneratorReport }
+        { typeof(OpenApiSpecGeneratorPluginReport), TransformOpenApiSpecGeneratorReport },
+        { typeof(UrlDiscoveryPluginReport), TransformUrlDiscoveryReport }
     };
 
     private const string _requestsInterceptedMessage = "Requests intercepted";
@@ -480,6 +481,43 @@ public class MarkdownReporter(IPluginEvents pluginEvents, IProxyContext context,
         sb.AppendLine();
         sb.AppendLine();
 
+        return sb.ToString();
+    }
+
+    private static string? TransformUrlDiscoveryReport(object report)
+    {
+        var urlDiscoveryPluginReport = (UrlDiscoveryPluginReport)report;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("## Wildcards");
+        sb.AppendLine("");
+        sb.AppendLine("You can use wildcards to catch multiple URLs with the same pattern.");
+        sb.AppendLine("For example, you can use the following URL pattern to catch all API requests to");
+        sb.AppendLine("JSON Placeholder API:");
+        sb.AppendLine("");
+        sb.AppendLine("```text");
+        sb.AppendLine("https://jsonplaceholder.typicode.com/*");
+        sb.AppendLine("```");
+        sb.AppendLine("");
+        sb.AppendLine("## Excluding URLs");
+        sb.AppendLine("");
+        sb.AppendLine("You can exclude URLs with ! to prevent them from being intercepted.");
+        sb.AppendLine("For example, you can exclude the URL `https://jsonplaceholder.typicode.com/authors`");
+        sb.AppendLine("by using the following URL pattern:");
+        sb.AppendLine("");
+        sb.AppendLine("```text");
+        sb.AppendLine("!https://jsonplaceholder.typicode.com/authors");
+        sb.AppendLine("https://jsonplaceholder.typicode.com/*");
+        sb.AppendLine("```");
+        sb.AppendLine("");
+        sb.AppendLine("Intercepted URLs:");
+        sb.AppendLine();
+        sb.AppendLine("```text");
+
+        sb.AppendJoin(Environment.NewLine, urlDiscoveryPluginReport.Data);
+
+        sb.AppendLine("");
+        sb.AppendLine("```");
         return sb.ToString();
     }
 
