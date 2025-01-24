@@ -79,6 +79,7 @@ public class ExecutionSummaryPlugin(IPluginEvents pluginEvents, IProxyContext co
     {
         if (!e.RequestLogs.Any())
         {
+            Logger.LogRequest("No messages recorded", MessageType.Skipped);
             return Task.CompletedTask;
         }
 
